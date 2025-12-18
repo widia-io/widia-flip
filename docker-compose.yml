@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-widia}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-widia}"
+      POSTGRES_DB: "${POSTGRES_DB:-widia_flip}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-widia} -d ${POSTGRES_DB:-widia_flip}"
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    image: migrate/migrate:v4.17.1
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations
+    command:
+      [
+        "-path=/migrations",
+        "-database=postgres://${POSTGRES_USER:-widia}:${POSTGRES_PASSWORD:-widia}@db:5432/${POSTGRES_DB:-widia_flip}?sslmode=disable",
+        "up"
+      ]
+    restart: "no"
+
+volumes:
+  postgres_data:
+
+

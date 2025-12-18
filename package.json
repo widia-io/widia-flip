@@ -1,0 +1,21 @@
+{
+  "name": "widia-flip",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "db:up": "docker compose up -d db",
+    "db:migrate": "docker compose run --rm migrate",
+    "db:down": "docker compose down -v",
+    "dev:web": "npm -w apps/web run dev",
+    "build:web": "npm -w apps/web run build",
+    "lint:web": "npm -w apps/web run lint",
+    "typecheck:web": "npm -w apps/web run typecheck",
+    "dev:api": "cd services/api && go run ./cmd/api",
+    "fmt:api": "cd services/api && gofmt -w ."
+  }
+}
+
+
