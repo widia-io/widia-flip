@@ -10,9 +10,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@types/pg": "^8.16.0",
     "@widia/shared": "0.0.0",
     "better-auth": "^1.0.0",
     "next": "^15.1.0",
+    "pg": "^8.16.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -28,5 +30,3 @@
     "typescript": "^5.7.2"
   }
 }
-
-
