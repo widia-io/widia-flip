@@ -50,8 +50,8 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-01 — Foundation Running`
-* **Milestone em andamento:** `M1 — Prospecção + Quick Add`
+* **Current Checkpoint:** `CP-02 — Prospecção Operacional`
+* **Milestone em andamento:** `M2 — Imóvel Hub + Viabilidade à Vista`
 * **Última atualização:** `2025-12-18`
 
 ## 1.2 Milestones (visão macro)
@@ -156,12 +156,12 @@ Deve existir:
 
 ### M1 — Prospecção + Quick Add
 
-* ⬜ T1.1 Tabela `prospecting_properties` + CRUD API
-* ⬜ T1.2 Tela Prospecção (tabela minimalista + filtros)
-* ⬜ T1.3 Quick Add (enter-to-save) + validações
-* ⬜ T1.4 Preço/m² calculado e exibido
-* ⬜ T1.5 Tags + comentários (simples)
-* ⬜ T1.6 Converter prospecção → imóvel (criar `properties` e linkar origem)
+* ✅ T1.1 Tabela `prospecting_properties` + CRUD API
+* ✅ T1.2 Tela Prospecção (tabela minimalista + filtros)
+* ✅ T1.3 Quick Add (enter-to-save) + validações
+* ✅ T1.4 Preço/m² calculado e exibido
+* ✅ T1.5 Tags + comentários (simples)
+* ✅ T1.6 Converter prospecção → imóvel (criar `properties` e linkar origem)
   **Checkpoint alvo:** `CP-02`
 
 ### M2 — Imóvel Hub + Viabilidade à Vista
@@ -483,3 +483,4 @@ Critérios:
 
 * `CP-00` — 2025-12-18 — PRD v2: locks + auth contract + journeys + demo/smoke adicionados.
 * `CP-01` — 2025-12-18 — M0 entregue: monorepo (Next+Go+shared), Postgres+Migrations base, Better Auth + BFF bearer, API health + auth (JWKS) + workspaces.
+* `CP-02` — 2025-12-18 — M1 entregue: CRUD prospects (Go API), tabela prospecção com Quick Add (enter-to-save), preço/m² calculado server-side, conversão prospect→property.
