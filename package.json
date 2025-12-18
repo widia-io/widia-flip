@@ -13,7 +13,7 @@
     "build:web": "npm -w apps/web run build",
     "lint:web": "npm -w apps/web run lint",
     "typecheck:web": "npm -w apps/web run typecheck",
-    "dev:api": "cd services/api && go run ./cmd/api",
+    "dev:api": "bash scripts/dev-api.sh",
     "fmt:api": "cd services/api && gofmt -w ."
   }
 }
