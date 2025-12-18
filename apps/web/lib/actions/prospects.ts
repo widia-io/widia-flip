@@ -129,8 +129,8 @@ export async function convertProspectAction(prospectId: string) {
     );
 
     revalidatePath("/app/prospects");
-    // For now, redirect to prospects list since property page doesn't exist yet
-    redirect("/app/prospects");
+    revalidatePath("/app/properties");
+    redirect(`/app/properties/${result.property_id}`);
     return { success: true, propertyId: result.property_id };
   } catch (e) {
     const message =

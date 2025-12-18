@@ -50,8 +50,8 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-02 — Prospecção Operacional`
-* **Milestone em andamento:** `M2 — Imóvel Hub + Viabilidade à Vista`
+* **Current Checkpoint:** `CP-03 — Imóvel + Viabilidade à Vista`
+* **Milestone em andamento:** `M3 — Financiamento`
 * **Última atualização:** `2025-12-18`
 
 ## 1.2 Milestones (visão macro)
@@ -166,11 +166,11 @@ Deve existir:
 
 ### M2 — Imóvel Hub + Viabilidade à Vista
 
-* ⬜ T2.1 Entidade `properties` + status pipeline
-* ⬜ T2.2 Tela do Imóvel (abas mínimas)
-* ⬜ T2.3 `workspace_settings` com defaults BR
-* ⬜ T2.4 Cálculos viabilidade à vista (server-side) + UI outputs
-* ⬜ T2.5 Snapshot versionado (cash) + histórico
+* ✅ T2.1 Entidade `properties` + status pipeline
+* ✅ T2.2 Tela do Imóvel (abas mínimas)
+* ✅ T2.3 `workspace_settings` com defaults BR
+* ✅ T2.4 Cálculos viabilidade à vista (server-side) + UI outputs
+* ✅ T2.5 Snapshot versionado (cash) + histórico
   **Checkpoint alvo:** `CP-03`
 
 ### M3 — Financiamento
@@ -484,3 +484,4 @@ Critérios:
 * `CP-00` — 2025-12-18 — PRD v2: locks + auth contract + journeys + demo/smoke adicionados.
 * `CP-01` — 2025-12-18 — M0 entregue: monorepo (Next+Go+shared), Postgres+Migrations base, Better Auth + BFF bearer, API health + auth (JWKS) + workspaces.
 * `CP-02` — 2025-12-18 — M1 entregue: CRUD prospects (Go API), tabela prospecção com Quick Add (enter-to-save), preço/m² calculado server-side, conversão prospect→property.
+* `CP-03` — 2025-12-18 — M2 entregue: Property hub com abas (overview/viability/timeline/prospect), workspace_settings BR (ITBI/registro/corretagem), cálculo cash server-side (viability engine), snapshots versionados + histórico, timeline de eventos.

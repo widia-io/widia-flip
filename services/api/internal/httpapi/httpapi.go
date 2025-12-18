@@ -29,6 +29,10 @@ func NewHandler(deps Deps) http.Handler {
 	mux.HandleFunc("/api/v1/prospects", api.handleProspectsCollection)
 	mux.HandleFunc("/api/v1/prospects/", api.handleProspectsSubroutes)
 
+	// M2 - Properties
+	mux.HandleFunc("/api/v1/properties", api.handlePropertiesCollection)
+	mux.HandleFunc("/api/v1/properties/", api.handlePropertiesSubroutes)
+
 	var h http.Handler = mux
 	h = authMiddleware(api.tokenVerifier, h)
 	h = recoverMiddleware(h)

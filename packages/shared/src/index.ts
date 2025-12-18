@@ -126,4 +126,137 @@ export const ConvertProspectResponseSchema = z.object({
 });
 export type ConvertProspectResponse = z.infer<typeof ConvertProspectResponseSchema>;
 
+// M2 - Properties
+
+export const PropertyStatusEnum = z.enum([
+  "prospecting",
+  "analyzing",
+  "bought",
+  "renovation",
+  "for_sale",
+  "sold",
+  "archived",
+]);
+export type PropertyStatus = z.infer<typeof PropertyStatusEnum>;
+
+export const PropertySchema = z.object({
+  id: z.string(),
+  workspace_id: z.string(),
+  origin_prospect_id: z.string().nullable(),
+  status_pipeline: PropertyStatusEnum,
+  neighborhood: z.string().nullable(),
+  address: z.string().nullable(),
+  area_usable: z.number().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type Property = z.infer<typeof PropertySchema>;
+
+export const ListPropertiesResponseSchema = z.object({
+  items: z.array(PropertySchema),
+  next_cursor: z.string().nullable().optional(),
+});
+export type ListPropertiesResponse = z.infer<typeof ListPropertiesResponseSchema>;
+
+export const CreatePropertyRequestSchema = z.object({
+  workspace_id: z.string().min(1),
+  neighborhood: z.string().optional(),
+  address: z.string().optional(),
+  area_usable: z.number().positive().optional(),
+  status_pipeline: PropertyStatusEnum.optional(),
+});
+export type CreatePropertyRequest = z.infer<typeof CreatePropertyRequestSchema>;
+
+export const UpdatePropertyRequestSchema = z.object({
+  neighborhood: z.string().optional(),
+  address: z.string().optional(),
+  area_usable: z.number().positive().optional(),
+});
+export type UpdatePropertyRequest = z.infer<typeof UpdatePropertyRequestSchema>;
+
+export const UpdatePropertyStatusRequestSchema = z.object({
+  status_pipeline: PropertyStatusEnum,
+});
+export type UpdatePropertyStatusRequest = z.infer<typeof UpdatePropertyStatusRequestSchema>;
+
+// M2 - Cash Analysis
+
+export const CashInputsSchema = z.object({
+  purchase_price: z.number().nullable(),
+  renovation_cost: z.number().nullable(),
+  other_costs: z.number().nullable(),
+  sale_price: z.number().nullable(),
+});
+export type CashInputs = z.infer<typeof CashInputsSchema>;
+
+export const CashOutputsSchema = z.object({
+  itbi_value: z.number(),
+  registry_value: z.number(),
+  acquisition_cost: z.number(),
+  investment_total: z.number(),
+  broker_fee: z.number(),
+  gross_profit: z.number(),
+  pj_tax_value: z.number(),
+  net_profit: z.number(),
+  roi: z.number(),
+  is_partial: z.boolean(),
+});
+export type CashOutputs = z.infer<typeof CashOutputsSchema>;
+
+export const CashAnalysisResponseSchema = z.object({
+  inputs: CashInputsSchema,
+  outputs: CashOutputsSchema,
+});
+export type CashAnalysisResponse = z.infer<typeof CashAnalysisResponseSchema>;
+
+export const UpdateCashInputsRequestSchema = z.object({
+  purchase_price: z.number().nonnegative().optional(),
+  renovation_cost: z.number().nonnegative().optional(),
+  other_costs: z.number().nonnegative().optional(),
+  sale_price: z.number().nonnegative().optional(),
+});
+export type UpdateCashInputsRequest = z.infer<typeof UpdateCashInputsRequestSchema>;
+
+export const CashSnapshotSchema = z.object({
+  id: z.string(),
+  inputs: CashInputsSchema,
+  outputs: CashOutputsSchema,
+  created_at: z.string(),
+});
+export type CashSnapshot = z.infer<typeof CashSnapshotSchema>;
+
+export const ListCashSnapshotsResponseSchema = z.object({
+  items: z.array(CashSnapshotSchema),
+});
+export type ListCashSnapshotsResponse = z.infer<typeof ListCashSnapshotsResponseSchema>;
+
+export const CreateSnapshotResponseSchema = z.object({
+  snapshot_id: z.string(),
+  created_at: z.string(),
+});
+export type CreateSnapshotResponse = z.infer<typeof CreateSnapshotResponseSchema>;
+
+// M2 - Timeline
+
+export const TimelineEventTypeEnum = z.enum([
+  "status_changed",
+  "analysis_cash_saved",
+]);
+export type TimelineEventType = z.infer<typeof TimelineEventTypeEnum>;
+
+export const TimelineEventSchema = z.object({
+  id: z.string(),
+  property_id: z.string(),
+  workspace_id: z.string(),
+  event_type: z.string(),
+  payload: z.record(z.unknown()).nullable().optional(),
+  actor_user_id: z.string().nullable().optional(),
+  created_at: z.string(),
+});
+export type TimelineEvent = z.infer<typeof TimelineEventSchema>;
+
+export const ListTimelineResponseSchema = z.object({
+  items: z.array(TimelineEventSchema),
+});
+export type ListTimelineResponse = z.infer<typeof ListTimelineResponseSchema>;
 
