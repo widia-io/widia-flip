@@ -3,6 +3,10 @@ import { redirect } from "next/navigation";
 
 import { signInEmailAction, signUpEmailAction } from "@/lib/actions/auth";
 import { getServerSession } from "@/lib/serverAuth";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 export default async function LoginPage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -16,101 +20,146 @@ export default async function LoginPage(props: {
   const error = typeof searchParams.error === "string" ? searchParams.error : "";
   const success =
     typeof searchParams.success === "string" ? searchParams.success : "";
+  const tab = typeof searchParams.tab === "string" ? searchParams.tab : "login";
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-md rounded-xl border border-neutral-800 bg-neutral-950 p-6">
-        <div className="text-lg font-semibold">Entrar</div>
-        <div className="mt-1 text-sm text-neutral-400">
-          Better Auth (email/senha) — MVP (CP-01)
+    <div className="flex min-h-screen flex-col items-center justify-center px-4">
+      {/* Logo */}
+      <Link href="/" className="mb-8 flex items-center gap-2">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+          <span className="text-lg font-bold text-primary-foreground">W</span>
         </div>
+        <span className="text-xl font-semibold">Widia Flip</span>
+      </Link>
 
-        {error ? (
-          <div className="mt-4 rounded-md border border-red-900/60 bg-red-950/50 px-3 py-2 text-sm text-red-200">
-            {error}
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl">
+            {tab === "signup" ? "Criar sua conta" : "Bem-vindo de volta"}
+          </CardTitle>
+          <CardDescription>
+            {tab === "signup"
+              ? "Comece a gerenciar seus flips imobiliários"
+              : "Entre para acessar sua conta"}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          {error ? (
+            <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          ) : null}
+
+          {success ? (
+            <div className="mb-4 rounded-lg border border-primary/50 bg-primary/10 px-4 py-3 text-sm text-primary">
+              {success === "account_created"
+                ? "Conta criada com sucesso! Faça login para continuar."
+                : success}
+            </div>
+          ) : null}
+
+          {tab === "signup" ? (
+            <form action={signUpEmailAction} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder="Seu nome"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="Mínimo 8 caracteres"
+                  required
+                  minLength={8}
+                />
+              </div>
+              <Button type="submit" className="w-full">
+                Criar conta
+              </Button>
+            </form>
+          ) : (
+            <form action={signInEmailAction} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full">
+                Entrar
+              </Button>
+            </form>
+          )}
+
+          <div className="mt-6 text-center text-sm text-muted-foreground">
+            {tab === "signup" ? (
+              <>
+                Já tem uma conta?{" "}
+                <Link
+                  href="/login"
+                  className="font-medium text-primary hover:underline"
+                >
+                  Fazer login
+                </Link>
+              </>
+            ) : (
+              <>
+                Não tem uma conta?{" "}
+                <Link
+                  href="/login?tab=signup"
+                  className="font-medium text-primary hover:underline"
+                >
+                  Criar conta
+                </Link>
+              </>
+            )}
           </div>
-        ) : null}
+        </CardContent>
+      </Card>
 
-        {success ? (
-          <div className="mt-4 rounded-md border border-emerald-900/60 bg-emerald-950/40 px-3 py-2 text-sm text-emerald-200">
-            {success}
-          </div>
-        ) : null}
-
-        <form action={signInEmailAction} className="mt-5 space-y-3">
-          <label className="block">
-            <div className="mb-1 text-xs text-neutral-400">Email</div>
-            <input
-              name="email"
-              type="email"
-              required
-              className="w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100"
-            />
-          </label>
-          <label className="block">
-            <div className="mb-1 text-xs text-neutral-400">Senha</div>
-            <input
-              name="password"
-              type="password"
-              required
-              className="w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100"
-            />
-          </label>
-          <button
-            type="submit"
-            className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 hover:bg-neutral-800"
-          >
-            Entrar
-          </button>
-        </form>
-
-        <div className="my-6 h-px bg-neutral-900" />
-
-        <div className="text-sm font-medium">Criar conta (dev)</div>
-        <form action={signUpEmailAction} className="mt-3 space-y-3">
-          <label className="block">
-            <div className="mb-1 text-xs text-neutral-400">Nome</div>
-            <input
-              name="name"
-              type="text"
-              required
-              className="w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100"
-            />
-          </label>
-          <label className="block">
-            <div className="mb-1 text-xs text-neutral-400">Email</div>
-            <input
-              name="email"
-              type="email"
-              required
-              className="w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100"
-            />
-          </label>
-          <label className="block">
-            <div className="mb-1 text-xs text-neutral-400">Senha</div>
-            <input
-              name="password"
-              type="password"
-              required
-              className="w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100"
-            />
-          </label>
-          <button
-            type="submit"
-            className="w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 hover:bg-neutral-900"
-          >
-            Criar conta
-          </button>
-        </form>
-
-        <div className="mt-6 text-xs text-neutral-500">
-          <Link href="/" className="hover:text-neutral-300">
-            Voltar
-          </Link>
-        </div>
-      </div>
+      <p className="mt-8 text-center text-xs text-muted-foreground">
+        Ao continuar, você concorda com nossos{" "}
+        <Link href="#" className="underline hover:text-foreground">
+          Termos de Uso
+        </Link>{" "}
+        e{" "}
+        <Link href="#" className="underline hover:text-foreground">
+          Política de Privacidade
+        </Link>
+      </p>
     </div>
   );
 }
-
-

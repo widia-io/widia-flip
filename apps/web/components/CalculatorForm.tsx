@@ -2,10 +2,15 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 import type { CashOutputs } from "@widia/shared";
 import { CalculatorOutputs } from "@/components/CalculatorOutputs";
 import { AuthModal } from "@/components/AuthModal";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 interface CalculatorFormProps {
   readonly isLoggedIn: boolean;
@@ -178,131 +183,111 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Inputs */}
-        <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-medium text-neutral-100">
-              Dados do Imóvel
-            </h2>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Dados do Imóvel</CardTitle>
             {isPending && (
-              <span className="text-xs text-neutral-500">Calculando...</span>
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             )}
-          </div>
+          </CardHeader>
 
-          {error && (
-            <div className="mb-4 rounded-lg border border-red-900/60 bg-red-950/50 p-3 text-sm text-red-200">
-              {error}
-            </div>
-          )}
+          <CardContent>
+            {error && (
+              <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
 
-          <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="purchase_price"
-                className="block text-sm text-neutral-400 mb-1.5"
-              >
-                Preço de Compra (R$) *
-              </label>
-              <input
-                id="purchase_price"
-                type="number"
-                value={inputs.purchase_price ?? ""}
-                onChange={(e) =>
-                  handleInputChange("purchase_price", e.target.value)
-                }
-                placeholder="500000"
-                className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="purchase_price">Preço de Compra (R$) *</Label>
+                <Input
+                  id="purchase_price"
+                  type="number"
+                  value={inputs.purchase_price ?? ""}
+                  onChange={(e) =>
+                    handleInputChange("purchase_price", e.target.value)
+                  }
+                  placeholder="500000"
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="renovation_cost"
-                className="block text-sm text-neutral-400 mb-1.5"
-              >
-                Custo de Reforma (R$)
-              </label>
-              <input
-                id="renovation_cost"
-                type="number"
-                value={inputs.renovation_cost ?? ""}
-                onChange={(e) =>
-                  handleInputChange("renovation_cost", e.target.value)
-                }
-                placeholder="50000"
-                className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="renovation_cost">Custo de Reforma (R$)</Label>
+                <Input
+                  id="renovation_cost"
+                  type="number"
+                  value={inputs.renovation_cost ?? ""}
+                  onChange={(e) =>
+                    handleInputChange("renovation_cost", e.target.value)
+                  }
+                  placeholder="50000"
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="other_costs"
-                className="block text-sm text-neutral-400 mb-1.5"
-              >
-                Outros Custos (R$)
-              </label>
-              <input
-                id="other_costs"
-                type="number"
-                value={inputs.other_costs ?? ""}
-                onChange={(e) =>
-                  handleInputChange("other_costs", e.target.value)
-                }
-                placeholder="10000"
-                className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="other_costs">Outros Custos (R$)</Label>
+                <Input
+                  id="other_costs"
+                  type="number"
+                  value={inputs.other_costs ?? ""}
+                  onChange={(e) =>
+                    handleInputChange("other_costs", e.target.value)
+                  }
+                  placeholder="10000"
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="sale_price"
-                className="block text-sm text-neutral-400 mb-1.5"
-              >
-                Preço de Venda (R$) *
-              </label>
-              <input
-                id="sale_price"
-                type="number"
-                value={inputs.sale_price ?? ""}
-                onChange={(e) =>
-                  handleInputChange("sale_price", e.target.value)
-                }
-                placeholder="700000"
-                className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="sale_price">Preço de Venda (R$) *</Label>
+                <Input
+                  id="sale_price"
+                  type="number"
+                  value={inputs.sale_price ?? ""}
+                  onChange={(e) =>
+                    handleInputChange("sale_price", e.target.value)
+                  }
+                  placeholder="700000"
+                />
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Outputs */}
-        <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-          <h2 className="text-lg font-medium text-neutral-100 mb-6">
-            Resultado
-          </h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>Resultado</CardTitle>
+          </CardHeader>
 
-          {outputs ? (
-            <CalculatorOutputs outputs={outputs} />
-          ) : (
-            <div className="flex items-center justify-center h-48 text-neutral-500">
-              Preencha os valores para ver o resultado
-            </div>
-          )}
-
-          {/* Save Button */}
-          <div className="mt-6 pt-6 border-t border-neutral-800">
-            <button
-              onClick={handleSave}
-              disabled={isSaving || !canSave}
-              className="w-full rounded-md bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {getSaveButtonText(isSaving, isLoggedIn)}
-            </button>
-            {!canSave && outputs?.is_partial && (
-              <p className="mt-2 text-xs text-neutral-500 text-center">
-                Preencha preço de compra e venda para salvar
-              </p>
+          <CardContent>
+            {outputs ? (
+              <CalculatorOutputs outputs={outputs} />
+            ) : (
+              <div className="flex items-center justify-center h-48 text-muted-foreground">
+                Preencha os valores para ver o resultado
+              </div>
             )}
-          </div>
-        </div>
+
+            {/* Save Button */}
+            <div className="mt-6 pt-6 border-t border-border">
+              <Button
+                onClick={handleSave}
+                disabled={isSaving || !canSave}
+                className="w-full"
+                size="lg"
+              >
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {getSaveButtonText(isSaving, isLoggedIn)}
+              </Button>
+              {!canSave && outputs?.is_partial && (
+                <p className="mt-2 text-xs text-muted-foreground text-center">
+                  Preencha preço de compra e venda para salvar
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Auth Modal */}

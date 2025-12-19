@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 import type { Prospect } from "@widia/shared";
 
@@ -9,6 +10,9 @@ import {
   deleteProspectAction,
   convertProspectAction,
 } from "@/lib/actions/prospects";
+import { TableCell, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface ProspectRowProps {
   prospect: Prospect;
@@ -16,6 +20,12 @@ interface ProspectRowProps {
   formatArea: (value: number | null | undefined) => string;
   formatPricePerSqm: (value: number | null | undefined) => string;
 }
+
+const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
+  active: { label: "Ativo", variant: "default" },
+  discarded: { label: "Descartado", variant: "secondary" },
+  converted: { label: "Convertido", variant: "outline" },
+};
 
 export function ProspectRow({
   prospect,
@@ -27,18 +37,6 @@ export function ProspectRow({
   const [isPending, startTransition] = useTransition();
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showConfirmConvert, setShowConfirmConvert] = useState(false);
-
-  const statusLabels: Record<string, string> = {
-    active: "Ativo",
-    discarded: "Descartado",
-    converted: "Convertido",
-  };
-
-  const statusColors: Record<string, string> = {
-    active: "bg-emerald-900/50 text-emerald-300",
-    discarded: "bg-neutral-700/50 text-neutral-400",
-    converted: "bg-blue-900/50 text-blue-300",
-  };
 
   const handleDelete = () => {
     startTransition(async () => {
@@ -56,62 +54,52 @@ export function ProspectRow({
   };
 
   const isConverted = prospect.status === "converted";
+  const status = statusConfig[prospect.status] ?? { label: prospect.status, variant: "secondary" as const };
 
   return (
-    <tr className="hover:bg-neutral-900/50">
-      <td className="px-4 py-3 text-sm text-neutral-100">
-        {prospect.neighborhood ?? "-"}
-      </td>
-      <td className="px-4 py-3 text-sm text-neutral-100">
-        {prospect.address ?? "-"}
-      </td>
-      <td className="px-4 py-3 text-right text-sm text-neutral-100">
-        {formatArea(prospect.area_usable)}
-      </td>
-      <td className="px-4 py-3 text-right text-sm text-neutral-100">
-        {formatCurrency(prospect.asking_price)}
-      </td>
-      <td className="px-4 py-3 text-right text-sm text-neutral-400">
+    <TableRow>
+      <TableCell>{prospect.neighborhood ?? "-"}</TableCell>
+      <TableCell>{prospect.address ?? "-"}</TableCell>
+      <TableCell className="text-right">{formatArea(prospect.area_usable)}</TableCell>
+      <TableCell className="text-right">{formatCurrency(prospect.asking_price)}</TableCell>
+      <TableCell className="text-right text-muted-foreground">
         {formatPricePerSqm(prospect.price_per_sqm)}
-      </td>
-      <td className="px-4 py-3">
-        <span
-          className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${statusColors[prospect.status] ?? "bg-neutral-700/50 text-neutral-400"}`}
-        >
-          {statusLabels[prospect.status] ?? prospect.status}
-        </span>
-      </td>
-      <td className="px-4 py-3 text-right">
+      </TableCell>
+      <TableCell>
+        <Badge variant={status.variant}>{status.label}</Badge>
+      </TableCell>
+      <TableCell className="text-right">
         <div className="flex items-center justify-end gap-2">
           {/* Convert button */}
           {!isConverted && (
             <>
               {showConfirmConvert ? (
                 <div className="flex items-center gap-1">
-                  <button
+                  <Button
+                    size="sm"
                     onClick={handleConvert}
                     disabled={isPending}
-                    className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {isPending ? "..." : "Sim"}
-                  </button>
-                  <button
+                    {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Sim"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={() => setShowConfirmConvert(false)}
                     disabled={isPending}
-                    className="rounded border border-neutral-700 px-2 py-1 text-xs text-neutral-400 hover:bg-neutral-800"
                   >
                     Não
-                  </button>
+                  </Button>
                 </div>
               ) : (
-                <button
+                <Button
+                  size="sm"
+                  variant="outline"
                   onClick={() => setShowConfirmConvert(true)}
                   disabled={isPending}
-                  className="rounded border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800 disabled:opacity-50"
-                  title="Converter para imóvel"
                 >
                   Converter
-                </button>
+                </Button>
               )}
             </>
           )}
@@ -119,33 +107,36 @@ export function ProspectRow({
           {/* Delete button */}
           {showConfirmDelete ? (
             <div className="flex items-center gap-1">
-              <button
+              <Button
+                size="sm"
+                variant="destructive"
                 onClick={handleDelete}
                 disabled={isPending}
-                className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700 disabled:opacity-50"
               >
-                {isPending ? "..." : "Sim"}
-              </button>
-              <button
+                {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Sim"}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
                 onClick={() => setShowConfirmDelete(false)}
                 disabled={isPending}
-                className="rounded border border-neutral-700 px-2 py-1 text-xs text-neutral-400 hover:bg-neutral-800"
               >
                 Não
-              </button>
+              </Button>
             </div>
           ) : (
-            <button
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={() => setShowConfirmDelete(true)}
               disabled={isPending}
-              className="rounded border border-neutral-700 px-2 py-1 text-xs text-neutral-400 hover:bg-neutral-800 hover:text-red-400 disabled:opacity-50"
-              title="Excluir"
+              className="text-muted-foreground hover:text-destructive"
             >
               Excluir
-            </button>
+            </Button>
           )}
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }

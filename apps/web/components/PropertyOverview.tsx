@@ -2,9 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 import type { Property } from "@widia/shared";
 import { updatePropertyStatusAction } from "@/lib/actions/properties";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface PropertyOverviewProps {
   property: Property;
@@ -55,94 +59,109 @@ export function PropertyOverview({ property }: PropertyOverviewProps) {
   return (
     <div className="space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-900/60 bg-red-950/50 p-4 text-sm text-red-200">
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {/* Status Change */}
-      <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-        <h3 className="text-sm font-medium text-neutral-400 mb-3">
-          Alterar Status
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          {STATUS_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => handleStatusChange(option.value)}
-              disabled={isPending || property.status_pipeline === option.value}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                property.status_pipeline === option.value
-                  ? "bg-blue-600 text-white cursor-default"
-                  : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700 disabled:opacity-50"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-        {isPending && (
-          <p className="mt-2 text-xs text-neutral-500">Atualizando...</p>
-        )}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Alterar Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {STATUS_OPTIONS.map((option) => (
+              <Button
+                key={option.value}
+                onClick={() => handleStatusChange(option.value)}
+                disabled={isPending || property.status_pipeline === option.value}
+                variant={property.status_pipeline === option.value ? "default" : "secondary"}
+                size="sm"
+                className={cn(
+                  property.status_pipeline === option.value && "cursor-default"
+                )}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+          {isPending && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Atualizando...
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Property Details */}
-      <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-        <h3 className="text-sm font-medium text-neutral-400 mb-4">
-          Informações do Imóvel
-        </h3>
-        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <dt className="text-xs text-neutral-500">Endereço</dt>
-            <dd className="mt-1 text-sm text-neutral-100">
-              {property.address || "-"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-neutral-500">Bairro</dt>
-            <dd className="mt-1 text-sm text-neutral-100">
-              {property.neighborhood || "-"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-neutral-500">Área Útil</dt>
-            <dd className="mt-1 text-sm text-neutral-100">
-              {formatArea(property.area_usable)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-neutral-500">ID</dt>
-            <dd className="mt-1 text-sm text-neutral-400 font-mono text-xs">
-              {property.id}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-neutral-500">Criado em</dt>
-            <dd className="mt-1 text-sm text-neutral-100">
-              {formatDate(property.created_at)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-neutral-500">Atualizado em</dt>
-            <dd className="mt-1 text-sm text-neutral-100">
-              {formatDate(property.updated_at)}
-            </dd>
-          </div>
-        </dl>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Informações do Imóvel
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <dt className="text-xs text-muted-foreground">Endereço</dt>
+              <dd className="mt-1 text-sm">
+                {property.address || "-"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Bairro</dt>
+              <dd className="mt-1 text-sm">
+                {property.neighborhood || "-"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Área Útil</dt>
+              <dd className="mt-1 text-sm">
+                {formatArea(property.area_usable)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">ID</dt>
+              <dd className="mt-1 text-xs font-mono text-muted-foreground">
+                {property.id}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Criado em</dt>
+              <dd className="mt-1 text-sm">
+                {formatDate(property.created_at)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Atualizado em</dt>
+              <dd className="mt-1 text-sm">
+                {formatDate(property.updated_at)}
+              </dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
 
       {property.origin_prospect_id && (
-        <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-          <h3 className="text-sm font-medium text-neutral-400 mb-2">
-            Origem
-          </h3>
-          <p className="text-sm text-neutral-300">
-            Este imóvel foi convertido de uma prospecção.
-          </p>
-          <p className="mt-1 text-xs text-neutral-500 font-mono">
-            Prospect ID: {property.origin_prospect_id}
-          </p>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Origem
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              Este imóvel foi convertido de uma prospecção.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground font-mono">
+              Prospect ID: {property.origin_prospect_id}
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

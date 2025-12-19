@@ -1,7 +1,19 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface AuthModalProps {
   readonly isOpen: boolean;
@@ -14,33 +26,6 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  // Handle dialog open/close
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isOpen) {
-      dialog.showModal();
-    } else {
-      dialog.close();
-    }
-  }, [isOpen]);
-
-  // Handle click outside to close
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
-    if (e.target === dialogRef.current) {
-      onClose();
-    }
-  };
-
-  // Handle keyboard events (Escape to close)
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDialogElement>) => {
-    if (e.key === "Escape") {
-      onClose();
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -119,191 +104,125 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
-    <dialog
-      ref={dialogRef}
-      onClick={handleBackdropClick}
-      onKeyDown={handleKeyDown}
-      className="fixed inset-0 z-50 bg-transparent backdrop:bg-black/70"
-    >
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-xl border border-neutral-800 bg-neutral-950 p-6 shadow-xl">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-neutral-100">
-              {mode === "login" ? "Entrar" : "Criar conta"}
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-neutral-500 hover:text-neutral-300"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {/* Info */}
-          <p className="text-sm text-neutral-400 mb-6">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {mode === "login" ? "Entrar" : "Criar conta"}
+          </DialogTitle>
+          <DialogDescription>
             {mode === "login"
               ? "Entre para salvar sua análise e acessar todos os recursos."
               : "Crie sua conta para salvar análises e gerenciar seus flips."}
-          </p>
+          </DialogDescription>
+        </DialogHeader>
 
-          {/* Error */}
-          {error && (
-            <div className="mb-4 rounded-md border border-red-900/60 bg-red-950/50 px-3 py-2 text-sm text-red-200">
-              {error}
-            </div>
-          )}
-
-          {/* Login Form */}
-          {mode === "login" && (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="login-email"
-                  className="block text-sm text-neutral-400 mb-1.5"
-                >
-                  Email
-                </label>
-                <input
-                  id="login-email"
-                  name="email"
-                  type="email"
-                  required
-                  className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="login-password"
-                  className="block text-sm text-neutral-400 mb-1.5"
-                >
-                  Senha
-                </label>
-                <input
-                  id="login-password"
-                  name="password"
-                  type="password"
-                  required
-                  className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full rounded-md bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-              >
-                {isLoading ? "Entrando..." : "Entrar"}
-              </button>
-            </form>
-          )}
-
-          {/* Signup Form */}
-          {mode === "signup" && (
-            <form onSubmit={handleSignup} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="signup-name"
-                  className="block text-sm text-neutral-400 mb-1.5"
-                >
-                  Nome
-                </label>
-                <input
-                  id="signup-name"
-                  name="name"
-                  type="text"
-                  required
-                  className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="signup-email"
-                  className="block text-sm text-neutral-400 mb-1.5"
-                >
-                  Email
-                </label>
-                <input
-                  id="signup-email"
-                  name="email"
-                  type="email"
-                  required
-                  className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="signup-password"
-                  className="block text-sm text-neutral-400 mb-1.5"
-                >
-                  Senha
-                </label>
-                <input
-                  id="signup-password"
-                  name="password"
-                  type="password"
-                  required
-                  minLength={8}
-                  className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full rounded-md bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-              >
-                {isLoading ? "Criando conta..." : "Criar conta"}
-              </button>
-            </form>
-          )}
-
-          {/* Toggle */}
-          <div className="mt-6 text-center text-sm text-neutral-500">
-            {mode === "login" ? (
-              <>
-                Não tem conta?{" "}
-                <button
-                  onClick={() => {
-                    setMode("signup");
-                    setError(null);
-                  }}
-                  className="text-blue-400 hover:text-blue-300"
-                >
-                  Criar conta
-                </button>
-              </>
-            ) : (
-              <>
-                Já tem conta?{" "}
-                <button
-                  onClick={() => {
-                    setMode("login");
-                    setError(null);
-                  }}
-                  className="text-blue-400 hover:text-blue-300"
-                >
-                  Entrar
-                </button>
-              </>
-            )}
+        {error && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
           </div>
+        )}
+
+        {mode === "login" ? (
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="login-email">Email</Label>
+              <Input
+                id="login-email"
+                name="email"
+                type="email"
+                placeholder="seu@email.com"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="login-password">Senha</Label>
+              <Input
+                id="login-password"
+                name="password"
+                type="password"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Entrar
+            </Button>
+          </form>
+        ) : (
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="signup-name">Nome</Label>
+              <Input
+                id="signup-name"
+                name="name"
+                type="text"
+                placeholder="Seu nome"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="signup-email">Email</Label>
+              <Input
+                id="signup-email"
+                name="email"
+                type="email"
+                placeholder="seu@email.com"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="signup-password">Senha</Label>
+              <Input
+                id="signup-password"
+                name="password"
+                type="password"
+                placeholder="Mínimo 8 caracteres"
+                required
+                minLength={8}
+              />
+            </div>
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Criar conta
+            </Button>
+          </form>
+        )}
+
+        <div className="text-center text-sm text-muted-foreground">
+          {mode === "login" ? (
+            <>
+              Não tem conta?{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("signup");
+                  setError(null);
+                }}
+                className="font-medium text-primary hover:underline"
+              >
+                Criar conta
+              </button>
+            </>
+          ) : (
+            <>
+              Já tem conta?{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("login");
+                  setError(null);
+                }}
+                className="font-medium text-primary hover:underline"
+              >
+                Entrar
+              </button>
+            </>
+          )}
         </div>
-      </div>
-    </dialog>
+      </DialogContent>
+    </Dialog>
   );
 }

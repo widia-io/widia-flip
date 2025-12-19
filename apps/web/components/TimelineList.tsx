@@ -1,6 +1,16 @@
 "use client";
 
 import type { TimelineEvent } from "@widia/shared";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  RefreshCw, 
+  DollarSign, 
+  Building, 
+  Receipt, 
+  Edit, 
+  Paperclip,
+  Pin 
+} from "lucide-react";
 
 interface TimelineListProps {
   events: TimelineEvent[];
@@ -15,21 +25,33 @@ const EVENT_LABELS: Record<string, string> = {
   doc_uploaded: "Documento anexado",
 };
 
-const EVENT_ICONS: Record<string, string> = {
-  status_changed: "🔄",
-  analysis_cash_saved: "💵",
-  analysis_financing_saved: "🏦",
-  cost_added: "💰",
-  cost_updated: "✏️",
-  doc_uploaded: "📎",
-};
-
 const COST_TYPE_LABELS: Record<string, string> = {
   renovation: "Reforma",
   legal: "Jurídico",
   tax: "Impostos",
   other: "Outros",
 };
+
+function EventIcon({ type }: { type: string }) {
+  const iconClass = "h-4 w-4";
+  
+  switch (type) {
+    case "status_changed":
+      return <RefreshCw className={iconClass} />;
+    case "analysis_cash_saved":
+      return <DollarSign className={iconClass} />;
+    case "analysis_financing_saved":
+      return <Building className={iconClass} />;
+    case "cost_added":
+      return <Receipt className={iconClass} />;
+    case "cost_updated":
+      return <Edit className={iconClass} />;
+    case "doc_uploaded":
+      return <Paperclip className={iconClass} />;
+    default:
+      return <Pin className={iconClass} />;
+  }
+}
 
 export function TimelineList({ events }: TimelineListProps) {
   const formatDate = (dateStr: string) => {
@@ -71,13 +93,13 @@ export function TimelineList({ events }: TimelineListProps) {
 
       if (fromStatus) {
         return (
-          <span className="text-neutral-400">
+          <span className="text-muted-foreground">
             {statusLabels[fromStatus] || fromStatus} → {statusLabels[toStatus] || toStatus}
           </span>
         );
       } else {
         return (
-          <span className="text-neutral-400">
+          <span className="text-muted-foreground">
             Status inicial: {statusLabels[toStatus] || toStatus}
           </span>
         );
@@ -89,7 +111,7 @@ export function TimelineList({ events }: TimelineListProps) {
       const roi = payload.roi as number | undefined;
 
       return (
-        <span className="text-neutral-400">
+        <span className="text-muted-foreground">
           {netProfit !== undefined && (
             <>Lucro: {formatCurrency(netProfit)}</>
           )}
@@ -105,7 +127,7 @@ export function TimelineList({ events }: TimelineListProps) {
       const amount = payload.amount as number | undefined;
 
       return (
-        <span className="text-neutral-400">
+        <span className="text-muted-foreground">
           {costType && <>{COST_TYPE_LABELS[costType] || costType}</>}
           {amount !== undefined && <> - {formatCurrency(amount)}</>}
         </span>
@@ -122,7 +144,7 @@ export function TimelineList({ events }: TimelineListProps) {
       if (changes.cost_type) parts.push(`Tipo: ${COST_TYPE_LABELS[changes.cost_type as string] || changes.cost_type}`);
 
       return (
-        <span className="text-neutral-400">
+        <span className="text-muted-foreground">
           {parts.join(" | ") || "Dados atualizados"}
         </span>
       );
@@ -132,7 +154,7 @@ export function TimelineList({ events }: TimelineListProps) {
       const filename = payload.filename as string | undefined;
 
       return (
-        <span className="text-neutral-400">
+        <span className="text-muted-foreground">
           {filename || "Documento"}
         </span>
       );
@@ -143,41 +165,43 @@ export function TimelineList({ events }: TimelineListProps) {
 
   if (events.length === 0) {
     return (
-      <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-8 text-center">
-        <p className="text-sm text-neutral-400">
-          Nenhum evento registrado ainda.
-        </p>
-      </div>
+      <Card>
+        <CardContent className="py-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            Nenhum evento registrado ainda.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-950">
-      <div className="border-b border-neutral-800 px-4 py-3">
-        <h3 className="text-sm font-medium text-neutral-100">
-          Histórico de Eventos
-        </h3>
-      </div>
-      <ul className="divide-y divide-neutral-800">
-        {events.map((event) => (
-          <li key={event.id} className="flex items-start gap-4 px-4 py-4">
-            <span className="text-xl">
-              {EVENT_ICONS[event.event_type] || "📌"}
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-neutral-100">
-                {EVENT_LABELS[event.event_type] || event.event_type}
-              </p>
-              <div className="mt-1 text-xs">
-                {renderPayload(event)}
+    <Card>
+      <CardHeader>
+        <CardTitle>Histórico de Eventos</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <ul className="divide-y divide-border">
+          {events.map((event) => (
+            <li key={event.id} className="flex items-start gap-4 px-6 py-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                <EventIcon type={event.event_type} />
               </div>
-            </div>
-            <time className="text-xs text-neutral-500 whitespace-nowrap">
-              {formatDate(event.created_at)}
-            </time>
-          </li>
-        ))}
-      </ul>
-    </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">
+                  {EVENT_LABELS[event.event_type] || event.event_type}
+                </p>
+                <div className="mt-1 text-xs">
+                  {renderPayload(event)}
+                </div>
+              </div>
+              <time className="text-xs text-muted-foreground whitespace-nowrap">
+                {formatDate(event.created_at)}
+              </time>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }

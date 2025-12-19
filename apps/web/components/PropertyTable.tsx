@@ -3,32 +3,42 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Loader2, ExternalLink } from "lucide-react";
 
 import type { Property } from "@widia/shared";
+
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface PropertyTableProps {
   properties: Property[];
   statusFilter?: string;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  prospecting: "Prospecção",
-  analyzing: "Analisando",
-  bought: "Comprado",
-  renovation: "Reforma",
-  for_sale: "À Venda",
-  sold: "Vendido",
-  archived: "Arquivado",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  prospecting: "bg-blue-900/50 text-blue-300",
-  analyzing: "bg-yellow-900/50 text-yellow-300",
-  bought: "bg-green-900/50 text-green-300",
-  renovation: "bg-orange-900/50 text-orange-300",
-  for_sale: "bg-purple-900/50 text-purple-300",
-  sold: "bg-emerald-900/50 text-emerald-300",
-  archived: "bg-neutral-800 text-neutral-400",
+const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+  prospecting: { label: "Prospecção", variant: "outline" },
+  analyzing: { label: "Analisando", variant: "secondary" },
+  bought: { label: "Comprado", variant: "default" },
+  renovation: { label: "Reforma", variant: "secondary" },
+  for_sale: { label: "À Venda", variant: "outline" },
+  sold: { label: "Vendido", variant: "default" },
+  archived: { label: "Arquivado", variant: "secondary" },
 };
 
 export function PropertyTable({
@@ -38,12 +48,12 @@ export function PropertyTable({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [localStatus, setLocalStatus] = useState(statusFilter ?? "");
+  const [localStatus, setLocalStatus] = useState(statusFilter ?? "all");
 
   const handleFilterChange = (status: string) => {
     setLocalStatus(status);
     const params = new URLSearchParams(searchParams.toString());
-    if (status) {
+    if (status && status !== "all") {
       params.set("status_pipeline", status);
     } else {
       params.delete("status_pipeline");
@@ -67,99 +77,100 @@ export function PropertyTable({
   };
 
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-950">
+    <Card>
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 border-b border-neutral-800 p-4">
-        <select
+      <div className="flex flex-wrap items-center gap-4 border-b border-border p-4">
+        <Select
           value={localStatus}
-          onChange={(e) => handleFilterChange(e.target.value)}
+          onValueChange={handleFilterChange}
           disabled={isPending}
-          className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100"
         >
-          <option value="">Todos os status</option>
-          <option value="prospecting">Prospecção</option>
-          <option value="analyzing">Analisando</option>
-          <option value="bought">Comprado</option>
-          <option value="renovation">Reforma</option>
-          <option value="for_sale">À Venda</option>
-          <option value="sold">Vendido</option>
-          <option value="archived">Arquivado</option>
-        </select>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os status</SelectItem>
+            <SelectItem value="prospecting">Prospecção</SelectItem>
+            <SelectItem value="analyzing">Analisando</SelectItem>
+            <SelectItem value="bought">Comprado</SelectItem>
+            <SelectItem value="renovation">Reforma</SelectItem>
+            <SelectItem value="for_sale">À Venda</SelectItem>
+            <SelectItem value="sold">Vendido</SelectItem>
+            <SelectItem value="archived">Arquivado</SelectItem>
+          </SelectContent>
+        </Select>
 
         {isPending && (
-          <span className="text-xs text-neutral-500">Carregando...</span>
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         )}
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-neutral-800 text-left text-xs text-neutral-500">
-              <th className="px-4 py-3 font-medium">Endereço</th>
-              <th className="px-4 py-3 font-medium">Bairro</th>
-              <th className="px-4 py-3 font-medium text-right">Área</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Criado em</th>
-              <th className="px-4 py-3 font-medium text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-800">
-            {properties.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-8 text-center text-sm text-neutral-400"
-                >
-                  Nenhum imóvel encontrado. Converta um prospect ou crie um novo
-                  imóvel.
-                </td>
-              </tr>
-            ) : (
-              properties.map((property) => (
-                <tr
-                  key={property.id}
-                  className="hover:bg-neutral-900/50 transition-colors"
-                >
-                  <td className="px-4 py-3 text-sm text-neutral-100">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Endereço</TableHead>
+            <TableHead>Bairro</TableHead>
+            <TableHead className="text-right">Área</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Criado em</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {properties.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={6}
+                className="h-24 text-center text-muted-foreground"
+              >
+                Nenhum imóvel encontrado. Converta um prospect ou crie um novo
+                imóvel.
+              </TableCell>
+            </TableRow>
+          ) : (
+            properties.map((property) => {
+              const status = STATUS_CONFIG[property.status_pipeline] ?? {
+                label: property.status_pipeline,
+                variant: "secondary" as const,
+              };
+
+              return (
+                <TableRow key={property.id}>
+                  <TableCell>
                     <Link
                       href={`/app/properties/${property.id}`}
-                      className="hover:text-blue-400 hover:underline"
+                      className="font-medium hover:text-primary hover:underline"
                     >
                       {property.address || "-"}
                     </Link>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-neutral-300">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
                     {property.neighborhood || "-"}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-neutral-300 text-right">
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
                     {formatArea(property.area_usable)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[property.status_pipeline] || "bg-neutral-800 text-neutral-400"}`}
-                    >
-                      {STATUS_LABELS[property.status_pipeline] ||
-                        property.status_pipeline}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-neutral-400">
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={status.variant}>{status.label}</Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
                     {formatDate(property.created_at)}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/app/properties/${property.id}`}
-                      className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-xs text-neutral-100 hover:bg-neutral-700"
-                    >
-                      Abrir
-                    </Link>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={`/app/properties/${property.id}`}>
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Abrir
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
+    </Card>
   );
 }

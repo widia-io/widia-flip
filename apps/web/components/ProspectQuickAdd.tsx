@@ -2,8 +2,11 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Plus, Loader2 } from "lucide-react";
 
 import { createProspectAction } from "@/lib/actions/prospects";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface ProspectQuickAddProps {
   workspaceId: string;
@@ -93,9 +96,9 @@ export function ProspectQuickAdd({ workspaceId }: ProspectQuickAddProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border-b border-neutral-800">
-      <div className="flex items-center gap-2 bg-neutral-900/50 px-4 py-3">
-        <input
+    <form onSubmit={handleSubmit} className="border-b border-border">
+      <div className="flex items-center gap-2 bg-muted/30 px-4 py-3">
+        <Input
           ref={neighborhoodRef}
           type="text"
           value={neighborhood}
@@ -104,9 +107,9 @@ export function ProspectQuickAdd({ workspaceId }: ProspectQuickAddProps) {
           placeholder="Bairro"
           aria-label="Bairro do imóvel"
           disabled={isPending}
-          className="w-28 rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-600 focus:outline-none disabled:opacity-50"
+          className="w-28"
         />
-        <input
+        <Input
           ref={addressRef}
           type="text"
           value={address}
@@ -115,9 +118,9 @@ export function ProspectQuickAdd({ workspaceId }: ProspectQuickAddProps) {
           placeholder="Endereço"
           aria-label="Endereço do imóvel"
           disabled={isPending}
-          className="flex-1 rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-600 focus:outline-none disabled:opacity-50"
+          className="flex-1"
         />
-        <input
+        <Input
           ref={areaRef}
           type="number"
           value={area}
@@ -128,9 +131,9 @@ export function ProspectQuickAdd({ workspaceId }: ProspectQuickAddProps) {
           disabled={isPending}
           min="0"
           step="0.01"
-          className="w-24 rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-600 focus:outline-none disabled:opacity-50"
+          className="w-24"
         />
-        <input
+        <Input
           ref={priceRef}
           type="number"
           value={price}
@@ -141,18 +144,21 @@ export function ProspectQuickAdd({ workspaceId }: ProspectQuickAddProps) {
           disabled={isPending}
           min="0"
           step="1"
-          className="w-28 rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-600 focus:outline-none disabled:opacity-50"
+          className="w-28"
         />
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          {isPending ? "..." : "Adicionar"}
-        </button>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              <Plus className="h-4 w-4 mr-1" />
+              Adicionar
+            </>
+          )}
+        </Button>
       </div>
       {error && (
-        <div className="bg-red-950/50 px-4 py-2 text-xs text-red-300">
+        <div className="bg-destructive/10 border-t border-destructive/20 px-4 py-2 text-xs text-destructive">
           {error}
         </div>
       )}

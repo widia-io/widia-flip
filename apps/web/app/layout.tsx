@@ -4,13 +4,13 @@ import type { ReactNode } from "react";
 
 export const metadata = {
   title: "Widia Flip",
-  description: "Widia Flip — MVP",
+  description: "Gestão inteligente de flips imobiliários",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className="min-h-screen bg-neutral-950 text-neutral-50 antialiased">
+      <body className="min-h-screen">
         {children}
       </body>
     </html>

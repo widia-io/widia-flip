@@ -2,10 +2,15 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2, Save } from "lucide-react";
 
 import type { CashInputs, CashOutputs } from "@widia/shared";
 import { updateCashAnalysisAction, createCashSnapshotAction } from "@/lib/actions/properties";
 import { CashAnalysisOutputs } from "@/components/CashAnalysisOutputs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 interface CashAnalysisFormProps {
   propertyId: string;
@@ -107,95 +112,91 @@ export function CashAnalysisForm({
   return (
     <div className="space-y-6">
       {/* Inputs */}
-      <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-neutral-100">
-            Viabilidade à Vista
-          </h3>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Viabilidade à Vista</CardTitle>
           {isPending && (
-            <span className="text-xs text-neutral-500">Calculando...</span>
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
-        </div>
+        </CardHeader>
 
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-900/60 bg-red-950/50 p-3 text-sm text-red-200">
-            {error}
-          </div>
-        )}
+        <CardContent>
+          {error && (
+            <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
 
-        {success && (
-          <div className="mb-4 rounded-lg border border-green-900/60 bg-green-950/50 p-3 text-sm text-green-200">
-            {success}
-          </div>
-        )}
+          {success && (
+            <div className="mb-4 rounded-lg border border-primary/50 bg-primary/10 p-3 text-sm text-primary">
+              {success}
+            </div>
+          )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Preço de Compra (R$)
-            </label>
-            <input
-              type="number"
-              value={inputs.purchase_price ?? ""}
-              onChange={(e) => handleInputChange("purchase_price", e.target.value)}
-              placeholder="500000"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="purchase_price">Preço de Compra (R$)</Label>
+              <Input
+                id="purchase_price"
+                type="number"
+                value={inputs.purchase_price ?? ""}
+                onChange={(e) => handleInputChange("purchase_price", e.target.value)}
+                placeholder="500000"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Custo de Reforma (R$)
-            </label>
-            <input
-              type="number"
-              value={inputs.renovation_cost ?? ""}
-              onChange={(e) => handleInputChange("renovation_cost", e.target.value)}
-              placeholder="50000"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="renovation_cost">Custo de Reforma (R$)</Label>
+              <Input
+                id="renovation_cost"
+                type="number"
+                value={inputs.renovation_cost ?? ""}
+                onChange={(e) => handleInputChange("renovation_cost", e.target.value)}
+                placeholder="50000"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Outros Custos (R$)
-            </label>
-            <input
-              type="number"
-              value={inputs.other_costs ?? ""}
-              onChange={(e) => handleInputChange("other_costs", e.target.value)}
-              placeholder="10000"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="other_costs">Outros Custos (R$)</Label>
+              <Input
+                id="other_costs"
+                type="number"
+                value={inputs.other_costs ?? ""}
+                onChange={(e) => handleInputChange("other_costs", e.target.value)}
+                placeholder="10000"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Preço de Venda (R$)
-            </label>
-            <input
-              type="number"
-              value={inputs.sale_price ?? ""}
-              onChange={(e) => handleInputChange("sale_price", e.target.value)}
-              placeholder="700000"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="sale_price">Preço de Venda (R$)</Label>
+              <Input
+                id="sale_price"
+                type="number"
+                value={inputs.sale_price ?? ""}
+                onChange={(e) => handleInputChange("sale_price", e.target.value)}
+                placeholder="700000"
+              />
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Outputs */}
       {outputs && <CashAnalysisOutputs outputs={outputs} />}
 
       {/* Save Snapshot Button */}
       <div className="flex justify-end">
-        <button
+        <Button
           onClick={handleSaveSnapshot}
           disabled={isSavingSnapshot || !canSaveSnapshot}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSavingSnapshot ? "Salvando..." : "Salvar Análise"}
-        </button>
+          {isSavingSnapshot ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
+          Salvar Análise
+        </Button>
       </div>
     </div>
   );

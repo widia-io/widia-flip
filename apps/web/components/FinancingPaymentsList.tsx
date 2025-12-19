@@ -1,12 +1,24 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Plus, X, Loader2 } from "lucide-react";
 
 import type { FinancingPayment } from "@widia/shared";
 import {
   createFinancingPaymentAction,
   deleteFinancingPaymentAction,
 } from "@/lib/actions/financing";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface FinancingPaymentsListProps {
   planId: string | undefined;
@@ -104,154 +116,124 @@ export function FinancingPaymentsList({
   };
 
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-neutral-100">
-          Prestações Pagas
-        </h3>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Prestações Pagas</CardTitle>
         {isPending && (
-          <span className="text-xs text-neutral-500">Processando...</span>
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         )}
-      </div>
+      </CardHeader>
 
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-900/60 bg-red-950/50 p-3 text-sm text-red-200">
-          {error}
-        </div>
-      )}
+      <CardContent>
+        {error && (
+          <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
 
-      {payments.length > 0 && (
-        <div className="mb-4 overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-neutral-800 text-left text-xs text-neutral-500">
-                <th className="pb-2 font-medium">Mês</th>
-                <th className="pb-2 font-medium text-right">Valor</th>
-                <th className="pb-2 font-medium text-right w-16">Ação</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-800/50">
+        {payments.length > 0 && (
+          <Table className="mb-4">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Mês</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="text-right w-16">Ação</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {payments.map((payment) => (
-                <tr key={payment.id} className="group">
-                  <td className="py-2 text-sm text-neutral-300">
-                    {payment.month_index}
-                  </td>
-                  <td className="py-2 text-sm text-neutral-300 text-right">
+                <TableRow key={payment.id} className="group">
+                  <TableCell>{payment.month_index}</TableCell>
+                  <TableCell className="text-right">
                     {formatCurrency(payment.amount)}
-                  </td>
-                  <td className="py-2 text-right">
-                    <button
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleDeletePayment(payment.id)}
                       disabled={deletingId === payment.id}
-                      className="text-neutral-500 hover:text-red-400 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remover prestação"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
                     >
                       {deletingId === payment.id ? (
-                        <span className="text-xs">...</span>
+                        <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
-                          className="w-4 h-4"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
+                        <X className="h-4 w-4" />
                       )}
-                    </button>
-                  </td>
-                </tr>
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            </TableBody>
+          </Table>
+        )}
 
-      {/* Add Payment Form */}
-      {isAdding ? (
-        <div className="flex items-center gap-2 mb-4">
-          <input
-            type="number"
-            value={newMonthIndex}
-            onChange={(e) => setNewMonthIndex(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Mês"
-            min="1"
-            className="w-20 rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            autoFocus
-          />
-          <input
-            type="number"
-            value={newAmount}
-            onChange={(e) => setNewAmount(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Valor (R$)"
-            step="0.01"
-            min="0"
-            className="flex-1 rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-          />
-          <button
-            onClick={handleAddPayment}
-            disabled={isPending}
-            className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-          >
-            OK
-          </button>
-          <button
-            onClick={() => {
-              setIsAdding(false);
-              setNewMonthIndex("");
-              setNewAmount("");
-              setError(null);
-            }}
-            className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
-          >
-            Cancelar
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => setIsAdding(true)}
-          disabled={!planId}
-          className="mb-4 flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="w-4 h-4"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
+        {/* Add Payment Form */}
+        {isAdding ? (
+          <div className="flex items-center gap-2 mb-4">
+            <Input
+              type="number"
+              value={newMonthIndex}
+              onChange={(e) => setNewMonthIndex(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Mês"
+              min="1"
+              className="w-20"
+              autoFocus
             />
-          </svg>
-          Adicionar Prestação
-        </button>
-      )}
+            <Input
+              type="number"
+              value={newAmount}
+              onChange={(e) => setNewAmount(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Valor (R$)"
+              step="0.01"
+              min="0"
+              className="flex-1"
+            />
+            <Button onClick={handleAddPayment} disabled={isPending} size="sm">
+              OK
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsAdding(false);
+                setNewMonthIndex("");
+                setNewAmount("");
+                setError(null);
+              }}
+            >
+              Cancelar
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsAdding(true)}
+            disabled={!planId}
+            className="mb-4 text-primary"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Adicionar Prestação
+          </Button>
+        )}
 
-      {/* Total */}
-      <div className="border-t border-neutral-800 pt-3 flex justify-between items-center">
-        <span className="text-sm text-neutral-400">Total Parcelas:</span>
-        <span className="text-lg font-semibold text-neutral-100">
-          {formatCurrency(total)}
-        </span>
-      </div>
+        {/* Total */}
+        <div className="border-t border-border pt-3 flex justify-between items-center">
+          <span className="text-sm text-muted-foreground">Total Parcelas:</span>
+          <span className="text-lg font-semibold">
+            {formatCurrency(total)}
+          </span>
+        </div>
 
-      {!planId && payments.length === 0 && (
-        <p className="mt-2 text-xs text-neutral-500">
-          Salve os dados do financiamento para adicionar prestações.
-        </p>
-      )}
-    </div>
+        {!planId && payments.length === 0 && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Salve os dados do financiamento para adicionar prestações.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

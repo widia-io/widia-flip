@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2, Save, Info } from "lucide-react";
 
 import type { FinancingInputs, FinancingOutputs, FinancingPayment } from "@widia/shared";
 import {
@@ -10,6 +11,10 @@ import {
 } from "@/lib/actions/financing";
 import { FinancingOutputsDisplay } from "@/components/FinancingOutputs";
 import { FinancingPaymentsList } from "@/components/FinancingPaymentsList";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 interface FinancingFormProps {
   propertyId: string;
@@ -178,200 +183,184 @@ export function FinancingForm({
   return (
     <div className="space-y-6">
       {/* Inputs */}
-      <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-neutral-100">
-            Simulador de Financiamento
-          </h3>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Simulador de Financiamento</CardTitle>
           {isPending && (
-            <span className="text-xs text-neutral-500">Calculando...</span>
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
-        </div>
+        </CardHeader>
 
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-900/60 bg-red-950/50 p-3 text-sm text-red-200">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-4 rounded-lg border border-green-900/60 bg-green-950/50 p-3 text-sm text-green-200">
-            {success}
-          </div>
-        )}
-
-        {/* Row 1: Purchase/Sale Price, Entry */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-4">
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Preço de Compra (R$)
-            </label>
-            <input
-              type="number"
-              value={inputs.purchase_price ?? ""}
-              onChange={(e) => handleInputChange("purchase_price", e.target.value)}
-              placeholder="500000"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Preço de Venda (R$)
-            </label>
-            <input
-              type="number"
-              value={inputs.sale_price ?? ""}
-              onChange={(e) => handleInputChange("sale_price", e.target.value)}
-              placeholder="700000"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Entrada (%)
-            </label>
-            <input
-              type="number"
-              value={inputs.down_payment_percent !== null ? (inputs.down_payment_percent * 100).toFixed(0) : ""}
-              onChange={(e) => handlePercentChange("down_payment_percent", e.target.value)}
-              placeholder="20"
-              min="0"
-              max="100"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Valor Entrada (calculado)
-            </label>
-            <div className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-300">
-              {downPaymentValue > 0 ? formatCurrency(downPaymentValue) : "-"}
+        <CardContent className="space-y-6">
+          {error && (
+            <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              {error}
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Row 2: Financed Value, Term, Rates */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-4">
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Valor Financiado (calculado)
-            </label>
-            <div className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-300">
-              {financedValue > 0 ? formatCurrency(financedValue) : "-"}
+          {success && (
+            <div className="rounded-lg border border-primary/50 bg-primary/10 p-3 text-sm text-primary">
+              {success}
+            </div>
+          )}
+
+          {/* Row 1: Purchase/Sale Price, Entry */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-2">
+              <Label htmlFor="purchase_price">Preço de Compra (R$)</Label>
+              <Input
+                id="purchase_price"
+                type="number"
+                value={inputs.purchase_price ?? ""}
+                onChange={(e) => handleInputChange("purchase_price", e.target.value)}
+                placeholder="500000"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sale_price">Preço de Venda (R$)</Label>
+              <Input
+                id="sale_price"
+                type="number"
+                value={inputs.sale_price ?? ""}
+                onChange={(e) => handleInputChange("sale_price", e.target.value)}
+                placeholder="700000"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="down_payment_percent">Entrada (%)</Label>
+              <Input
+                id="down_payment_percent"
+                type="number"
+                value={inputs.down_payment_percent !== null ? (inputs.down_payment_percent * 100).toFixed(0) : ""}
+                onChange={(e) => handlePercentChange("down_payment_percent", e.target.value)}
+                placeholder="20"
+                min="0"
+                max="100"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Valor Entrada</Label>
+              <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                {downPaymentValue > 0 ? formatCurrency(downPaymentValue) : "-"}
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Prazo (meses)
-            </label>
-            <input
-              type="number"
-              value={inputs.term_months ?? ""}
-              onChange={(e) => handleInputChange("term_months", e.target.value)}
-              placeholder="360"
-              min="1"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
+          {/* Row 2: Financed Value, Term, Rates */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-2">
+              <Label>Valor Financiado</Label>
+              <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                {financedValue > 0 ? formatCurrency(financedValue) : "-"}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="term_months">Prazo (meses)</Label>
+              <Input
+                id="term_months"
+                type="number"
+                value={inputs.term_months ?? ""}
+                onChange={(e) => handleInputChange("term_months", e.target.value)}
+                placeholder="360"
+                min="1"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cet" className="flex items-center gap-1">
+                CET (% a.a.)
+                <Info className="h-3 w-3 text-muted-foreground" />
+              </Label>
+              <Input
+                id="cet"
+                type="number"
+                value={inputs.cet !== null ? (inputs.cet * 100).toFixed(2) : ""}
+                onChange={(e) => handlePercentChange("cet", e.target.value)}
+                placeholder="12"
+                step="0.01"
+                min="0"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="interest_rate">Juros Nominal (% a.a.)</Label>
+              <Input
+                id="interest_rate"
+                type="number"
+                value={inputs.interest_rate !== null ? (inputs.interest_rate * 100).toFixed(2) : ""}
+                onChange={(e) => handlePercentChange("interest_rate", e.target.value)}
+                placeholder="10"
+                step="0.01"
+                min="0"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              CET (% a.a.)
-              <span className="ml-1 text-neutral-600" title="Custo Efetivo Total anual">ⓘ</span>
-            </label>
-            <input
-              type="number"
-              value={inputs.cet !== null ? (inputs.cet * 100).toFixed(2) : ""}
-              onChange={(e) => handlePercentChange("cet", e.target.value)}
-              placeholder="12"
-              step="0.01"
-              min="0"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          {/* Row 3: Bank Fees */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-2">
+              <Label htmlFor="insurance" className="flex items-center gap-1">
+                Seguro (R$)
+                <Info className="h-3 w-3 text-muted-foreground" />
+              </Label>
+              <Input
+                id="insurance"
+                type="number"
+                value={inputs.insurance ?? ""}
+                onChange={(e) => handleInputChange("insurance", e.target.value)}
+                placeholder="5000"
+                min="0"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Juros Nominal (% a.a.)
-            </label>
-            <input
-              type="number"
-              value={inputs.interest_rate !== null ? (inputs.interest_rate * 100).toFixed(2) : ""}
-              onChange={(e) => handlePercentChange("interest_rate", e.target.value)}
-              placeholder="10"
-              step="0.01"
-              min="0"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="appraisal_fee" className="flex items-center gap-1">
+                Avaliação (R$)
+                <Info className="h-3 w-3 text-muted-foreground" />
+              </Label>
+              <Input
+                id="appraisal_fee"
+                type="number"
+                value={inputs.appraisal_fee ?? ""}
+                onChange={(e) => handleInputChange("appraisal_fee", e.target.value)}
+                placeholder="1500"
+                min="0"
+              />
+            </div>
 
-        {/* Row 3: Bank Fees */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Seguro (R$)
-              <span className="ml-1 text-neutral-600" title="Seguro MIP/DFI total">ⓘ</span>
-            </label>
-            <input
-              type="number"
-              value={inputs.insurance ?? ""}
-              onChange={(e) => handleInputChange("insurance", e.target.value)}
-              placeholder="5000"
-              min="0"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="other_fees">Outras Taxas (R$)</Label>
+              <Input
+                id="other_fees"
+                type="number"
+                value={inputs.other_fees ?? ""}
+                onChange={(e) => handleInputChange("other_fees", e.target.value)}
+                placeholder="500"
+                min="0"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Avaliação (R$)
-              <span className="ml-1 text-neutral-600" title="Taxa de avaliação do imóvel">ⓘ</span>
-            </label>
-            <input
-              type="number"
-              value={inputs.appraisal_fee ?? ""}
-              onChange={(e) => handleInputChange("appraisal_fee", e.target.value)}
-              placeholder="1500"
-              min="0"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="remaining_debt" className="flex items-center gap-1">
+                Saldo Devedor (R$)
+                <Info className="h-3 w-3 text-muted-foreground" />
+              </Label>
+              <Input
+                id="remaining_debt"
+                type="number"
+                value={inputs.remaining_debt ?? ""}
+                onChange={(e) => handleInputChange("remaining_debt", e.target.value)}
+                placeholder="350000"
+                min="0"
+              />
+            </div>
           </div>
-
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Outras Taxas (R$)
-            </label>
-            <input
-              type="number"
-              value={inputs.other_fees ?? ""}
-              onChange={(e) => handleInputChange("other_fees", e.target.value)}
-              placeholder="500"
-              min="0"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">
-              Saldo Devedor (R$)
-              <span className="ml-1 text-neutral-600" title="Saldo restante do financiamento">ⓘ</span>
-            </label>
-            <input
-              type="number"
-              value={inputs.remaining_debt ?? ""}
-              onChange={(e) => handleInputChange("remaining_debt", e.target.value)}
-              placeholder="350000"
-              min="0"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Payments */}
       <FinancingPaymentsList
@@ -386,13 +375,17 @@ export function FinancingForm({
 
       {/* Save Snapshot Button */}
       <div className="flex justify-end">
-        <button
+        <Button
           onClick={handleSaveSnapshot}
           disabled={isSavingSnapshot || !canSaveSnapshot}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSavingSnapshot ? "Salvando..." : "Salvar Análise"}
-        </button>
+          {isSavingSnapshot ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
+          Salvar Análise
+        </Button>
       </div>
     </div>
   );

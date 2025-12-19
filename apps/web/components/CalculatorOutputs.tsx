@@ -1,124 +1,109 @@
 "use client";
 
 import type { CashOutputs } from "@widia/shared";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface CalculatorOutputsProps {
-  readonly outputs: CashOutputs;
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-}
-
-function formatPercent(value: number): string {
-  return `${value.toFixed(2)}%`;
+  outputs: CashOutputs;
 }
 
 export function CalculatorOutputs({ outputs }: CalculatorOutputsProps) {
-  const isPositive = outputs.net_profit > 0;
-  const isPartial = outputs.is_partial;
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const formatPercent = (value: number) => {
+    return `${value.toFixed(2)}%`;
+  };
 
   return (
-    <div className="space-y-6">
-      {isPartial && (
-        <div className="rounded-md border border-yellow-900/60 bg-yellow-950/30 px-3 py-2 text-sm text-yellow-200">
-          Resultado parcial — preencha preço de compra e venda
-        </div>
+    <div className="space-y-4">
+      {outputs.is_partial && (
+        <Badge variant="outline" className="mb-2">
+          Dados incompletos
+        </Badge>
       )}
 
-      {/* Main metrics */}
-      <div className="grid grid-cols-1 gap-4">
-        <div className="rounded-lg bg-neutral-900 p-4">
-          <div className="text-sm text-neutral-500 mb-1">
-            Investimento Total
-          </div>
-          <div className="text-2xl font-semibold text-neutral-100">
-            {formatCurrency(outputs.investment_total)}
-          </div>
-        </div>
-
-        <div
-          className={`rounded-lg p-4 ${
-            isPositive
-              ? "bg-green-950/50 border border-green-900/50"
-              : "bg-red-950/50 border border-red-900/50"
-          }`}
-        >
-          <div className="text-sm text-neutral-400 mb-1">Lucro Líquido</div>
-          <div
-            className={`text-2xl font-semibold ${
-              isPositive ? "text-green-400" : "text-red-400"
-            }`}
-          >
-            {formatCurrency(outputs.net_profit)}
-          </div>
-        </div>
-
-        <div
-          className={`rounded-lg p-4 ${
-            isPositive
-              ? "bg-green-950/50 border border-green-900/50"
-              : "bg-red-950/50 border border-red-900/50"
-          }`}
-        >
-          <div className="text-sm text-neutral-400 mb-1">ROI</div>
-          <div
-            className={`text-2xl font-semibold ${
-              isPositive ? "text-green-400" : "text-red-400"
-            }`}
-          >
-            {formatPercent(outputs.roi)}
-          </div>
-        </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <OutputItem label="ITBI" value={formatCurrency(outputs.itbi_value)} />
+        <OutputItem
+          label="Registro"
+          value={formatCurrency(outputs.registry_value)}
+        />
+        <OutputItem
+          label="Custo Aquisição"
+          value={formatCurrency(outputs.acquisition_cost)}
+        />
+        <OutputItem
+          label="Investimento Total"
+          value={formatCurrency(outputs.investment_total)}
+          highlight
+        />
+        <OutputItem
+          label="Corretagem"
+          value={formatCurrency(outputs.broker_fee)}
+        />
+        <OutputItem
+          label="Lucro Bruto"
+          value={formatCurrency(outputs.gross_profit)}
+          variant={outputs.gross_profit > 0 ? "positive" : outputs.gross_profit < 0 ? "negative" : "default"}
+        />
+        <OutputItem
+          label="Imposto PJ"
+          value={formatCurrency(outputs.pj_tax_value)}
+        />
+        <OutputItem
+          label="Lucro Líquido"
+          value={formatCurrency(outputs.net_profit)}
+          highlight
+          variant={outputs.net_profit > 0 ? "positive" : outputs.net_profit < 0 ? "negative" : "default"}
+        />
+        <OutputItem
+          label="ROI"
+          value={formatPercent(outputs.roi)}
+          highlight
+          variant={outputs.roi > 0 ? "positive" : outputs.roi < 0 ? "negative" : "default"}
+        />
       </div>
+    </div>
+  );
+}
 
-      {/* Secondary metrics (collapsed by default, shown on hover/expand) */}
-      <details className="group">
-        <summary className="cursor-pointer text-sm text-neutral-500 hover:text-neutral-300">
-          Ver detalhes do cálculo
-        </summary>
-        <div className="mt-4 space-y-2 text-sm">
-          <div className="flex justify-between py-2 border-b border-neutral-800">
-            <span className="text-neutral-500">ITBI</span>
-            <span className="text-neutral-300">
-              {formatCurrency(outputs.itbi_value)}
-            </span>
-          </div>
-          <div className="flex justify-between py-2 border-b border-neutral-800">
-            <span className="text-neutral-500">Registro</span>
-            <span className="text-neutral-300">
-              {formatCurrency(outputs.registry_value)}
-            </span>
-          </div>
-          <div className="flex justify-between py-2 border-b border-neutral-800">
-            <span className="text-neutral-500">Custo de Aquisição</span>
-            <span className="text-neutral-300">
-              {formatCurrency(outputs.acquisition_cost)}
-            </span>
-          </div>
-          <div className="flex justify-between py-2 border-b border-neutral-800">
-            <span className="text-neutral-500">Corretagem</span>
-            <span className="text-neutral-300">
-              {formatCurrency(outputs.broker_fee)}
-            </span>
-          </div>
-          <div className="flex justify-between py-2 border-b border-neutral-800">
-            <span className="text-neutral-500">Lucro Bruto</span>
-            <span className="text-neutral-300">
-              {formatCurrency(outputs.gross_profit)}
-            </span>
-          </div>
-          <div className="flex justify-between py-2 border-b border-neutral-800">
-            <span className="text-neutral-500">Imposto PJ</span>
-            <span className="text-neutral-300">
-              {formatCurrency(outputs.pj_tax_value)}
-            </span>
-          </div>
-        </div>
-      </details>
+function OutputItem({
+  label,
+  value,
+  highlight,
+  variant = "default",
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+  variant?: "default" | "positive" | "negative";
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg p-3",
+        highlight
+          ? "bg-secondary border border-border"
+          : "bg-muted/50"
+      )}
+    >
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd
+        className={cn(
+          "mt-1 text-lg font-semibold",
+          variant === "positive" && "text-primary",
+          variant === "negative" && "text-destructive"
+        )}
+      >
+        {value}
+      </dd>
     </div>
   );
 }

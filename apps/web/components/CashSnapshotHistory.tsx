@@ -1,6 +1,16 @@
 "use client";
 
 import type { CashSnapshot } from "@widia/shared";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface CashSnapshotHistoryProps {
   snapshots: CashSnapshot[];
@@ -27,37 +37,37 @@ export function CashSnapshotHistory({ snapshots }: CashSnapshotHistoryProps) {
 
   if (snapshots.length === 0) {
     return (
-      <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-        <h3 className="text-sm font-medium text-neutral-100 mb-2">
-          Histórico de Análises
-        </h3>
-        <p className="text-sm text-neutral-400">
-          Nenhuma análise salva ainda. Preencha os dados e clique em
-          &ldquo;Salvar Análise&rdquo; para criar um snapshot.
-        </p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Histórico de Análises</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Nenhuma análise salva ainda. Preencha os dados e clique em
+            &ldquo;Salvar Análise&rdquo; para criar um snapshot.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-950">
-      <div className="border-b border-neutral-800 px-4 py-3">
-        <h3 className="text-sm font-medium text-neutral-100">
-          Histórico de Análises ({snapshots.length})
-        </h3>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-neutral-800 text-left text-xs text-neutral-500">
-              <th className="px-4 py-3 font-medium">Data</th>
-              <th className="px-4 py-3 font-medium text-right">Compra</th>
-              <th className="px-4 py-3 font-medium text-right">Venda</th>
-              <th className="px-4 py-3 font-medium text-right">Lucro</th>
-              <th className="px-4 py-3 font-medium text-right">ROI</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-800">
+    <Card>
+      <CardHeader>
+        <CardTitle>Histórico de Análises ({snapshots.length})</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Data</TableHead>
+              <TableHead className="text-right">Compra</TableHead>
+              <TableHead className="text-right">Venda</TableHead>
+              <TableHead className="text-right">Lucro</TableHead>
+              <TableHead className="text-right">ROI</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {snapshots.map((snapshot) => {
               const inputs = snapshot.inputs;
               const outputs = snapshot.outputs;
@@ -65,48 +75,44 @@ export function CashSnapshotHistory({ snapshots }: CashSnapshotHistoryProps) {
               const isNegative = outputs.net_profit < 0;
 
               return (
-                <tr key={snapshot.id} className="hover:bg-neutral-900/50">
-                  <td className="px-4 py-3 text-sm text-neutral-300">
+                <TableRow key={snapshot.id}>
+                  <TableCell className="text-muted-foreground">
                     {formatDate(snapshot.created_at)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-neutral-300 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     {inputs.purchase_price
                       ? formatCurrency(inputs.purchase_price)
                       : "-"}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-neutral-300 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     {inputs.sale_price
                       ? formatCurrency(inputs.sale_price)
                       : "-"}
-                  </td>
-                  <td
-                    className={`px-4 py-3 text-sm text-right font-medium ${
-                      isPositive
-                        ? "text-green-400"
-                        : isNegative
-                          ? "text-red-400"
-                          : "text-neutral-300"
-                    }`}
+                  </TableCell>
+                  <TableCell
+                    className={cn(
+                      "text-right font-medium",
+                      isPositive && "text-primary",
+                      isNegative && "text-destructive"
+                    )}
                   >
                     {formatCurrency(outputs.net_profit)}
-                  </td>
-                  <td
-                    className={`px-4 py-3 text-sm text-right font-medium ${
-                      isPositive
-                        ? "text-green-400"
-                        : isNegative
-                          ? "text-red-400"
-                          : "text-neutral-300"
-                    }`}
+                  </TableCell>
+                  <TableCell
+                    className={cn(
+                      "text-right font-medium",
+                      isPositive && "text-primary",
+                      isNegative && "text-destructive"
+                    )}
                   >
                     {outputs.roi.toFixed(2)}%
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }

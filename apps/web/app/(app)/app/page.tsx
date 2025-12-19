@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import {
   ListWorkspacesResponseSchema,
   type ListWorkspacesResponse,
@@ -5,6 +6,10 @@ import {
 
 import { createWorkspaceAction } from "@/lib/actions/workspaces";
 import { apiFetch } from "@/lib/apiFetch";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export default async function AppHomePage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -18,63 +23,71 @@ export default async function AppHomePage(props: {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-4">
-        <div className="text-sm text-neutral-400">Go API</div>
-        <div className="mt-1 text-lg font-semibold">
-          Health: <span className="text-emerald-400">{health.status}</span>
-        </div>
-        <div className="mt-1 text-xs text-neutral-500">
-          (A chamada é server-side via BFF: Next → Go com Bearer)
-        </div>
-      </section>
+      <div>
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">
+          Bem-vindo ao Widia Flip
+        </p>
+      </div>
 
-      <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm text-neutral-400">Tenant</div>
-            <div className="mt-1 text-lg font-semibold">Workspaces</div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Status do Sistema</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">API:</span>
+            <Badge variant="default" className="bg-primary">
+              {health.status}
+            </Badge>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {error ? (
-          <div className="mt-3 rounded-md border border-red-900/60 bg-red-950/50 px-3 py-2 text-sm text-red-200">
-            {error}
-          </div>
-        ) : null}
-
-        <form action={createWorkspaceAction} className="mt-4 flex gap-2">
-          <input
-            name="name"
-            placeholder="Nome do workspace (ex: Bruno Flip)"
-            className="flex-1 rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600"
-          />
-          <button
-            type="submit"
-            className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 hover:bg-neutral-800"
-          >
-            Criar
-          </button>
-        </form>
-
-        <div className="mt-4 divide-y divide-neutral-900 rounded-md border border-neutral-900">
-          {workspaces.items.length === 0 ? (
-            <div className="p-4 text-sm text-neutral-400">
-              Nenhum workspace ainda. Crie o primeiro acima.
+      <Card>
+        <CardHeader>
+          <CardTitle>Workspaces</CardTitle>
+          <CardDescription>
+            Gerencie seus espaços de trabalho
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {error ? (
+            <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
             </div>
-          ) : (
-            workspaces.items.map((ws) => (
-              <div key={ws.id} className="flex items-center justify-between p-4">
-                <div>
-                  <div className="font-medium text-neutral-100">{ws.name}</div>
-                  <div className="text-xs text-neutral-500">{ws.id}</div>
-                </div>
+          ) : null}
+
+          <form action={createWorkspaceAction} className="flex gap-2">
+            <Input
+              name="name"
+              placeholder="Nome do workspace (ex: Meus Flips)"
+              className="flex-1"
+            />
+            <Button type="submit">
+              <Plus className="h-4 w-4 mr-1" />
+              Criar
+            </Button>
+          </form>
+
+          <div className="mt-4 divide-y divide-border rounded-lg border border-border">
+            {workspaces.items.length === 0 ? (
+              <div className="p-4 text-sm text-muted-foreground">
+                Nenhum workspace ainda. Crie o primeiro acima.
               </div>
-            ))
-          )}
-        </div>
-      </section>
+            ) : (
+              workspaces.items.map((ws) => (
+                <div key={ws.id} className="flex items-center justify-between p-4">
+                  <div>
+                    <div className="font-medium">{ws.name}</div>
+                    <div className="text-xs text-muted-foreground font-mono">{ws.id}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-
-

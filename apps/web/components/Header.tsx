@@ -1,19 +1,27 @@
+import { LogOut } from "lucide-react";
 import { signOutAction } from "@/lib/actions/auth";
+import { Button } from "@/components/ui/button";
+
+function getInitials(email: string): string {
+  const name = email.split("@")[0];
+  return name.substring(0, 2).toUpperCase();
+}
 
 export function Header(props: { userEmail: string }) {
   return (
-    <header className="flex items-center justify-between border-b border-neutral-800 bg-neutral-950 px-4 py-3">
-      <div className="text-sm text-neutral-300">
-        Logado como <span className="text-neutral-50">{props.userEmail}</span>
+    <header className="flex items-center justify-between border-b border-border bg-background px-4 py-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-xs font-medium text-secondary-foreground">
+          {getInitials(props.userEmail)}
+        </div>
+        <span className="text-sm text-muted-foreground">{props.userEmail}</span>
       </div>
 
       <form action={signOutAction}>
-        <button
-          type="submit"
-          className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-100 hover:bg-neutral-800"
-        >
+        <Button variant="ghost" size="sm" type="submit">
+          <LogOut className="h-4 w-4 mr-2" />
           Sair
-        </button>
+        </Button>
       </form>
     </header>
   );

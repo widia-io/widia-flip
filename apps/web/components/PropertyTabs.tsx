@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface PropertyTabsProps {
   propertyId: string;
@@ -25,18 +26,19 @@ export function PropertyTabs({ propertyId, hasProspectOrigin }: PropertyTabsProp
   ];
 
   return (
-    <nav className="flex gap-1 border-b border-neutral-800">
+    <nav className="flex gap-1 border-b border-border overflow-x-auto">
       {tabs.map((tab) => {
         const isActive = pathname === tab.href;
         return (
           <Link
             key={tab.href}
             href={tab.href}
-            className={`px-4 py-3 text-sm font-medium transition-colors ${
+            className={cn(
+              "px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors",
               isActive
-                ? "border-b-2 border-blue-500 text-blue-400"
-                : "text-neutral-400 hover:text-neutral-100"
-            }`}
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
             {tab.label}
           </Link>

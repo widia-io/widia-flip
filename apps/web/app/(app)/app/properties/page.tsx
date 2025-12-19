@@ -1,8 +1,11 @@
+import Link from "next/link";
 import { ListWorkspacesResponseSchema } from "@widia/shared";
 
 import { PropertyTable } from "@/components/PropertyTable";
 import { apiFetch } from "@/lib/apiFetch";
 import { listPropertiesAction } from "@/lib/actions/properties";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default async function PropertiesPage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -22,20 +25,19 @@ export default async function PropertiesPage(props: {
   if (workspaces.items.length === 0) {
     return (
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-8 text-center">
-          <h2 className="text-lg font-semibold text-neutral-100">
-            Nenhum workspace encontrado
-          </h2>
-          <p className="mt-2 text-sm text-neutral-400">
-            Crie um workspace primeiro para começar.
-          </p>
-          <a
-            href="/app"
-            className="mt-4 inline-block rounded-md border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm text-neutral-100 hover:bg-neutral-800"
-          >
-            Ir para Dashboard
-          </a>
-        </div>
+        <Card>
+          <CardContent className="py-8 text-center">
+            <h2 className="text-lg font-semibold">
+              Nenhum workspace encontrado
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Crie um workspace primeiro para começar.
+            </p>
+            <Button asChild className="mt-4">
+              <Link href="/app">Ir para Dashboard</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -54,13 +56,13 @@ export default async function PropertiesPage(props: {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-100">Imóveis</h1>
-          <p className="text-sm text-neutral-400">{workspaceName}</p>
+          <h1 className="text-2xl font-semibold">Imóveis</h1>
+          <p className="text-sm text-muted-foreground">{workspaceName}</p>
         </div>
       </div>
 
       {error ? (
-        <div className="rounded-lg border border-red-900/60 bg-red-950/50 p-4 text-sm text-red-200">
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
           {error}
         </div>
       ) : null}

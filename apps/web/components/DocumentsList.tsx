@@ -1,12 +1,23 @@
 "use client";
 
 import { useState, useRef, useTransition } from "react";
+import { Upload, Trash2, FileText, ImageIcon, FileSpreadsheet, File, Loader2 } from "lucide-react";
 import type { Document } from "@widia/shared";
 import {
   getUploadUrlAction,
   registerDocumentAction,
   deleteDocumentAction,
 } from "@/lib/actions/documents";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
@@ -44,13 +55,13 @@ function formatDate(dateStr: string): string {
   }
 }
 
-function getFileIcon(contentType: string | null): string {
-  if (!contentType) return "📄";
-  if (contentType.startsWith("image/")) return "🖼️";
-  if (contentType === "application/pdf") return "📕";
-  if (contentType.includes("word") || contentType.includes("document")) return "📝";
-  if (contentType.includes("excel") || contentType.includes("sheet")) return "📊";
-  return "📄";
+function FileIcon({ contentType }: { contentType: string | null }) {
+  const className = "h-4 w-4";
+  if (!contentType) return <File className={className} />;
+  if (contentType.startsWith("image/")) return <ImageIcon className={className} />;
+  if (contentType === "application/pdf") return <FileText className={className} />;
+  if (contentType.includes("excel") || contentType.includes("sheet")) return <FileSpreadsheet className={className} />;
+  return <File className={className} />;
 }
 
 interface DocumentsListProps {
@@ -69,6 +80,7 @@ export function DocumentsList({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,13 +89,11 @@ export function DocumentsList({
 
     setError(null);
 
-    // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       setError("Arquivo muito grande. Máximo permitido: 50MB");
       return;
     }
 
-    // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
       setError("Tipo de arquivo não permitido. Use PDF, imagens ou documentos Office.");
       return;
@@ -93,7 +103,6 @@ export function DocumentsList({
     setUploadProgress(0);
 
     try {
-      // 1. Get presigned URL
       const urlResult = await getUploadUrlAction({
         workspace_id: workspaceId,
         property_id: propertyId,
@@ -110,7 +119,6 @@ export function DocumentsList({
 
       const { upload_url, storage_key } = urlResult.data!;
 
-      // 2. Upload file directly to MinIO/S3
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.upload.addEventListener("progress", (event) => {
@@ -132,7 +140,6 @@ export function DocumentsList({
         xhr.send(file);
       });
 
-      // 3. Register document in database
       startTransition(async () => {
         const registerResult = await registerDocumentAction(
           {
@@ -161,7 +168,6 @@ export function DocumentsList({
       setUploadProgress(0);
     }
 
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -169,56 +175,67 @@ export function DocumentsList({
 
   const handleDelete = async (docId: string) => {
     if (!confirm("Tem certeza que deseja deletar este documento?")) return;
+    setDeletingId(docId);
     startTransition(async () => {
       const result = await deleteDocumentAction(docId, propertyId);
       if (result.success) {
         setDocuments((prev) => prev.filter((d) => d.id !== docId));
       }
+      setDeletingId(null);
     });
   };
 
   return (
     <div className="space-y-4">
       {/* Upload area */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-zinc-400">
-          {documents.length} documento{documents.length !== 1 ? "s" : ""}
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={ALLOWED_TYPES.join(",")}
-            onChange={handleFileSelect}
-            disabled={uploading}
-            className="hidden"
-            id="file-upload"
-          />
-          <label
-            htmlFor="file-upload"
-            className={`cursor-pointer rounded px-3 py-1.5 text-sm font-medium text-white ${
-              uploading
-                ? "bg-zinc-600 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-500"
-            }`}
-          >
-            {uploading ? `Enviando... ${uploadProgress}%` : "Upload documento"}
-          </label>
-        </div>
-      </div>
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {documents.length} documento{documents.length !== 1 ? "s" : ""}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ALLOWED_TYPES.join(",")}
+                onChange={handleFileSelect}
+                disabled={uploading}
+                className="hidden"
+                id="file-upload"
+              />
+              <Button asChild disabled={uploading}>
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  {uploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enviando... {uploadProgress}%
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload documento
+                    </>
+                  )}
+                </label>
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Error message */}
       {error && (
-        <div className="rounded-lg border border-red-900/60 bg-red-950/50 p-3 text-sm text-red-200">
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {/* Upload progress bar */}
       {uploading && (
-        <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-700">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full bg-blue-500 transition-all"
+            className="h-full bg-primary transition-all"
             style={{ width: `${uploadProgress}%` }}
           />
         </div>
@@ -226,53 +243,60 @@ export function DocumentsList({
 
       {/* Documents list */}
       {documents.length === 0 ? (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-8 text-center text-sm text-zinc-400">
-          Nenhum documento anexado
-        </div>
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            Nenhum documento anexado
+          </CardContent>
+        </Card>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-zinc-800">
-          <table className="w-full text-sm">
-            <thead className="border-b border-zinc-800 bg-zinc-900/50">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-zinc-400">Arquivo</th>
-                <th className="px-4 py-3 text-left font-medium text-zinc-400">Tipo</th>
-                <th className="px-4 py-3 text-right font-medium text-zinc-400">Tamanho</th>
-                <th className="px-4 py-3 text-left font-medium text-zinc-400">Data</th>
-                <th className="px-4 py-3 text-right font-medium text-zinc-400">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800">
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Arquivo</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead className="text-right">Tamanho</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {documents.map((doc) => (
-                <tr key={doc.id} className="hover:bg-zinc-800/30">
-                  <td className="px-4 py-3">
+                <TableRow key={doc.id}>
+                  <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">{getFileIcon(doc.content_type)}</span>
-                      <span className="text-white">{doc.filename}</span>
+                      <FileIcon contentType={doc.content_type} />
+                      <span className="font-medium">{doc.filename}</span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-300">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
                     {doc.content_type?.split("/").pop() ?? "-"}
-                  </td>
-                  <td className="px-4 py-3 text-right text-zinc-300">
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
                     {formatFileSize(doc.size_bytes)}
-                  </td>
-                  <td className="px-4 py-3 text-zinc-300">{formatDate(doc.created_at)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(doc.created_at)}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleDelete(doc.id)}
-                      disabled={isPending}
-                      className="text-red-400 hover:text-red-300 disabled:opacity-50"
+                      disabled={deletingId === doc.id || isPending}
+                      className="text-destructive hover:text-destructive"
                     >
-                      Deletar
-                    </button>
-                  </td>
-                </tr>
+                      {deletingId === doc.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   );
 }
-

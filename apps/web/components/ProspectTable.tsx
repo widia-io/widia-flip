@@ -2,11 +2,30 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Loader2 } from "lucide-react";
 
 import type { Prospect } from "@widia/shared";
 
 import { ProspectQuickAdd } from "@/components/ProspectQuickAdd";
 import { ProspectRow } from "@/components/ProspectRow";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface ProspectTableProps {
   prospects: Prospect[];
@@ -24,13 +43,13 @@ export function ProspectTable({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [localStatus, setLocalStatus] = useState(statusFilter ?? "");
+  const [localStatus, setLocalStatus] = useState(statusFilter ?? "all");
   const [localSearch, setLocalSearch] = useState(searchQuery ?? "");
 
   const handleFilterChange = (status: string) => {
     setLocalStatus(status);
     const params = new URLSearchParams(searchParams.toString());
-    if (status) {
+    if (status && status !== "all") {
       params.set("status", status);
     } else {
       params.delete("status");
@@ -81,41 +100,41 @@ export function ProspectTable({
   };
 
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-950">
+    <Card>
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 border-b border-neutral-800 p-4">
-        <select
+      <div className="flex flex-wrap items-center gap-4 border-b border-border p-4">
+        <Select
           value={localStatus}
-          onChange={(e) => handleFilterChange(e.target.value)}
+          onValueChange={handleFilterChange}
           disabled={isPending}
-          className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100"
         >
-          <option value="">Todos os status</option>
-          <option value="active">Ativos</option>
-          <option value="discarded">Descartados</option>
-          <option value="converted">Convertidos</option>
-        </select>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os status</SelectItem>
+            <SelectItem value="active">Ativos</SelectItem>
+            <SelectItem value="discarded">Descartados</SelectItem>
+            <SelectItem value="converted">Convertidos</SelectItem>
+          </SelectContent>
+        </Select>
 
         <form onSubmit={handleSearchSubmit} className="flex gap-2">
-          <input
+          <Input
             type="text"
             value={localSearch}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Buscar bairro/endereço..."
             disabled={isPending}
-            className="w-48 rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600"
+            className="w-48"
           />
-          <button
-            type="submit"
-            disabled={isPending}
-            className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 hover:bg-neutral-800 disabled:opacity-50"
-          >
+          <Button type="submit" variant="secondary" disabled={isPending}>
             Buscar
-          </button>
+          </Button>
         </form>
 
         {isPending && (
-          <span className="text-xs text-neutral-500">Carregando...</span>
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         )}
       </div>
 
@@ -123,44 +142,42 @@ export function ProspectTable({
       <ProspectQuickAdd workspaceId={workspaceId} />
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-neutral-800 text-left text-xs text-neutral-500">
-              <th className="px-4 py-3 font-medium">Bairro</th>
-              <th className="px-4 py-3 font-medium">Endereço</th>
-              <th className="px-4 py-3 font-medium text-right">Área</th>
-              <th className="px-4 py-3 font-medium text-right">Valor</th>
-              <th className="px-4 py-3 font-medium text-right">R$/m²</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-800">
-            {prospects.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={7}
-                  className="px-4 py-8 text-center text-sm text-neutral-400"
-                >
-                  Nenhum prospect encontrado. Use o campo acima para adicionar o
-                  primeiro.
-                </td>
-              </tr>
-            ) : (
-              prospects.map((prospect) => (
-                <ProspectRow
-                  key={prospect.id}
-                  prospect={prospect}
-                  formatCurrency={formatCurrency}
-                  formatArea={formatArea}
-                  formatPricePerSqm={formatPricePerSqm}
-                />
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Bairro</TableHead>
+            <TableHead>Endereço</TableHead>
+            <TableHead className="text-right">Área</TableHead>
+            <TableHead className="text-right">Valor</TableHead>
+            <TableHead className="text-right">R$/m²</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {prospects.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={7}
+                className="h-24 text-center text-muted-foreground"
+              >
+                Nenhum prospect encontrado. Use o campo acima para adicionar o
+                primeiro.
+              </TableCell>
+            </TableRow>
+          ) : (
+            prospects.map((prospect) => (
+              <ProspectRow
+                key={prospect.id}
+                prospect={prospect}
+                formatCurrency={formatCurrency}
+                formatArea={formatArea}
+                formatPricePerSqm={formatPricePerSqm}
+              />
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </Card>
   );
 }
