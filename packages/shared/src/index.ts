@@ -460,3 +460,49 @@ export const RegisterDocumentRequestSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 export type RegisterDocumentRequest = z.infer<typeof RegisterDocumentRequestSchema>;
+
+// M5 - Public Calculator
+
+export const PublicCashSettingsSchema = z.object({
+  itbi_rate: z.number().min(0).max(1).optional(),
+  registry_rate: z.number().min(0).max(1).optional(),
+  broker_rate: z.number().min(0).max(1).optional(),
+  pj_tax_rate: z.number().min(0).max(1).optional(),
+});
+export type PublicCashSettings = z.infer<typeof PublicCashSettingsSchema>;
+
+export const PublicCashCalcRequestSchema = z.object({
+  purchase_price: z.number().nonnegative().optional(),
+  renovation_cost: z.number().nonnegative().optional(),
+  other_costs: z.number().nonnegative().optional(),
+  sale_price: z.number().nonnegative().optional(),
+  settings: PublicCashSettingsSchema.optional(),
+});
+export type PublicCashCalcRequest = z.infer<typeof PublicCashCalcRequestSchema>;
+
+export const PublicCashCalcResponseSchema = z.object({
+  inputs: z.object({
+    purchase_price: z.number().nullable(),
+    renovation_cost: z.number().nullable(),
+    other_costs: z.number().nullable(),
+    sale_price: z.number().nullable(),
+  }),
+  outputs: CashOutputsSchema,
+});
+export type PublicCashCalcResponse = z.infer<typeof PublicCashCalcResponseSchema>;
+
+export const SaveCalculatorRequestSchema = z.object({
+  purchase_price: z.number().nonnegative().optional(),
+  renovation_cost: z.number().nonnegative().optional(),
+  other_costs: z.number().nonnegative().optional(),
+  sale_price: z.number().nonnegative().optional(),
+  neighborhood: z.string().optional(),
+  address: z.string().optional(),
+});
+export type SaveCalculatorRequest = z.infer<typeof SaveCalculatorRequestSchema>;
+
+export const SaveCalculatorResponseSchema = z.object({
+  property_id: z.string(),
+  snapshot_id: z.string(),
+});
+export type SaveCalculatorResponse = z.infer<typeof SaveCalculatorResponseSchema>;

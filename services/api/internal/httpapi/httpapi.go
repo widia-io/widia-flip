@@ -21,33 +21,47 @@ func NewHandler(deps Deps) http.Handler {
 		s3Client:      deps.S3Client,
 	}
 
-	mux := http.NewServeMux()
+	// Public routes (no auth required)
+	publicMux := http.NewServeMux()
+	publicMux.HandleFunc("/api/v1/health", api.handleHealth)
+	publicMux.HandleFunc("/api/v1/public/cash-calc", api.handlePublicCashCalc)
+
+	// Protected routes (auth required)
+	protectedMux := http.NewServeMux()
 
 	// M0
-	mux.HandleFunc("/api/v1/health", api.handleHealth)
-	mux.HandleFunc("/api/v1/workspaces", api.handleWorkspacesCollection)
-	mux.HandleFunc("/api/v1/workspaces/", api.handleWorkspacesSubroutes)
+	protectedMux.HandleFunc("/api/v1/workspaces", api.handleWorkspacesCollection)
+	protectedMux.HandleFunc("/api/v1/workspaces/", api.handleWorkspacesSubroutes)
 
 	// M1 - Prospects
-	mux.HandleFunc("/api/v1/prospects", api.handleProspectsCollection)
-	mux.HandleFunc("/api/v1/prospects/", api.handleProspectsSubroutes)
+	protectedMux.HandleFunc("/api/v1/prospects", api.handleProspectsCollection)
+	protectedMux.HandleFunc("/api/v1/prospects/", api.handleProspectsSubroutes)
 
 	// M2 - Properties
-	mux.HandleFunc("/api/v1/properties", api.handlePropertiesCollection)
-	mux.HandleFunc("/api/v1/properties/", api.handlePropertiesSubroutes)
+	protectedMux.HandleFunc("/api/v1/properties", api.handlePropertiesCollection)
+	protectedMux.HandleFunc("/api/v1/properties/", api.handlePropertiesSubroutes)
 
 	// M3 - Financing
-	mux.HandleFunc("/api/v1/financing/", api.handleFinancingSubroutes)
+	protectedMux.HandleFunc("/api/v1/financing/", api.handleFinancingSubroutes)
 
 	// M4 - Costs
-	mux.HandleFunc("/api/v1/costs/", api.handleCostsSubroutes)
+	protectedMux.HandleFunc("/api/v1/costs/", api.handleCostsSubroutes)
 
 	// M4 - Documents
-	mux.HandleFunc("/api/v1/documents", api.handleDocumentsCollection)
-	mux.HandleFunc("/api/v1/documents/", api.handleDocumentsSubroutes)
+	protectedMux.HandleFunc("/api/v1/documents", api.handleDocumentsCollection)
+	protectedMux.HandleFunc("/api/v1/documents/", api.handleDocumentsSubroutes)
 
-	var h http.Handler = mux
-	h = authMiddleware(api.tokenVerifier, h)
+	// Apply auth middleware only to protected routes
+	var protectedHandler http.Handler = protectedMux
+	protectedHandler = authMiddleware(api.tokenVerifier, protectedHandler)
+
+	// Combine public and protected routes
+	mainMux := http.NewServeMux()
+	mainMux.Handle("/api/v1/health", publicMux)
+	mainMux.Handle("/api/v1/public/", publicMux)
+	mainMux.Handle("/", protectedHandler)
+
+	var h http.Handler = mainMux
 	h = recoverMiddleware(h)
 	h = requestIDMiddleware(h)
 	return h

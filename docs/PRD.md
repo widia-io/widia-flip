@@ -50,8 +50,8 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-05 — Custos + Docs + Timeline`
-* **Milestone em andamento:** `M5 — SEO Calculator + Gating`
+* **Current Checkpoint:** `CP-06 — SEO Calculator + Gating`
+* **Milestone em andamento:** `M6 — Polimento MVP`
 * **Última atualização:** `2025-12-19`
 
 ## 1.2 Milestones (visão macro)
@@ -190,9 +190,9 @@ Deve existir:
 
 ### M5 — SEO Calculator + Gating
 
-* ⬜ T5.1 Página pública “Calculadora de Viabilidade” (inputs mínimos)
-* ⬜ T5.2 “Salvar/Ver completo” → modal login (Better Auth)
-* ⬜ T5.3 Eventos de funil (mínimo: logs; opcional: PostHog/etc.)
+* ✅ T5.1 Página pública “Calculadora de Viabilidade” (inputs mínimos)
+* ✅ T5.2 “Salvar/Ver completo” → modal login (Better Auth)
+* ✅ T5.3 Eventos de funil (mínimo: logs; opcional: PostHog/etc.)
   **Checkpoint alvo:** `CP-06`
 
 ### M6 — Polimento MVP
@@ -487,3 +487,4 @@ Critérios:
 * `CP-03` — 2025-12-18 — M2 entregue: Property hub com abas (overview/viability/timeline/prospect), workspace_settings BR (ITBI/registro/corretagem), cálculo cash server-side (viability engine), snapshots versionados + histórico, timeline de eventos.
 * `CP-04` — 2025-12-18 — M3 entregue: financing_plans/payments/snapshots (migrations), cálculo financiado server-side (viability engine), API endpoints (PUT/GET financing, CRUD payments, snapshots), aba Financiamento no hub (inputs, prestações, outputs, histórico), timeline event analysis_financing_saved.
 * `CP-05` — 2025-12-19 — M4 entregue: MinIO (S3 compatível) no docker-compose, CRUD custos (cost_items), upload docs via presigned URL (documents), timeline events (cost_added, cost_updated, doc_uploaded), abas Custos e Documentos no property hub.
+* `CP-06` — 2025-12-19 — M5 entregue: página pública /calculator com inputs mínimos, cálculo server-side via BFF (endpoint público POST /api/v1/public/cash-calc), AuthModal para gating (login/signup), fluxo save (cria property + inputs + snapshot + redirect), eventos de funil via logs estruturados.
