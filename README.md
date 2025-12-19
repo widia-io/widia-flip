@@ -77,5 +77,6 @@ Abra:
 - **BFF (LOCKED/PRD)**: o browser **não** chama a Go API diretamente. Chamadas são feitas no server-side (Route Handlers / Server Actions).
 - **Auth tokens (Go)**: a API valida JWT via **JWKS** exposto pelo Better Auth em `GET /api/auth/jwks` (config em `BETTER_AUTH_JWKS_URL`).
 - **Persistência do Better Auth**: no CP-01 o Better Auth roda com storage **em memória** (dev). Reiniciar o servidor do Next reseta as contas/sessões.
+- **Warning Ed25519**: o warning `ExperimentalWarning: The Ed25519 Web Crypto API algorithm` é esperado e não afeta funcionalidade. É causado pelo Better Auth que usa Ed25519 para assinatura de tokens. O script `dev` já suprime warnings experimentais automaticamente.
 
 

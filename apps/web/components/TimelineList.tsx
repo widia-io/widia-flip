@@ -8,12 +8,14 @@ interface TimelineListProps {
 
 const EVENT_LABELS: Record<string, string> = {
   status_changed: "Status alterado",
-  analysis_cash_saved: "Análise salva",
+  analysis_cash_saved: "Análise à vista salva",
+  analysis_financing_saved: "Análise financiada salva",
 };
 
 const EVENT_ICONS: Record<string, string> = {
   status_changed: "🔄",
-  analysis_cash_saved: "💾",
+  analysis_cash_saved: "💵",
+  analysis_financing_saved: "🏦",
 };
 
 export function TimelineList({ events }: TimelineListProps) {
@@ -69,7 +71,7 @@ export function TimelineList({ events }: TimelineListProps) {
       }
     }
 
-    if (event.event_type === "analysis_cash_saved") {
+    if (event.event_type === "analysis_cash_saved" || event.event_type === "analysis_financing_saved") {
       const netProfit = payload.net_profit as number | undefined;
       const roi = payload.roi as number | undefined;
 

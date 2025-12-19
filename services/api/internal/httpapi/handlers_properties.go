@@ -114,6 +114,18 @@ func (a *api) handlePropertiesSubroutes(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// /api/v1/properties/:id/analysis/financing/...
+	if len(parts) >= 3 && parts[1] == "analysis" && parts[2] == "financing" {
+		a.handlePropertyFinancingAnalysis(w, r, propertyID, parts[3:])
+		return
+	}
+
+	// /api/v1/properties/:id/financing
+	if len(parts) >= 2 && parts[1] == "financing" {
+		a.handlePropertyFinancing(w, r, propertyID, parts[2:])
+		return
+	}
+
 	// /api/v1/properties/:id
 	if len(parts) == 1 {
 		switch r.Method {

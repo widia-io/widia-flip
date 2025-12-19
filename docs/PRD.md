@@ -50,8 +50,8 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-03 — Imóvel + Viabilidade à Vista`
-* **Milestone em andamento:** `M3 — Financiamento`
+* **Current Checkpoint:** `CP-04 — Financiamento Completo`
+* **Milestone em andamento:** `M4 — Custos + Docs + Timeline`
 * **Última atualização:** `2025-12-18`
 
 ## 1.2 Milestones (visão macro)
@@ -175,10 +175,10 @@ Deve existir:
 
 ### M3 — Financiamento
 
-* ⬜ T3.1 Modelos financiamento (plano, prestações, saldo devedor)
-* ⬜ T3.2 UI de prestações (lista 1..N) + somatórios
-* ⬜ T3.3 Cálculos financiado (server-side) + outputs
-* ⬜ T3.4 Snapshot financiado + histórico
+* ✅ T3.1 Modelos financiamento (plano, prestações, saldo devedor)
+* ✅ T3.2 UI de prestações (lista 1..N) + somatórios
+* ✅ T3.3 Cálculos financiado (server-side) + outputs
+* ✅ T3.4 Snapshot financiado + histórico
   **Checkpoint alvo:** `CP-04`
 
 ### M4 — Custos + Documentos + Timeline
@@ -485,3 +485,4 @@ Critérios:
 * `CP-01` — 2025-12-18 — M0 entregue: monorepo (Next+Go+shared), Postgres+Migrations base, Better Auth + BFF bearer, API health + auth (JWKS) + workspaces.
 * `CP-02` — 2025-12-18 — M1 entregue: CRUD prospects (Go API), tabela prospecção com Quick Add (enter-to-save), preço/m² calculado server-side, conversão prospect→property.
 * `CP-03` — 2025-12-18 — M2 entregue: Property hub com abas (overview/viability/timeline/prospect), workspace_settings BR (ITBI/registro/corretagem), cálculo cash server-side (viability engine), snapshots versionados + histórico, timeline de eventos.
+* `CP-04` — 2025-12-18 — M3 entregue: financing_plans/payments/snapshots (migrations), cálculo financiado server-side (viability engine), API endpoints (PUT/GET financing, CRUD payments, snapshots), aba Financiamento no hub (inputs, prestações, outputs, histórico), timeline event analysis_financing_saved.

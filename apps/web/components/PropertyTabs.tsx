@@ -14,7 +14,8 @@ export function PropertyTabs({ propertyId, hasProspectOrigin }: PropertyTabsProp
 
   const tabs = [
     { href: `${basePath}/overview`, label: "Visão Geral" },
-    { href: `${basePath}/viability`, label: "Viabilidade" },
+    { href: `${basePath}/viability`, label: "À Vista" },
+    { href: `${basePath}/financing`, label: "Financiamento" },
     { href: `${basePath}/timeline`, label: "Timeline" },
     ...(hasProspectOrigin
       ? [{ href: `${basePath}/prospect`, label: "Prospecção" }]

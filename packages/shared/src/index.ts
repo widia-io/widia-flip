@@ -236,11 +236,107 @@ export const CreateSnapshotResponseSchema = z.object({
 });
 export type CreateSnapshotResponse = z.infer<typeof CreateSnapshotResponseSchema>;
 
-// M2 - Timeline
+// M3 - Financing Analysis
+
+export const FinancingInputsSchema = z.object({
+  purchase_price: z.number().nullable(),
+  sale_price: z.number().nullable(),
+  down_payment_percent: z.number().nullable(),
+  down_payment_value: z.number().nullable(),
+  financed_value: z.number().nullable(),
+  term_months: z.number().nullable(),
+  cet: z.number().nullable(),
+  interest_rate: z.number().nullable(),
+  insurance: z.number().nullable(),
+  appraisal_fee: z.number().nullable(),
+  other_fees: z.number().nullable(),
+  remaining_debt: z.number().nullable(),
+});
+export type FinancingInputs = z.infer<typeof FinancingInputsSchema>;
+
+export const FinancingOutputsSchema = z.object({
+  down_payment_value: z.number(),
+  financed_value: z.number(),
+  payments_total: z.number(),
+  bank_fees_total: z.number(),
+  itbi_value: z.number(),
+  registry_value: z.number(),
+  acquisition_fees: z.number(),
+  total_paid: z.number(),
+  investment_total: z.number(),
+  broker_fee: z.number(),
+  gross_profit: z.number(),
+  pj_tax_value: z.number(),
+  net_profit: z.number(),
+  roi: z.number(),
+  interest_paid_estimate: z.number(),
+  is_partial: z.boolean(),
+});
+export type FinancingOutputs = z.infer<typeof FinancingOutputsSchema>;
+
+export const FinancingPaymentSchema = z.object({
+  id: z.string(),
+  month_index: z.number(),
+  amount: z.number(),
+  created_at: z.string(),
+});
+export type FinancingPayment = z.infer<typeof FinancingPaymentSchema>;
+
+export const FinancingAnalysisResponseSchema = z.object({
+  plan_id: z.string().optional(),
+  inputs: FinancingInputsSchema,
+  payments: z.array(FinancingPaymentSchema),
+  outputs: FinancingOutputsSchema,
+});
+export type FinancingAnalysisResponse = z.infer<typeof FinancingAnalysisResponseSchema>;
+
+export const UpdateFinancingInputsRequestSchema = z.object({
+  purchase_price: z.number().nonnegative().optional(),
+  sale_price: z.number().nonnegative().optional(),
+  down_payment_percent: z.number().min(0).max(1).optional(),
+  down_payment_value: z.number().nonnegative().optional(),
+  term_months: z.number().int().nonnegative().optional(),
+  cet: z.number().nonnegative().optional(),
+  interest_rate: z.number().nonnegative().optional(),
+  insurance: z.number().nonnegative().optional(),
+  appraisal_fee: z.number().nonnegative().optional(),
+  other_fees: z.number().nonnegative().optional(),
+  remaining_debt: z.number().nonnegative().optional(),
+});
+export type UpdateFinancingInputsRequest = z.infer<typeof UpdateFinancingInputsRequestSchema>;
+
+export const CreatePaymentRequestSchema = z.object({
+  month_index: z.number().int().positive(),
+  amount: z.number().nonnegative(),
+});
+export type CreatePaymentRequest = z.infer<typeof CreatePaymentRequestSchema>;
+
+export const ListPaymentsResponseSchema = z.object({
+  items: z.array(FinancingPaymentSchema),
+  total: z.number(),
+});
+export type ListPaymentsResponse = z.infer<typeof ListPaymentsResponseSchema>;
+
+export const FinancingSnapshotSchema = z.object({
+  id: z.string(),
+  inputs: FinancingInputsSchema,
+  payments: z.array(FinancingPaymentSchema),
+  outputs: FinancingOutputsSchema,
+  created_at: z.string(),
+});
+export type FinancingSnapshot = z.infer<typeof FinancingSnapshotSchema>;
+
+export const ListFinancingSnapshotsResponseSchema = z.object({
+  items: z.array(FinancingSnapshotSchema),
+});
+export type ListFinancingSnapshotsResponse = z.infer<typeof ListFinancingSnapshotsResponseSchema>;
+
+// M2/M3 - Timeline
 
 export const TimelineEventTypeEnum = z.enum([
   "status_changed",
   "analysis_cash_saved",
+  "analysis_financing_saved",
 ]);
 export type TimelineEventType = z.infer<typeof TimelineEventTypeEnum>;
 
