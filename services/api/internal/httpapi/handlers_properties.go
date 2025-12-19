@@ -126,6 +126,18 @@ func (a *api) handlePropertiesSubroutes(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// /api/v1/properties/:id/costs
+	if len(parts) == 2 && parts[1] == "costs" {
+		a.handlePropertyCosts(w, r, propertyID)
+		return
+	}
+
+	// /api/v1/properties/:id/documents
+	if len(parts) == 2 && parts[1] == "documents" {
+		a.handlePropertyDocuments(w, r, propertyID)
+		return
+	}
+
 	// /api/v1/properties/:id
 	if len(parts) == 1 {
 		switch r.Method {

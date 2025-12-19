@@ -331,12 +331,15 @@ export const ListFinancingSnapshotsResponseSchema = z.object({
 });
 export type ListFinancingSnapshotsResponse = z.infer<typeof ListFinancingSnapshotsResponseSchema>;
 
-// M2/M3 - Timeline
+// M2/M3/M4 - Timeline
 
 export const TimelineEventTypeEnum = z.enum([
   "status_changed",
   "analysis_cash_saved",
   "analysis_financing_saved",
+  "cost_added",
+  "cost_updated",
+  "doc_uploaded",
 ]);
 export type TimelineEventType = z.infer<typeof TimelineEventTypeEnum>;
 
@@ -356,3 +359,104 @@ export const ListTimelineResponseSchema = z.object({
 });
 export type ListTimelineResponse = z.infer<typeof ListTimelineResponseSchema>;
 
+// M4 - Costs
+
+export const CostTypeEnum = z.enum(["renovation", "legal", "tax", "other"]);
+export type CostType = z.infer<typeof CostTypeEnum>;
+
+export const CostStatusEnum = z.enum(["planned", "paid"]);
+export type CostStatus = z.infer<typeof CostStatusEnum>;
+
+export const CostItemSchema = z.object({
+  id: z.string(),
+  property_id: z.string(),
+  workspace_id: z.string(),
+  cost_type: CostTypeEnum,
+  category: z.string().nullable(),
+  status: CostStatusEnum,
+  amount: z.number(),
+  due_date: z.string().nullable(),
+  vendor: z.string().nullable(),
+  notes: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type CostItem = z.infer<typeof CostItemSchema>;
+
+export const ListCostsResponseSchema = z.object({
+  items: z.array(CostItemSchema),
+  total_planned: z.number(),
+  total_paid: z.number(),
+});
+export type ListCostsResponse = z.infer<typeof ListCostsResponseSchema>;
+
+export const CreateCostRequestSchema = z.object({
+  cost_type: CostTypeEnum,
+  category: z.string().optional(),
+  status: CostStatusEnum.optional(),
+  amount: z.number().nonnegative(),
+  due_date: z.string().optional(),
+  vendor: z.string().optional(),
+  notes: z.string().optional(),
+});
+export type CreateCostRequest = z.infer<typeof CreateCostRequestSchema>;
+
+export const UpdateCostRequestSchema = z.object({
+  cost_type: CostTypeEnum.optional(),
+  category: z.string().optional(),
+  status: CostStatusEnum.optional(),
+  amount: z.number().nonnegative().optional(),
+  due_date: z.string().optional(),
+  vendor: z.string().optional(),
+  notes: z.string().optional(),
+});
+export type UpdateCostRequest = z.infer<typeof UpdateCostRequestSchema>;
+
+// M4 - Documents
+
+export const DocumentSchema = z.object({
+  id: z.string(),
+  workspace_id: z.string(),
+  property_id: z.string().nullable(),
+  cost_item_id: z.string().nullable(),
+  storage_key: z.string(),
+  storage_provider: z.string(),
+  filename: z.string(),
+  content_type: z.string().nullable(),
+  size_bytes: z.number().nullable(),
+  tags: z.array(z.string()),
+  created_at: z.string(),
+});
+export type Document = z.infer<typeof DocumentSchema>;
+
+export const ListDocumentsResponseSchema = z.object({
+  items: z.array(DocumentSchema),
+});
+export type ListDocumentsResponse = z.infer<typeof ListDocumentsResponseSchema>;
+
+export const GetUploadUrlRequestSchema = z.object({
+  workspace_id: z.string(),
+  property_id: z.string().optional(),
+  filename: z.string(),
+  content_type: z.string(),
+  size_bytes: z.number().max(50 * 1024 * 1024),
+});
+export type GetUploadUrlRequest = z.infer<typeof GetUploadUrlRequestSchema>;
+
+export const GetUploadUrlResponseSchema = z.object({
+  upload_url: z.string(),
+  storage_key: z.string(),
+});
+export type GetUploadUrlResponse = z.infer<typeof GetUploadUrlResponseSchema>;
+
+export const RegisterDocumentRequestSchema = z.object({
+  workspace_id: z.string(),
+  property_id: z.string().optional(),
+  cost_item_id: z.string().optional(),
+  storage_key: z.string(),
+  filename: z.string(),
+  content_type: z.string().optional(),
+  size_bytes: z.number().optional(),
+  tags: z.array(z.string()).optional(),
+});
+export type RegisterDocumentRequest = z.infer<typeof RegisterDocumentRequestSchema>;

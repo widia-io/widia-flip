@@ -10,12 +10,25 @@ const EVENT_LABELS: Record<string, string> = {
   status_changed: "Status alterado",
   analysis_cash_saved: "Análise à vista salva",
   analysis_financing_saved: "Análise financiada salva",
+  cost_added: "Custo adicionado",
+  cost_updated: "Custo atualizado",
+  doc_uploaded: "Documento anexado",
 };
 
 const EVENT_ICONS: Record<string, string> = {
   status_changed: "🔄",
   analysis_cash_saved: "💵",
   analysis_financing_saved: "🏦",
+  cost_added: "💰",
+  cost_updated: "✏️",
+  doc_uploaded: "📎",
+};
+
+const COST_TYPE_LABELS: Record<string, string> = {
+  renovation: "Reforma",
+  legal: "Jurídico",
+  tax: "Impostos",
+  other: "Outros",
 };
 
 export function TimelineList({ events }: TimelineListProps) {
@@ -83,6 +96,44 @@ export function TimelineList({ events }: TimelineListProps) {
           {roi !== undefined && (
             <> | ROI: {roi.toFixed(2)}%</>
           )}
+        </span>
+      );
+    }
+
+    if (event.event_type === "cost_added") {
+      const costType = payload.cost_type as string | undefined;
+      const amount = payload.amount as number | undefined;
+
+      return (
+        <span className="text-neutral-400">
+          {costType && <>{COST_TYPE_LABELS[costType] || costType}</>}
+          {amount !== undefined && <> - {formatCurrency(amount)}</>}
+        </span>
+      );
+    }
+
+    if (event.event_type === "cost_updated") {
+      const changes = payload.changes as Record<string, unknown> | undefined;
+      if (!changes) return null;
+
+      const parts: string[] = [];
+      if (changes.status) parts.push(`Status: ${changes.status === "paid" ? "Pago" : "Planejado"}`);
+      if (changes.amount !== undefined) parts.push(`Valor: ${formatCurrency(changes.amount as number)}`);
+      if (changes.cost_type) parts.push(`Tipo: ${COST_TYPE_LABELS[changes.cost_type as string] || changes.cost_type}`);
+
+      return (
+        <span className="text-neutral-400">
+          {parts.join(" | ") || "Dados atualizados"}
+        </span>
+      );
+    }
+
+    if (event.event_type === "doc_uploaded") {
+      const filename = payload.filename as string | undefined;
+
+      return (
+        <span className="text-neutral-400">
+          {filename || "Documento"}
         </span>
       );
     }

@@ -50,9 +50,9 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-04 — Financiamento Completo`
-* **Milestone em andamento:** `M4 — Custos + Docs + Timeline`
-* **Última atualização:** `2025-12-18`
+* **Current Checkpoint:** `CP-05 — Custos + Docs + Timeline`
+* **Milestone em andamento:** `M5 — SEO Calculator + Gating`
+* **Última atualização:** `2025-12-19`
 
 ## 1.2 Milestones (visão macro)
 
@@ -183,9 +183,9 @@ Deve existir:
 
 ### M4 — Custos + Documentos + Timeline
 
-* ⬜ T4.1 CRUD custos (planejado/pago) + vínculo com imóvel
-* ⬜ T4.2 Upload docs (S3 compatível) + listagem por imóvel
-* ⬜ T4.3 Timeline: eventos de status/custos/docs/análises
+* ✅ T4.1 CRUD custos (planejado/pago) + vínculo com imóvel
+* ✅ T4.2 Upload docs (S3 compatível) + listagem por imóvel
+* ✅ T4.3 Timeline: eventos de status/custos/docs/análises
   **Checkpoint alvo:** `CP-05`
 
 ### M5 — SEO Calculator + Gating
@@ -486,3 +486,4 @@ Critérios:
 * `CP-02` — 2025-12-18 — M1 entregue: CRUD prospects (Go API), tabela prospecção com Quick Add (enter-to-save), preço/m² calculado server-side, conversão prospect→property.
 * `CP-03` — 2025-12-18 — M2 entregue: Property hub com abas (overview/viability/timeline/prospect), workspace_settings BR (ITBI/registro/corretagem), cálculo cash server-side (viability engine), snapshots versionados + histórico, timeline de eventos.
 * `CP-04` — 2025-12-18 — M3 entregue: financing_plans/payments/snapshots (migrations), cálculo financiado server-side (viability engine), API endpoints (PUT/GET financing, CRUD payments, snapshots), aba Financiamento no hub (inputs, prestações, outputs, histórico), timeline event analysis_financing_saved.
+* `CP-05` — 2025-12-19 — M4 entregue: MinIO (S3 compatível) no docker-compose, CRUD custos (cost_items), upload docs via presigned URL (documents), timeline events (cost_added, cost_updated, doc_uploaded), abas Custos e Documentos no property hub.

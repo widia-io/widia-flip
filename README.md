@@ -28,6 +28,12 @@ Use `env.example` como referência e exporte as variáveis no seu shell (ou copi
   - `DATABASE_URL` (**obrigatório**)
   - `API_PORT` (default: `8080`)
   - `BETTER_AUTH_JWKS_URL` (default: `http://localhost:3000/api/auth/jwks`)
+  - `S3_ENDPOINT` (default: `http://localhost:9000`)
+  - `S3_ACCESS_KEY` (default: `minioadmin`)
+  - `S3_SECRET_KEY` (default: `minioadmin`)
+  - `S3_BUCKET` (default: `widia-flip-dev`)
+  - `S3_REGION` (default: `us-east-1`)
+  - `S3_FORCE_PATH_STYLE` (default: `true`)
 
 Exemplo (dev):
 
@@ -36,14 +42,27 @@ export BETTER_AUTH_SECRET="dev_secret_please_change_me_32_chars_minimum"
 export GO_API_BASE_URL="http://localhost:8080"
 export DATABASE_URL="postgres://widia:widia@localhost:5432/widia_flip?sslmode=disable"
 export BETTER_AUTH_JWKS_URL="http://localhost:3000/api/auth/jwks"
+export S3_ENDPOINT="http://localhost:9000"
+export S3_ACCESS_KEY="minioadmin"
+export S3_SECRET_KEY="minioadmin"
+export S3_BUCKET="widia-flip-dev"
+export S3_REGION="us-east-1"
+export S3_FORCE_PATH_STYLE="true"
 ```
 
-#### 2) Subir Postgres + aplicar migrations
+#### 2) Subir Postgres + MinIO + aplicar migrations
 
 ```bash
 npm run db:up
 npm run db:migrate
 ```
+
+Isso também sobe o MinIO (object storage S3-compatível) para upload de documentos.
+
+- **MinIO Console**: `http://localhost:9001`
+  - User: `minioadmin`
+  - Password: `minioadmin`
+- O bucket `widia-flip-dev` é criado automaticamente.
 
 #### 3) Subir API Go
 

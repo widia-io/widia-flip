@@ -14,6 +14,7 @@ import (
 
 	"github.com/widia-projects/widia-flip/services/api/internal/config"
 	"github.com/widia-projects/widia-flip/services/api/internal/httpapi"
+	"github.com/widia-projects/widia-flip/services/api/internal/storage"
 )
 
 func main() {
@@ -36,9 +37,19 @@ func main() {
 		log.Fatalf("db ping: %v", err)
 	}
 
+	// Initialize S3 client for document storage
+	s3Client, err := storage.NewS3Client(cfg.S3)
+	if err != nil {
+		log.Printf("warning: S3 client init failed (document upload will be disabled): %v", err)
+		s3Client = nil
+	} else {
+		log.Printf("S3 client initialized for bucket: %s", cfg.S3.Bucket)
+	}
+
 	handler := httpapi.NewHandler(httpapi.Deps{
 		DB:                db,
 		BetterAuthJWKSURL: cfg.BetterAuthJWKSURL,
+		S3Client:          s3Client,
 	})
 
 	srv := &http.Server{
