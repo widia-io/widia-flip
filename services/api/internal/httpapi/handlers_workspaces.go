@@ -283,8 +283,8 @@ func (a *api) handleUpdateWorkspaceSettings(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "invalid json body", Details: []string{err.Error()}})
 		return
 	}
-	if req.PJTaxRate < 0 {
-		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "pj_tax_rate must be >= 0"})
+	if req.PJTaxRate < 0 || req.PJTaxRate > 1 {
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "pj_tax_rate must be between 0 and 1"})
 		return
 	}
 

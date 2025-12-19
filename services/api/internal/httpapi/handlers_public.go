@@ -93,6 +93,26 @@ func (a *api) handlePublicCashCalc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate settings rates (must be between 0 and 1)
+	if req.Settings != nil {
+		if req.Settings.ITBIRate != nil && (*req.Settings.ITBIRate < 0 || *req.Settings.ITBIRate > 1) {
+			writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "itbi_rate must be between 0 and 1"})
+			return
+		}
+		if req.Settings.RegistryRate != nil && (*req.Settings.RegistryRate < 0 || *req.Settings.RegistryRate > 1) {
+			writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "registry_rate must be between 0 and 1"})
+			return
+		}
+		if req.Settings.BrokerRate != nil && (*req.Settings.BrokerRate < 0 || *req.Settings.BrokerRate > 1) {
+			writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "broker_rate must be between 0 and 1"})
+			return
+		}
+		if req.Settings.PJTaxRate != nil && (*req.Settings.PJTaxRate < 0 || *req.Settings.PJTaxRate > 1) {
+			writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "pj_tax_rate must be between 0 and 1"})
+			return
+		}
+	}
+
 	// Build settings from request or use defaults
 	settings := defaultPublicSettings
 	if req.Settings != nil {

@@ -102,6 +102,7 @@ export function ProspectQuickAdd({ workspaceId }: ProspectQuickAddProps) {
           onChange={(e) => setNeighborhood(e.target.value)}
           onKeyDown={(e) => handleKeyDown(e, addressRef)}
           placeholder="Bairro"
+          aria-label="Bairro do imóvel"
           disabled={isPending}
           className="w-28 rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-600 focus:outline-none disabled:opacity-50"
         />
@@ -112,6 +113,7 @@ export function ProspectQuickAdd({ workspaceId }: ProspectQuickAddProps) {
           onChange={(e) => setAddress(e.target.value)}
           onKeyDown={(e) => handleKeyDown(e, areaRef)}
           placeholder="Endereço"
+          aria-label="Endereço do imóvel"
           disabled={isPending}
           className="flex-1 rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-blue-600 focus:outline-none disabled:opacity-50"
         />
@@ -122,6 +124,7 @@ export function ProspectQuickAdd({ workspaceId }: ProspectQuickAddProps) {
           onChange={(e) => setArea(e.target.value)}
           onKeyDown={(e) => handleKeyDown(e, priceRef)}
           placeholder="Área m²"
+          aria-label="Área útil em metros quadrados"
           disabled={isPending}
           min="0"
           step="0.01"
@@ -134,6 +137,7 @@ export function ProspectQuickAdd({ workspaceId }: ProspectQuickAddProps) {
           onChange={(e) => setPrice(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Valor R$"
+          aria-label="Valor do imóvel em reais"
           disabled={isPending}
           min="0"
           step="1"

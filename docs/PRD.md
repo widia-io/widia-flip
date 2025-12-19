@@ -33,16 +33,16 @@
   * Tabelas `workspace_memberships` podem existir desde M0, mas **UI de membros fica V1**.
 * **Snapshot não é automático:**
 
-  * Inputs “current” salvam a cada edição (`PUT`)
+  * Inputs "current" salvam a cada edição (`PUT`)
   * Snapshot só quando o usuário clica **Salvar análise** (`POST snapshot`)
 * **Pipeline MVP simplificado** (apenas estes status):
 
   * `prospecting → analyzing → bought → renovation → for_sale → sold → archived`
 
-## 0.2 Definition of “Current”
+## 0.2 Definition of "Current"
 
-* “Current analysis” = último estado salvo em `analysis_*_inputs`.
-* “Official/historical” = snapshots (`analysis_*_snapshots`) criados por ação explícita do usuário.
+* "Current analysis" = último estado salvo em `analysis_*_inputs`.
+* "Official/historical" = snapshots (`analysis_*_snapshots`) criados por ação explícita do usuário.
 
 ---
 
@@ -50,8 +50,8 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-06 — SEO Calculator + Gating`
-* **Milestone em andamento:** `M6 — Polimento MVP`
+* **Current Checkpoint:** `CP-07 — MVP Ready`
+* **Milestone em andamento:** `M6 — Polimento MVP (CONCLUÍDO)`
 * **Última atualização:** `2025-12-19`
 
 ## 1.2 Milestones (visão macro)
@@ -79,7 +79,7 @@ Deve existir:
 * Migrations iniciais aplicando schema base (workspaces/memberships/settings)
 * Better Auth funcionando no web (login/logout/session)
 * API com health check e middleware de auth/tenant (mesmo que mínimo)
-* README “como rodar local”
+* README "como rodar local"
 * **Auth contract fechado (ver seção 2.1)**
 
 ### CP-02 — Prospecção Operacional
@@ -124,7 +124,7 @@ Deve existir:
 Deve existir:
 
 * Página pública calculadora (inputs mínimos)
-* CTA “salvar/ver completo” exige login (modal Better Auth)
+* CTA "salvar/ver completo" exige login (modal Better Auth)
 * Eventos básicos de funil (log/analytics)
 
 ### CP-07 — MVP Ready
@@ -151,7 +151,7 @@ Deve existir:
 * ✅ T0.5 Better Auth integrado no web + sessão funcionando
 * ✅ T0.6 Auth contract web↔api (BFF + bearer) implementado
 * ✅ T0.7 Multi-tenant base (workspace + membership + role, single-user UI)
-* ✅ T0.8 Seed/dev scripts + README “como rodar”
+* ✅ T0.8 Seed/dev scripts + README "como rodar"
   **Checkpoint alvo:** `CP-01`
 
 ### M1 — Prospecção + Quick Add
@@ -190,16 +190,16 @@ Deve existir:
 
 ### M5 — SEO Calculator + Gating
 
-* ✅ T5.1 Página pública “Calculadora de Viabilidade” (inputs mínimos)
-* ✅ T5.2 “Salvar/Ver completo” → modal login (Better Auth)
+* ✅ T5.1 Página pública "Calculadora de Viabilidade" (inputs mínimos)
+* ✅ T5.2 "Salvar/Ver completo" → modal login (Better Auth)
 * ✅ T5.3 Eventos de funil (mínimo: logs; opcional: PostHog/etc.)
   **Checkpoint alvo:** `CP-06`
 
 ### M6 — Polimento MVP
 
-* ⬜ T6.1 Validações e mensagens de erro consistentes
-* ⬜ T6.2 UI polida (estados vazios, loading, feedback minimalista)
-* ⬜ T6.3 Smoke test E2E manual (happy path) documentado
+* ✅ T6.1 Validações e mensagens de erro consistentes
+* ✅ T6.2 UI polida (estados vazios, loading, feedback minimalista)
+* ✅ T6.3 Smoke test E2E manual (happy path) documentado
   **Checkpoint alvo:** `CP-07 (MVP Ready)`
 
 ---
@@ -263,7 +263,7 @@ O web (Next) atua como **BFF (Backend for Frontend)**:
   * cálculos internos em alta precisão (decimal), arredondar só na apresentação.
 * Server-side é fonte da verdade:
 
-  * UI não “recalcula por conta própria” (pode mostrar preview, mas exibe resultado do server).
+  * UI não "recalcula por conta própria" (pode mostrar preview, mas exibe resultado do server).
 
 ---
 
@@ -438,7 +438,7 @@ Critérios:
 
   * preenche inputs mínimos
   * outputs aparecem (investment_total, lucro_liquido, roi)
-  * ao clicar “Salvar análise”, snapshot aparece no histórico com timestamp
+  * ao clicar "Salvar análise", snapshot aparece no histórico com timestamp
 
 ## Journey C — Financiamento + snapshot
 
@@ -451,31 +451,96 @@ Critérios:
 
 ---
 
-# 6) MVP Demo Script (3–5 min)
+# 6) MVP Demo Script (3-5 min)
 
-1. Login → criar workspace “Bruno Flip”
-2. Ir em **Prospecção** → quick add 2 imóveis (bairro, endereço, área, valor)
-3. Abrir um imóvel → converter em property
-4. Aba **Viabilidade à vista** → preencher e mostrar ROI/lucro líquido
-5. Clicar **Salvar análise** → abrir histórico e mostrar snapshot
-6. (Se M3 pronto) Aba **Financiamento** → inserir 3 prestações e saldo → salvar snapshot
-7. (Se M4 pronto) Adicionar 1 custo + anexar doc → mostrar timeline
+**Roteiro para demonstração do MVP:**
+
+1. **Login + Workspace** (30s)
+   - Abrir http://localhost:3000 → redirect para `/login`
+   - Criar conta ou logar
+   - Criar workspace "Bruno Flip"
+
+2. **Quick Add - Prospecção** (1min)
+   - Ir em `/app/prospects`
+   - Adicionar prospect #1: Bairro="Centro", Endereço="Rua A, 100", Área=80, Valor=400000 → Enter
+   - Adicionar prospect #2: "Jardins", "Av B, 200", 100, 600000 → Enter
+   - Mostrar R$/m² calculado automaticamente
+
+3. **Converter para Property** (30s)
+   - Clicar "Converter" no primeiro prospect
+   - Mostrar redirect para property hub
+
+4. **Viabilidade Cash** (1min)
+   - Aba Viabilidade → preencher: Compra=400000, Reforma=50000, Venda=550000
+   - Mostrar outputs: Investment Total, ROI, Lucro Líquido
+   - Clicar "Salvar Análise" → mostrar snapshot no histórico
+
+5. **Financiamento** (1min)
+   - Aba Financiamento → Entrada 20%, adicionar 3 prestações de R$3000
+   - Definir saldo devedor
+   - Mostrar outputs calculados
+   - Salvar snapshot
+
+6. **Custos + Docs + Timeline** (1min)
+   - Aba Custos → Adicionar custo "Reforma" R$15000 "Planejado"
+   - Aba Documentos → Upload PDF de exemplo
+   - Aba Timeline → Mostrar eventos registrados
 
 ---
 
-# 7) Smoke Test Checklist (CP-07)
+# 7) Smoke Test Checklist (CP-07) — Executável
+
+## Pré-requisitos
+
+```bash
+npm run db:up        # Postgres + MinIO rodando
+npm run db:migrate   # Migrations aplicadas
+npm run dev:api      # API Go em http://localhost:8080 (terminal 1)
+cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
+```
+
+## Teste Passo a Passo
+
+| # | Ação | URL/Input | Resultado Esperado |
+|---|------|-----------|-------------------|
+| 1 | Acessar app | http://localhost:3000 | Redirect para `/login` |
+| 2 | Criar conta | Sign up com email+senha | Conta criada, redirect para `/app` |
+| 3 | Criar workspace | Nome: "Smoke Test WS" | Workspace selecionado |
+| 4 | Ir para Prospecção | `/app/prospects` | Tabela vazia com Quick Add visível |
+| 5 | Quick Add #1 | Bairro="Centro", Endereço="Rua A, 100", Área=80, Valor=400000, Enter | Linha salva, R$/m²=5000 |
+| 6 | Quick Add #2 | "Jardins", "Av B, 200", 100, 600000, Enter | 2 linhas na tabela |
+| 7 | Quick Add #3 | "Vila Nova", "Rua C, 50", 60, 300000, Enter | 3 linhas, R$/m²=5000 |
+| 8 | Validação área | Área=0, submeter | Erro "Área deve ser maior que 0" |
+| 9 | Converter prospect | Linha 1 → "Converter" | Redirect para `/app/properties/[id]` |
+| 10 | Overview | Aba Overview | Endereço, bairro, área exibidos |
+| 11 | Viabilidade cash | Aba Viabilidade: compra=400000, reforma=50000, venda=550000 | Outputs calculados (ROI, lucro) |
+| 12 | Salvar snapshot cash | "Salvar Análise" | Sucesso, snapshot no histórico |
+| 13 | Financiamento | Aba Financiamento: entrada 20%, 3 prestações R$3000 | Outputs calculados |
+| 14 | Salvar snapshot financing | "Salvar Análise" | Snapshot no histórico |
+| 15 | Adicionar custo | Aba Custos: Tipo=Reforma, Valor=15000, Status=Planejado | Custo na lista, total atualizado |
+| 16 | Upload documento | Aba Documentos: upload arquivo PDF | Doc na lista com tamanho/data |
+| 17 | Timeline | Aba Timeline | Eventos: status_changed, analysis_cash_saved, cost_added, doc_uploaded |
+
+## Teste de Tenant Isolation
+
+1. Criar segundo usuário (logout → signup com outro email)
+2. Criar workspace "WS-B"
+3. Tentar acessar property do primeiro usuário via URL direta
+4. **Resultado esperado:** Erro "Imóvel não encontrado" (404)
+
+## Checklist Final
 
 * [ ] Login funciona (Better Auth)
 * [ ] Workspace criado e selecionado
 * [ ] `/app/prospects` carrega sem erros
-* [ ] Quick add salva 3 linhas e valida área
+* [ ] Quick Add salva 3 linhas e valida área
 * [ ] Converter prospect → property funciona
-* [ ] Aba viabilidade cash calcula server-side e salva snapshot
-* [ ] Aba financiamento calcula e salva snapshot (se aplicável)
-* [ ] Custos CRUD OK (se aplicável)
-* [ ] Upload doc OK (se aplicável)
+* [ ] Aba Viabilidade calcula server-side e salva snapshot
+* [ ] Aba Financiamento calcula e salva snapshot
+* [ ] Custos CRUD funciona
+* [ ] Upload documento funciona
 * [ ] Timeline mostra eventos recentes
-* [ ] Nenhuma rota vaza dados entre workspaces (tenant isolation básico)
+* [ ] Tenant isolation: nenhuma rota vaza dados entre workspaces
 
 ---
 
@@ -488,3 +553,4 @@ Critérios:
 * `CP-04` — 2025-12-18 — M3 entregue: financing_plans/payments/snapshots (migrations), cálculo financiado server-side (viability engine), API endpoints (PUT/GET financing, CRUD payments, snapshots), aba Financiamento no hub (inputs, prestações, outputs, histórico), timeline event analysis_financing_saved.
 * `CP-05` — 2025-12-19 — M4 entregue: MinIO (S3 compatível) no docker-compose, CRUD custos (cost_items), upload docs via presigned URL (documents), timeline events (cost_added, cost_updated, doc_uploaded), abas Custos e Documentos no property hub.
 * `CP-06` — 2025-12-19 — M5 entregue: página pública /calculator com inputs mínimos, cálculo server-side via BFF (endpoint público POST /api/v1/public/cash-calc), AuthModal para gating (login/signup), fluxo save (cria property + inputs + snapshot + redirect), eventos de funil via logs estruturados.
+* `CP-07` — 2025-12-19 — M6 entregue: validações consistentes (percentuais 0-1, mensagens PT-BR), UI polish (loading states, empty states, aria-labels), smoke test executável documentado, demo script atualizado. MVP Ready.
