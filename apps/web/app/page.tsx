@@ -4,6 +4,7 @@ import { ArrowRight, Calculator, TrendingUp, PiggyBank, History } from "lucide-r
 import { getServerSession } from "@/lib/serverAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default async function HomePage() {
   const session = await getServerSession();
@@ -25,6 +26,7 @@ export default async function HomePage() {
             <Button variant="ghost" asChild>
               <Link href="/calculator">Calculadora</Link>
             </Button>
+            <ThemeToggle />
             {isLoggedIn ? (
               <Button asChild>
                 <Link href="/app">

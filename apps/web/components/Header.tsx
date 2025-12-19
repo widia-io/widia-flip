@@ -1,6 +1,7 @@
 import { LogOut } from "lucide-react";
 import { signOutAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function getInitials(email: string): string {
   const name = email.split("@")[0];
@@ -17,14 +18,15 @@ export function Header(props: { userEmail: string }) {
         <span className="text-sm text-muted-foreground">{props.userEmail}</span>
       </div>
 
-      <form action={signOutAction}>
-        <Button variant="ghost" size="sm" type="submit">
-          <LogOut className="h-4 w-4 mr-2" />
-          Sair
-        </Button>
-      </form>
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        <form action={signOutAction}>
+          <Button variant="ghost" size="sm" type="submit">
+            <LogOut className="h-4 w-4 mr-2" />
+            Sair
+          </Button>
+        </form>
+      </div>
     </header>
   );
 }
-
-

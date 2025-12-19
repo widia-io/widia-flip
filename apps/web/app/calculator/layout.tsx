@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 
 import { getServerSession } from "@/lib/serverAuth";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const metadata = {
   title: "Calculadora de Viabilidade | Widia Flip",
@@ -31,6 +32,7 @@ export default async function CalculatorLayout({
             <span className="text-lg font-semibold">Widia Flip</span>
           </Link>
           <nav className="flex items-center gap-3">
+            <ThemeToggle />
             {isLoggedIn ? (
               <Button asChild>
                 <Link href="/app">
