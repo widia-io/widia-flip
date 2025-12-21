@@ -15,26 +15,65 @@ import { apiFetch } from "@/lib/apiFetch";
 
 export async function createProspectAction(formData: FormData) {
   const workspaceId = String(formData.get("workspace_id") ?? "");
-  const neighborhood = formData.get("neighborhood")
-    ? String(formData.get("neighborhood"))
-    : undefined;
-  const address = formData.get("address")
-    ? String(formData.get("address"))
-    : undefined;
-  const areaUsable = formData.get("area_usable")
-    ? Number(formData.get("area_usable"))
-    : undefined;
-  const askingPrice = formData.get("asking_price")
-    ? Number(formData.get("asking_price"))
-    : undefined;
+  
+  // Helper to get optional string
+  const getString = (key: string): string | undefined => {
+    const val = formData.get(key);
+    return val ? String(val) : undefined;
+  };
+  
+  // Helper to get optional number
+  const getNumber = (key: string): number | undefined => {
+    const val = formData.get(key);
+    if (!val) return undefined;
+    const num = Number(val);
+    return isNaN(num) ? undefined : num;
+  };
+  
+  // Helper to get optional integer
+  const getInt = (key: string): number | undefined => {
+    const val = formData.get(key);
+    if (!val) return undefined;
+    const num = parseInt(String(val), 10);
+    return isNaN(num) ? undefined : num;
+  };
+  
+  // Helper to get optional boolean
+  const getBool = (key: string): boolean | undefined => {
+    const val = formData.get(key);
+    if (!val) return undefined;
+    return val === "true";
+  };
 
-  const parsed = CreateProspectRequestSchema.safeParse({
+  const data = {
     workspace_id: workspaceId,
-    neighborhood,
-    address,
-    area_usable: areaUsable,
-    asking_price: askingPrice,
-  });
+    // Location
+    neighborhood: getString("neighborhood"),
+    address: getString("address"),
+    link: getString("link"),
+    // Property characteristics
+    area_usable: getNumber("area_usable"),
+    bedrooms: getInt("bedrooms"),
+    suites: getInt("suites"),
+    bathrooms: getInt("bathrooms"),
+    parking: getInt("parking"),
+    // Building characteristics
+    floor: getInt("floor"),
+    elevator: getBool("elevator"),
+    face: getString("face"),
+    gas: getString("gas"),
+    // Financial
+    asking_price: getNumber("asking_price"),
+    condo_fee: getNumber("condo_fee"),
+    // Contact
+    agency: getString("agency"),
+    broker_name: getString("broker_name"),
+    broker_phone: getString("broker_phone"),
+    // Notes
+    comments: getString("comments"),
+  };
+
+  const parsed = CreateProspectRequestSchema.safeParse(data);
 
   if (!parsed.success) {
     return {
@@ -83,6 +122,43 @@ export async function updateProspectAction(
 
   const comments = formData.get("comments");
   if (comments !== null) data.comments = String(comments);
+  
+  // Additional fields
+  const bedrooms = formData.get("bedrooms");
+  if (bedrooms) data.bedrooms = parseInt(String(bedrooms), 10);
+  
+  const suites = formData.get("suites");
+  if (suites) data.suites = parseInt(String(suites), 10);
+  
+  const bathrooms = formData.get("bathrooms");
+  if (bathrooms) data.bathrooms = parseInt(String(bathrooms), 10);
+  
+  const parking = formData.get("parking");
+  if (parking) data.parking = parseInt(String(parking), 10);
+  
+  const floor = formData.get("floor");
+  if (floor) data.floor = parseInt(String(floor), 10);
+  
+  const elevator = formData.get("elevator");
+  if (elevator !== null) data.elevator = elevator === "true";
+  
+  const face = formData.get("face");
+  if (face !== null) data.face = String(face);
+  
+  const gas = formData.get("gas");
+  if (gas !== null) data.gas = String(gas);
+  
+  const condoFee = formData.get("condo_fee");
+  if (condoFee) data.condo_fee = Number(condoFee);
+  
+  const agency = formData.get("agency");
+  if (agency !== null) data.agency = String(agency);
+  
+  const brokerName = formData.get("broker_name");
+  if (brokerName !== null) data.broker_name = String(brokerName);
+  
+  const brokerPhone = formData.get("broker_phone");
+  if (brokerPhone !== null) data.broker_phone = String(brokerPhone);
 
   const parsed = UpdateProspectRequestSchema.safeParse(data);
   if (!parsed.success) {

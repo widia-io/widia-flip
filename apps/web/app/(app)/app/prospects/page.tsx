@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ListWorkspacesResponseSchema } from "@widia/shared";
 
-import { ProspectTable } from "@/components/ProspectTable";
+import { ProspectGrid } from "@/components/ProspectGrid";
 import { apiFetch } from "@/lib/apiFetch";
 import { listProspectsAction } from "@/lib/actions/prospects";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,7 +28,7 @@ export default async function ProspectsPage(props: {
 
   if (workspaces.items.length === 0) {
     return (
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 sm:px-6 lg:px-8">
         <Card>
           <CardContent className="py-8 text-center">
             <h2 className="text-lg font-semibold">
@@ -60,21 +60,26 @@ export default async function ProspectsPage(props: {
   const error = prospectsResult.error;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 sm:px-6 lg:px-8">
+      {/* Page Header */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Prospecção</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Prospecção
+          </h1>
           <p className="text-sm text-muted-foreground">{workspaceName}</p>
         </div>
       </div>
 
+      {/* Error State */}
       {error ? (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
           {error}
         </div>
       ) : null}
 
-      <ProspectTable
+      {/* Main Content */}
+      <ProspectGrid
         prospects={prospects}
         workspaceId={workspaceId}
         statusFilter={statusFilter}

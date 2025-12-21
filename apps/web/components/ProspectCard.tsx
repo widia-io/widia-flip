@@ -1,0 +1,361 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Loader2,
+  ExternalLink,
+  Bed,
+  Bath,
+  Car,
+  Building2,
+  Phone,
+  Trash2,
+  ArrowRightCircle,
+  MapPin,
+} from "lucide-react";
+
+import type { Prospect } from "@widia/shared";
+
+import {
+  deleteProspectAction,
+  convertProspectAction,
+} from "@/lib/actions/prospects";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ProspectViewModal } from "@/components/ProspectViewModal";
+
+interface ProspectCardProps {
+  prospect: Prospect;
+}
+
+const statusConfig: Record<
+  string,
+  { label: string; variant: "default" | "secondary" | "outline" }
+> = {
+  active: { label: "Ativo", variant: "default" },
+  discarded: { label: "Descartado", variant: "secondary" },
+  converted: { label: "Convertido", variant: "outline" },
+};
+
+export function ProspectCard({ prospect }: ProspectCardProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showConfirmConvert, setShowConfirmConvert] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+
+  const handleDelete = () => {
+    startTransition(async () => {
+      await deleteProspectAction(prospect.id);
+      setShowConfirmDelete(false);
+      router.refresh();
+    });
+  };
+
+  const handleConvert = () => {
+    startTransition(async () => {
+      await convertProspectAction(prospect.id);
+      setShowConfirmConvert(false);
+    });
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't open modal if clicking on action buttons or links
+    const target = e.target as HTMLElement;
+    if (
+      target.closest("button") ||
+      target.closest("a") ||
+      target.closest('[role="button"]')
+    ) {
+      return;
+    }
+    setShowViewModal(true);
+  };
+
+  const formatCurrency = (value: number | null | undefined) => {
+    if (value == null) return null;
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const formatArea = (value: number | null | undefined) => {
+    if (value == null) return null;
+    return `${value} m²`;
+  };
+
+  const formatPricePerSqm = (value: number | null | undefined) => {
+    if (value == null) return null;
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const isConverted = prospect.status === "converted";
+  const status = statusConfig[prospect.status] ?? {
+    label: prospect.status,
+    variant: "secondary" as const,
+  };
+
+  const pricePerSqm = formatPricePerSqm(prospect.price_per_sqm);
+  const area = formatArea(prospect.area_usable);
+  const price = formatCurrency(prospect.asking_price);
+  const condoFee = formatCurrency(prospect.condo_fee);
+
+  // Build room info string
+  const roomInfo: string[] = [];
+  if (prospect.bedrooms != null) {
+    roomInfo.push(`${prospect.bedrooms} quarto${prospect.bedrooms !== 1 ? "s" : ""}`);
+  }
+  if (prospect.suites != null && prospect.suites > 0) {
+    roomInfo.push(`${prospect.suites} suíte${prospect.suites !== 1 ? "s" : ""}`);
+  }
+  if (prospect.bathrooms != null) {
+    roomInfo.push(`${prospect.bathrooms} banh.`);
+  }
+
+  return (
+    <>
+      <Card
+        className="group relative cursor-pointer overflow-hidden transition-all hover:shadow-lg"
+        onClick={handleCardClick}
+      >
+        <CardContent className="p-0">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-2 border-b bg-muted/30 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="truncate text-base font-semibold">
+                  {prospect.neighborhood || "Sem bairro"}
+                </h3>
+                {prospect.link && (
+                  <a
+                    href={prospect.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                    title="Ver anúncio"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+              {prospect.address && (
+                <p className="mt-0.5 flex items-center gap-1 truncate text-sm text-muted-foreground">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  {prospect.address}
+                </p>
+              )}
+            </div>
+            <Badge variant={status.variant} className="shrink-0">
+              {status.label}
+            </Badge>
+          </div>
+
+          {/* Body */}
+          <div className="space-y-3 px-4 py-3">
+            {/* Price & Area Row */}
+            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              {price && (
+                <span className="text-xl font-bold text-primary">{price}</span>
+              )}
+              {pricePerSqm && (
+                <span className="text-sm text-muted-foreground">
+                  ({pricePerSqm}/m²)
+                </span>
+              )}
+            </div>
+
+            {/* Property Details Grid */}
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+              {area && (
+                <div className="flex items-center gap-1.5">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span>{area}</span>
+                </div>
+              )}
+              {prospect.bedrooms != null && (
+                <div className="flex items-center gap-1.5">
+                  <Bed className="h-4 w-4 text-muted-foreground" />
+                  <span>{prospect.bedrooms}</span>
+                </div>
+              )}
+              {prospect.bathrooms != null && (
+                <div className="flex items-center gap-1.5">
+                  <Bath className="h-4 w-4 text-muted-foreground" />
+                  <span>{prospect.bathrooms}</span>
+                </div>
+              )}
+              {prospect.parking != null && (
+                <div className="flex items-center gap-1.5">
+                  <Car className="h-4 w-4 text-muted-foreground" />
+                  <span>{prospect.parking}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Additional Details */}
+            {(prospect.floor != null || prospect.elevator != null || condoFee) && (
+              <div className="flex flex-wrap gap-2 text-xs">
+                {prospect.floor != null && (
+                  <span className="rounded-full bg-muted px-2 py-0.5">
+                    {prospect.floor}º andar
+                  </span>
+                )}
+                {prospect.elevator && (
+                  <span className="rounded-full bg-muted px-2 py-0.5">
+                    Elevador
+                  </span>
+                )}
+                {condoFee && (
+                  <span className="rounded-full bg-muted px-2 py-0.5">
+                    Cond: {condoFee}
+                  </span>
+                )}
+                {prospect.face && (
+                  <span className="rounded-full bg-muted px-2 py-0.5">
+                    Face: {prospect.face}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Broker Info */}
+            {(prospect.agency || prospect.broker_name || prospect.broker_phone) && (
+              <div className="border-t pt-3 text-sm text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {prospect.agency && <span>{prospect.agency}</span>}
+                  {prospect.broker_name && (
+                    <span className="font-medium text-foreground">
+                      {prospect.broker_name}
+                    </span>
+                  )}
+                  {prospect.broker_phone && (
+                    <a
+                      href={`tel:${prospect.broker_phone}`}
+                      className="flex items-center gap-1 text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Phone className="h-3 w-3" />
+                      {prospect.broker_phone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Comments */}
+            {prospect.comments && (
+              <p className="line-clamp-2 text-sm italic text-muted-foreground">
+                "{prospect.comments}"
+              </p>
+            )}
+          </div>
+
+          {/* Actions Footer */}
+          <div className="flex items-center justify-end gap-2 border-t bg-muted/20 px-4 py-2">
+            {/* Convert button */}
+            {!isConverted && (
+              <>
+                {showConfirmConvert ? (
+                  <div className="flex items-center gap-1">
+                    <span className="mr-1 text-xs text-muted-foreground">
+                      Converter?
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={handleConvert}
+                      disabled={isPending}
+                      className="h-7 px-2"
+                    >
+                      {isPending ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        "Sim"
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowConfirmConvert(false)}
+                      disabled={isPending}
+                      className="h-7 px-2"
+                    >
+                      Não
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowConfirmConvert(true)}
+                    disabled={isPending}
+                    className="h-8 gap-1.5"
+                  >
+                    <ArrowRightCircle className="h-4 w-4" />
+                    Converter
+                  </Button>
+                )}
+              </>
+            )}
+
+            {/* Delete button */}
+            {showConfirmDelete ? (
+              <div className="flex items-center gap-1">
+                <span className="mr-1 text-xs text-muted-foreground">
+                  Excluir?
+                </span>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={isPending}
+                  className="h-7 px-2"
+                >
+                  {isPending ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    "Sim"
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowConfirmDelete(false)}
+                  disabled={isPending}
+                  className="h-7 px-2"
+                >
+                  Não
+                </Button>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowConfirmDelete(true)}
+                disabled={isPending}
+                className="h-8 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* View/Edit Modal */}
+      <ProspectViewModal
+        prospect={prospect}
+        open={showViewModal}
+        onOpenChange={setShowViewModal}
+      />
+    </>
+  );
+}
