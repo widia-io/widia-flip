@@ -156,7 +156,7 @@ export function FinancingPaymentsList({
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
                     >
                       {deletingId === payment.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                       ) : (
                         <X className="h-4 w-4" />
                       )}

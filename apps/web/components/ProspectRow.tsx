@@ -80,7 +80,7 @@ export function ProspectRow({
                     onClick={handleConvert}
                     disabled={isPending}
                   >
-                    {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Sim"}
+                    {isPending ? <Loader2 className="h-3 w-3 animate-spin text-primary-foreground" /> : "Sim"}
                   </Button>
                   <Button
                     size="sm"
@@ -113,7 +113,7 @@ export function ProspectRow({
                 onClick={handleDelete}
                 disabled={isPending}
               >
-                {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Sim"}
+                {isPending ? <Loader2 className="h-3 w-3 animate-spin text-destructive-foreground" /> : "Sim"}
               </Button>
               <Button
                 size="sm"

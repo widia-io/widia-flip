@@ -89,7 +89,7 @@ export function PropertyOverview({ property }: PropertyOverviewProps) {
           </div>
           {isPending && (
             <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
               Atualizando...
             </div>
           )}
