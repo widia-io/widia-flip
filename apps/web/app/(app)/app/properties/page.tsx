@@ -16,7 +16,7 @@ export default async function PropertiesPage(props: {
       ? searchParams.status_pipeline
       : undefined;
 
-  // Get user's first workspace (MVP: single workspace)
+  // Get user's first project (MVP: single workspace)
   const workspacesRaw = await apiFetch<{ items: { id: string; name: string }[] }>(
     "/api/v1/workspaces",
   );
@@ -28,13 +28,13 @@ export default async function PropertiesPage(props: {
         <Card>
           <CardContent className="py-8 text-center">
             <h2 className="text-lg font-semibold">
-              Nenhum workspace encontrado
+              Crie seu primeiro projeto
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Crie um workspace primeiro para começar.
+              Você precisa criar um projeto para começar.
             </p>
             <Button asChild className="mt-4">
-              <Link href="/app">Ir para Dashboard</Link>
+              <Link href="/app">Criar projeto</Link>
             </Button>
           </CardContent>
         </Card>

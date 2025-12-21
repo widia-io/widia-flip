@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, MapPin, Ruler, Calendar, RefreshCw } from "lucide-react";
 
 import type { Property } from "@widia/shared";
 import { updatePropertyStatusAction } from "@/lib/actions/properties";
@@ -42,17 +42,15 @@ export function PropertyOverview({ property }: PropertyOverviewProps) {
   };
 
   const formatArea = (value: number | null | undefined) => {
-    if (value == null) return "-";
+    if (value == null) return "Não informada";
     return `${value} m²`;
   };
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("pt-BR", {
       day: "2-digit",
-      month: "2-digit",
+      month: "long",
       year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
     });
   };
 
@@ -64,11 +62,12 @@ export function PropertyOverview({ property }: PropertyOverviewProps) {
         </div>
       )}
 
-      {/* Status Change */}
+      {/* Status Pipeline */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Alterar Status
+          <CardTitle className="flex items-center gap-2 text-base">
+            <RefreshCw className="h-4 w-4" />
+            Etapa do Flip
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -100,68 +99,56 @@ export function PropertyOverview({ property }: PropertyOverviewProps) {
       {/* Property Details */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Informações do Imóvel
-          </CardTitle>
+          <CardTitle className="text-base">Detalhes do Imóvel</CardTitle>
         </CardHeader>
         <CardContent>
-          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <dt className="text-xs text-muted-foreground">Endereço</dt>
-              <dd className="mt-1 text-sm">
-                {property.address || "-"}
-              </dd>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex items-start gap-3">
+              <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">Endereço</p>
+                <p className="text-sm font-medium">
+                  {property.address || "Não informado"}
+                </p>
+              </div>
             </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Bairro</dt>
-              <dd className="mt-1 text-sm">
-                {property.neighborhood || "-"}
-              </dd>
+            <div className="flex items-start gap-3">
+              <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">Bairro</p>
+                <p className="text-sm font-medium">
+                  {property.neighborhood || "Não informado"}
+                </p>
+              </div>
             </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Área Útil</dt>
-              <dd className="mt-1 text-sm">
-                {formatArea(property.area_usable)}
-              </dd>
+            <div className="flex items-start gap-3">
+              <Ruler className="mt-0.5 h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">Área Útil</p>
+                <p className="text-sm font-medium">
+                  {formatArea(property.area_usable)}
+                </p>
+              </div>
             </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">ID</dt>
-              <dd className="mt-1 text-xs font-mono text-muted-foreground">
-                {property.id}
-              </dd>
+            <div className="flex items-start gap-3">
+              <Calendar className="mt-0.5 h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">Adicionado em</p>
+                <p className="text-sm font-medium">
+                  {formatDate(property.created_at)}
+                </p>
+              </div>
             </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Criado em</dt>
-              <dd className="mt-1 text-sm">
-                {formatDate(property.created_at)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Atualizado em</dt>
-              <dd className="mt-1 text-sm">
-                {formatDate(property.updated_at)}
-              </dd>
-            </div>
-          </dl>
+          </div>
         </CardContent>
       </Card>
 
       {property.origin_prospect_id && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Origem
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">
-              Este imóvel foi convertido de uma prospecção.
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground font-mono">
-              Prospect ID: {property.origin_prospect_id}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="rounded-lg bg-muted/50 px-4 py-3">
+          <p className="text-sm text-muted-foreground">
+            ✨ Este imóvel foi criado a partir de uma prospecção.
+          </p>
+        </div>
       )}
     </div>
   );

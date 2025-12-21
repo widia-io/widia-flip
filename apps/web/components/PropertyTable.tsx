@@ -124,8 +124,7 @@ export function PropertyTable({
                 colSpan={6}
                 className="h-24 text-center text-muted-foreground"
               >
-                Nenhum imóvel encontrado. Converta um prospect ou crie um novo
-                imóvel.
+                Você ainda não tem imóveis cadastrados. Comece adicionando uma prospecção! 🏠
               </TableCell>
             </TableRow>
           ) : (

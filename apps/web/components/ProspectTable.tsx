@@ -161,8 +161,7 @@ export function ProspectTable({
                 colSpan={7}
                 className="h-24 text-center text-muted-foreground"
               >
-                Nenhum prospect encontrado. Use o campo acima para adicionar o
-                primeiro.
+                Nenhum imóvel em prospecção ainda. Adicione o primeiro acima! 🏠
               </TableCell>
             </TableRow>
           ) : (
