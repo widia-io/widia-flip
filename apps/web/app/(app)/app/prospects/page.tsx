@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/apiFetch";
 import { listProspectsAction } from "@/lib/actions/prospects";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getActiveWorkspaceId } from "@/lib/workspace";
 
 export default async function ProspectsPage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -16,7 +17,10 @@ export default async function ProspectsPage(props: {
   const searchQuery =
     typeof searchParams.q === "string" ? searchParams.q : undefined;
 
-  // Get user's first project (MVP: single workspace)
+  // Get active workspace from cookie
+  const activeWorkspaceId = await getActiveWorkspaceId();
+  
+  // Fetch workspaces to get the name and validate
   const workspacesRaw = await apiFetch<{ items: { id: string; name: string }[] }>(
     "/api/v1/workspaces",
   );
@@ -34,7 +38,7 @@ export default async function ProspectsPage(props: {
               Você precisa criar um projeto para começar a prospectar imóveis.
             </p>
             <Button asChild className="mt-4">
-              <Link href="/app">Criar projeto</Link>
+              <Link href="/app/workspaces">Criar projeto</Link>
             </Button>
           </CardContent>
         </Card>
@@ -42,8 +46,10 @@ export default async function ProspectsPage(props: {
     );
   }
 
-  const workspaceId = workspaces.items[0].id;
-  const workspaceName = workspaces.items[0].name;
+  // Use active workspace or fallback to first
+  const workspaceId = activeWorkspaceId ?? workspaces.items[0].id;
+  const workspace = workspaces.items.find((ws) => ws.id === workspaceId) ?? workspaces.items[0];
+  const workspaceName = workspace.name;
 
   const prospectsResult = await listProspectsAction(workspaceId, {
     status: statusFilter,

@@ -9,10 +9,19 @@ export const ApiErrorSchema = z.object({
 });
 export type ApiError = z.infer<typeof ApiErrorSchema>;
 
+export const WorkspaceMembershipRoleEnum = z.enum(["owner", "member"]);
+export type WorkspaceMembershipRole = z.infer<typeof WorkspaceMembershipRoleEnum>;
+
+export const WorkspaceMembershipSchema = z.object({
+  role: WorkspaceMembershipRoleEnum,
+});
+export type WorkspaceMembership = z.infer<typeof WorkspaceMembershipSchema>;
+
 export const WorkspaceSchema = z.object({
   id: z.string(),
   name: z.string(),
   created_at: z.string(),
+  membership: WorkspaceMembershipSchema.optional(),
 });
 export type Workspace = z.infer<typeof WorkspaceSchema>;
 
@@ -25,6 +34,11 @@ export const CreateWorkspaceRequestSchema = z.object({
   name: z.string().min(1),
 });
 export type CreateWorkspaceRequest = z.infer<typeof CreateWorkspaceRequestSchema>;
+
+export const UpdateWorkspaceRequestSchema = z.object({
+  name: z.string().min(1),
+});
+export type UpdateWorkspaceRequest = z.infer<typeof UpdateWorkspaceRequestSchema>;
 
 export const WorkspaceSettingsSchema = z.object({
   workspace_id: z.string(),

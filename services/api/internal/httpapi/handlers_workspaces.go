@@ -11,10 +11,15 @@ import (
 	"github.com/widia-projects/widia-flip/services/api/internal/auth"
 )
 
+type workspaceMembership struct {
+	Role string `json:"role"`
+}
+
 type workspace struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         string              `json:"id"`
+	Name       string              `json:"name"`
+	CreatedAt  time.Time           `json:"created_at"`
+	Membership *workspaceMembership `json:"membership,omitempty"`
 }
 
 type listWorkspacesResponse struct {
@@ -50,12 +55,20 @@ func (a *api) handleWorkspacesSubroutes(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if len(parts) == 1 {
-		if r.Method != http.MethodGet {
+		switch r.Method {
+		case http.MethodGet:
+			a.handleGetWorkspace(w, r, workspaceID)
+			return
+		case http.MethodPut:
+			a.handleUpdateWorkspace(w, r, workspaceID)
+			return
+		case http.MethodDelete:
+			a.handleDeleteWorkspace(w, r, workspaceID)
+			return
+		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		a.handleGetWorkspace(w, r, workspaceID)
-		return
 	}
 
 	if len(parts) == 2 && parts[1] == "settings" {
@@ -85,7 +98,7 @@ func (a *api) handleListWorkspaces(w http.ResponseWriter, r *http.Request) {
 	rows, err := a.db.QueryContext(
 		r.Context(),
 		`
-		SELECT w.id, w.name, w.created_at
+		SELECT w.id, w.name, w.created_at, m.role
 		FROM workspaces w
 		JOIN workspace_memberships m ON m.workspace_id = w.id
 		WHERE m.user_id = $1
@@ -102,10 +115,12 @@ func (a *api) handleListWorkspaces(w http.ResponseWriter, r *http.Request) {
 	items := make([]workspace, 0)
 	for rows.Next() {
 		var ws workspace
-		if err := rows.Scan(&ws.ID, &ws.Name, &ws.CreatedAt); err != nil {
+		var role string
+		if err := rows.Scan(&ws.ID, &ws.Name, &ws.CreatedAt, &role); err != nil {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan workspace"})
 			return
 		}
+		ws.Membership = &workspaceMembership{Role: role}
 		items = append(items, ws)
 	}
 
@@ -194,17 +209,18 @@ func (a *api) handleGetWorkspace(w http.ResponseWriter, r *http.Request, workspa
 	}
 
 	var ws workspace
+	var role string
 	err := a.db.QueryRowContext(
 		r.Context(),
 		`
-		SELECT w.id, w.name, w.created_at
+		SELECT w.id, w.name, w.created_at, m.role
 		FROM workspaces w
 		JOIN workspace_memberships m ON m.workspace_id = w.id
 		WHERE w.id = $1 AND m.user_id = $2
 		`,
 		workspaceID,
 		userID,
-	).Scan(&ws.ID, &ws.Name, &ws.CreatedAt)
+	).Scan(&ws.ID, &ws.Name, &ws.CreatedAt, &role)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "workspace not found"})
@@ -213,8 +229,117 @@ func (a *api) handleGetWorkspace(w http.ResponseWriter, r *http.Request, workspa
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch workspace"})
 		return
 	}
+	ws.Membership = &workspaceMembership{Role: role}
 
 	writeJSON(w, http.StatusOK, ws)
+}
+
+type updateWorkspaceRequest struct {
+	Name string `json:"name"`
+}
+
+func (a *api) handleUpdateWorkspace(w http.ResponseWriter, r *http.Request, workspaceID string) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	// Check if user is owner
+	isOwner, err := a.isWorkspaceOwner(r.Context(), workspaceID, userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check ownership"})
+		return
+	}
+	if !isOwner {
+		writeError(w, http.StatusForbidden, apiError{Code: "FORBIDDEN", Message: "only the owner can update the workspace"})
+		return
+	}
+
+	var req updateWorkspaceRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "invalid json body", Details: []string{err.Error()}})
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "name is required"})
+		return
+	}
+
+	var ws workspace
+	err = a.db.QueryRowContext(
+		r.Context(),
+		`UPDATE workspaces SET name = $1 WHERE id = $2 RETURNING id, name, created_at`,
+		req.Name,
+		workspaceID,
+	).Scan(&ws.ID, &ws.Name, &ws.CreatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "workspace not found"})
+			return
+		}
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to update workspace"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, ws)
+}
+
+func (a *api) handleDeleteWorkspace(w http.ResponseWriter, r *http.Request, workspaceID string) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	// Check if user is owner
+	isOwner, err := a.isWorkspaceOwner(r.Context(), workspaceID, userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check ownership"})
+		return
+	}
+	if !isOwner {
+		writeError(w, http.StatusForbidden, apiError{Code: "FORBIDDEN", Message: "only the owner can delete the workspace"})
+		return
+	}
+
+	result, err := a.db.ExecContext(
+		r.Context(),
+		`DELETE FROM workspaces WHERE id = $1`,
+		workspaceID,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to delete workspace"})
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "workspace not found"})
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *api) isWorkspaceOwner(ctx context.Context, workspaceID string, userID string) (bool, error) {
+	var role string
+	err := a.db.QueryRowContext(
+		ctx,
+		`SELECT role FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2`,
+		workspaceID,
+		userID,
+	).Scan(&role)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return role == "owner", nil
 }
 
 type workspaceSettings struct {
