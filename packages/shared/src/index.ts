@@ -520,3 +520,33 @@ export const SaveCalculatorResponseSchema = z.object({
   snapshot_id: z.string(),
 });
 export type SaveCalculatorResponse = z.infer<typeof SaveCalculatorResponseSchema>;
+
+// URL Scraper - Extração de dados de imóveis via URL
+
+export const ScrapePropertyRequestSchema = z.object({
+  url: z.string().url("URL inválida"),
+});
+export type ScrapePropertyRequest = z.infer<typeof ScrapePropertyRequestSchema>;
+
+export const ScrapedPropertySchema = z.object({
+  neighborhood: z.string().nullable(),
+  address: z.string().nullable(),
+  area_usable: z.number().nullable(),
+  bedrooms: z.number().nullable(),
+  suites: z.number().nullable(),
+  bathrooms: z.number().nullable(),
+  parking: z.number().nullable(),
+  floor: z.number().nullable(),
+  asking_price: z.number().nullable(),
+  condo_fee: z.number().nullable(),
+  agency: z.string().nullable(),
+  broker_name: z.string().nullable(),
+});
+export type ScrapedProperty = z.infer<typeof ScrapedPropertySchema>;
+
+export const ScrapePropertyResponseSchema = z.object({
+  success: z.boolean(),
+  data: ScrapedPropertySchema.optional(),
+  warning: z.string().optional(),
+});
+export type ScrapePropertyResponse = z.infer<typeof ScrapePropertyResponseSchema>;

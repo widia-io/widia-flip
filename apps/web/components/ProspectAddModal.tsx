@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader2, MapPin, Home, Building2, DollarSign, User, MessageSquare } from "lucide-react";
+import { Plus, Loader2, MapPin, Home, Building2, DollarSign, User, MessageSquare, Link2, Sparkles } from "lucide-react";
 
+import { type ScrapePropertyResponse } from "@widia/shared";
 import { createProspectAction } from "@/lib/actions/prospects";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,12 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // URL scraping state
+  const [urlToScrape, setUrlToScrape] = useState("");
+  const [isScraping, setIsScraping] = useState(false);
+  const [scrapeError, setScrapeError] = useState<string | null>(null);
+  const [scrapeSuccess, setScrapeSuccess] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -73,6 +80,76 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
       comments: "",
     });
     setError(null);
+    setUrlToScrape("");
+    setScrapeError(null);
+    setScrapeSuccess(false);
+  };
+
+  const handleScrape = async () => {
+    if (!urlToScrape.trim()) {
+      setScrapeError("Cole uma URL para importar");
+      return;
+    }
+
+    // Basic URL validation
+    try {
+      new URL(urlToScrape);
+    } catch {
+      setScrapeError("URL inválida");
+      return;
+    }
+
+    setIsScraping(true);
+    setScrapeError(null);
+    setScrapeSuccess(false);
+
+    try {
+      const res = await fetch("/api/scrape-property", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: urlToScrape }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error?.message ?? "Erro ao importar dados");
+      }
+
+      const response = data as ScrapePropertyResponse;
+
+      if (!response.success || !response.data) {
+        throw new Error("Não foi possível extrair dados do anúncio");
+      }
+
+      // Auto-fill form with scraped data
+      setFormData((prev) => ({
+        ...prev,
+        link: urlToScrape,
+        neighborhood: response.data?.neighborhood ?? prev.neighborhood,
+        address: response.data?.address ?? prev.address,
+        area_usable: response.data?.area_usable?.toString() ?? prev.area_usable,
+        bedrooms: response.data?.bedrooms?.toString() ?? prev.bedrooms,
+        suites: response.data?.suites?.toString() ?? prev.suites,
+        bathrooms: response.data?.bathrooms?.toString() ?? prev.bathrooms,
+        parking: response.data?.parking?.toString() ?? prev.parking,
+        floor: response.data?.floor?.toString() ?? prev.floor,
+        asking_price: response.data?.asking_price?.toString() ?? prev.asking_price,
+        condo_fee: response.data?.condo_fee?.toString() ?? prev.condo_fee,
+        agency: response.data?.agency ?? prev.agency,
+        broker_name: response.data?.broker_name ?? prev.broker_name,
+      }));
+
+      setScrapeSuccess(true);
+
+      if (response.warning) {
+        setScrapeError(response.warning);
+      }
+    } catch (e) {
+      setScrapeError(e instanceof Error ? e.message : "Erro ao importar dados");
+    } finally {
+      setIsScraping(false);
+    }
   };
 
   const handleChange = (field: string, value: string | boolean) => {
@@ -146,6 +223,67 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* URL Import Section */}
+          <fieldset className="space-y-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
+            <legend className="flex items-center gap-2 px-2 text-sm font-medium text-primary">
+              <Sparkles className="h-4 w-4" />
+              Importar de URL
+            </legend>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Cole o link de um anúncio (ZAP, VivaReal, OLX, etc.) para preencher automaticamente.
+              </p>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Link2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="url"
+                    value={urlToScrape}
+                    onChange={(e) => {
+                      setUrlToScrape(e.target.value);
+                      setScrapeError(null);
+                      setScrapeSuccess(false);
+                    }}
+                    placeholder="https://www.zapimoveis.com.br/imovel/..."
+                    disabled={isScraping || isPending}
+                    className="pl-10"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleScrape();
+                      }
+                    }}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleScrape}
+                  disabled={isScraping || isPending || !urlToScrape.trim()}
+                  className="min-w-[100px]"
+                >
+                  {isScraping ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Buscando...
+                    </>
+                  ) : (
+                    "Importar"
+                  )}
+                </Button>
+              </div>
+              {scrapeError && (
+                <p className={`text-sm ${scrapeSuccess ? "text-amber-600" : "text-destructive"}`}>
+                  {scrapeError}
+                </p>
+              )}
+              {scrapeSuccess && !scrapeError && (
+                <p className="text-sm text-green-600">
+                  Dados importados! Revise e complete as informações abaixo.
+                </p>
+              )}
+            </div>
+          </fieldset>
+
           {/* Location Section */}
           <fieldset className="space-y-4 rounded-lg border p-4">
             <legend className="flex items-center gap-2 px-2 text-sm font-medium">
