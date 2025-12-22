@@ -50,9 +50,9 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-07 — MVP Ready`
-* **Milestone em andamento:** `M6 — Polimento MVP (CONCLUÍDO)`
-* **Última atualização:** `2025-12-19`
+* **Current Checkpoint:** `CP-08 — Extended MVP`
+* **Milestone em andamento:** `M7 — UI/UX Polish + Extended Features (CONCLUÍDO)`
+* **Última atualização:** `2025-12-21`
 
 ## 1.2 Milestones (visão macro)
 
@@ -63,6 +63,7 @@
 * `M4 — Custos + Documentos + Timeline`
 * `M5 — SEO Calculator + Gating`
 * `M6 — Polimento MVP`
+* `M7 — UI/UX Polish + Extended Features`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
 
@@ -136,6 +137,31 @@ Deve existir:
 * UI polida (loading/empty states)
 * Smoke test manual documentado (seção 6)
 
+### CP-08 — Extended MVP
+
+Deve existir:
+
+* **UI Comercial:**
+  * Design system com shadcn/ui (buttons, cards, modals, inputs)
+  * Light/dark mode toggle funcional (persiste preferência)
+  * Dashboard comercializado (sem termos técnicos)
+
+* **Gestão de Workspaces:**
+  * Página `/app/workspaces` com listagem de workspaces
+  * Criar/editar/deletar workspaces
+  * Seletor de workspace no Header (dropdown)
+  * Configurações do workspace (`/app/workspaces/:id/settings`)
+
+* **Prospecção Redesenhada:**
+  * Layout em cards responsivos (grid adaptativo)
+  * Modal de adição de prospect (formulário completo)
+  * Modal de visualização/edição de prospect
+  * Importação via URL (web scraping com Firecrawl + LLM)
+
+* **Integrações:**
+  * Firecrawl API para scraping de anúncios
+  * OpenRouter/LLM para extração estruturada de dados
+
 ---
 
 ## 1.4 Task Board (MVP)
@@ -201,6 +227,22 @@ Deve existir:
 * ✅ T6.2 UI polida (estados vazios, loading, feedback minimalista)
 * ✅ T6.3 Smoke test E2E manual (happy path) documentado
   **Checkpoint alvo:** `CP-07 (MVP Ready)`
+
+### M7 — UI/UX Polish + Extended Features
+
+* ✅ T7.1 Design system com shadcn/ui (buttons, cards, modals, inputs, checkbox, textarea)
+* ✅ T7.2 Light/dark mode theme toggle (ThemeProvider + ThemeToggle)
+* ✅ T7.3 Dashboard comercializado (remoção de textos técnicos)
+* ✅ T7.4 Fix cores loading states para compatibilidade com temas
+* ✅ T7.5 Gestão completa de workspaces (CRUD + página `/app/workspaces`)
+* ✅ T7.6 Seletor de workspace no Header (WorkspaceSelector dropdown)
+* ✅ T7.7 Configurações do workspace (`/app/workspaces/:id/settings` + DangerZone)
+* ✅ T7.8 Redesign prospecção: cards responsivos (ProspectCard, ProspectGrid)
+* ✅ T7.9 Modal de adição de prospect (ProspectAddModal com formulário completo)
+* ✅ T7.10 Modal de visualização/edição (ProspectViewModal)
+* ✅ T7.11 Importação de imóveis via URL (scrape-property API route + Firecrawl + LLM)
+* ✅ T7.12 Schemas Zod para scraping (ScrapePropertyRequest/Response, ScrapedProperty)
+  **Checkpoint alvo:** `CP-08 (Extended MVP)`
 
 ---
 
@@ -417,6 +459,21 @@ Timeline:
 
 ---
 
+## M7 — UI/UX Polish + Extended Features
+
+### Workspaces Extended
+
+* `PUT /api/v1/workspaces/:id` → `{ name }` (atualizar workspace)
+* `DELETE /api/v1/workspaces/:id` (deletar workspace + cascade)
+
+### Scrape Property (Next.js BFF)
+
+* `POST /api/scrape-property` → `{ url }` → `{ success, data: ScrapedProperty, warning? }`
+  * Internamente usa Firecrawl para scraping + OpenRouter LLM para extração
+  * Retorna dados estruturados do imóvel (bairro, endereço, área, quartos, valor, etc.)
+
+---
+
 # 5) Acceptance Criteria by Journeys (LOCKED)
 
 ## Journey A — Quick Add (prospecção) em 3 minutos
@@ -554,3 +611,4 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-05` — 2025-12-19 — M4 entregue: MinIO (S3 compatível) no docker-compose, CRUD custos (cost_items), upload docs via presigned URL (documents), timeline events (cost_added, cost_updated, doc_uploaded), abas Custos e Documentos no property hub.
 * `CP-06` — 2025-12-19 — M5 entregue: página pública /calculator com inputs mínimos, cálculo server-side via BFF (endpoint público POST /api/v1/public/cash-calc), AuthModal para gating (login/signup), fluxo save (cria property + inputs + snapshot + redirect), eventos de funil via logs estruturados.
 * `CP-07` — 2025-12-19 — M6 entregue: validações consistentes (percentuais 0-1, mensagens PT-BR), UI polish (loading states, empty states, aria-labels), smoke test executável documentado, demo script atualizado. MVP Ready.
+* `CP-08` — 2025-12-21 — M7 entregue: UI comercial com shadcn/ui (design system completo), light/dark mode toggle, dashboard comercializado, gestão completa de workspaces (CRUD + seletor no header + settings page + DangerZone), redesign prospecção (cards responsivos + modals de adição/visualização/edição), importação de imóveis via URL (Firecrawl + OpenRouter LLM extraction). Extended MVP.
