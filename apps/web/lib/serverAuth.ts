@@ -17,8 +17,11 @@ export async function requireServerSession() {
 }
 
 export async function getServerAccessToken() {
-  const { token } = await auth.api.getToken({ headers: await headers() });
-  return token;
+  const result = await auth.api.getToken({ headers: await headers() });
+  if (!result?.token) {
+    throw new Error("NO_ACCESS_TOKEN");
+  }
+  return result.token;
 }
 
 

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { ListWorkspacesResponseSchema } from "@widia/shared";
 
@@ -8,6 +9,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { getServerSession } from "@/lib/serverAuth";
 import { apiFetch } from "@/lib/apiFetch";
 import { getActiveWorkspaceId } from "@/lib/workspace";
+import { auth } from "@/lib/auth";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession();
@@ -16,9 +18,20 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   // Fetch user's workspaces
-  const workspacesRaw = await apiFetch<{ items: { id: string; name: string }[] }>(
-    "/api/v1/workspaces",
-  );
+  let workspacesRaw: { items: { id: string; name: string }[] };
+  try {
+    workspacesRaw = await apiFetch<{ items: { id: string; name: string }[] }>(
+      "/api/v1/workspaces",
+    );
+  } catch (error) {
+    // Token missing/expired - clear session and redirect to login
+    if (error instanceof Error &&
+        (error.message.includes("NO_ACCESS_TOKEN") || error.message.includes("UNAUTHORIZED"))) {
+      await auth.api.signOut({ headers: await headers() });
+      redirect("/login");
+    }
+    throw error;
+  }
   const workspaces = ListWorkspacesResponseSchema.parse(workspacesRaw);
 
   // Get active workspace from cookie
