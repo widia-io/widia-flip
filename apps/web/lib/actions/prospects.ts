@@ -246,3 +246,17 @@ export async function listProspectsAction(
     return { error: message };
   }
 }
+
+export async function restoreProspectAction(prospectId: string) {
+  try {
+    await apiFetch(`/api/v1/prospects/${prospectId}/restore`, {
+      method: "POST",
+    });
+
+    revalidatePath("/app/prospects");
+    return { success: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Erro ao restaurar prospect";
+    return { error: message };
+  }
+}

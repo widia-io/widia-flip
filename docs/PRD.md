@@ -901,3 +901,13 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-08` — 2025-12-21 — M7 entregue: UI comercial com shadcn/ui (design system completo), light/dark mode toggle, dashboard comercializado, gestão completa de workspaces (CRUD + seletor no header + settings page + DangerZone), redesign prospecção (cards responsivos + modals de adição/visualização/edição), importação de imóveis via URL (Firecrawl + OpenRouter LLM extraction). Extended MVP.
 * `CP-08` — 2025-12-22 — PRD: adicionado milestone M8 (Flip Score v0) + planejamento do V1 (M9) com dados, endpoints e acceptance criteria.
 * `CP-09` — 2025-12-22 — M8 entregue: DB migration (flip_score_* fields), Zod schemas (RedFlag, FlipRiskAssessment, FlipScoreBreakdown), Go flipscore package (v0 formula 5 componentes), endpoint recompute c/ rate limiting (15min) + fallback LLM, OpenRouter/Haiku integration (risk assessment), Web UI (FlipScoreBadge, modal "Atualizar score"), structured logs. Fixed: list query now includes flip_score. Flip Score v0 production-ready.
+* `CP-09` — 2025-12-22 — UI polish prospecção: soft delete c/ undo (migration 0008, restore endpoint), toast feedback (sonner), ordenação client-side (score/recente/preço/R$m²), skeleton loading (Suspense boundary), filtros avançados (chips/limpar/×), microcopy padronizado, FlipScoreBadge c/ label, a11y (aria-labels).
+
+---
+
+# 9) Backlog (Pós-MVP)
+
+> Itens planejados para futuro. Não implementar até milestone específico autorizar.
+
+* ⬜ T-FUTURE.1 Job de limpeza: hard delete de prospects com `deleted_at` > 30 dias
+* ⬜ T-FUTURE.2 Ordenação server-side: `GET /prospects?sort=flip_score:desc|created_at:desc|asking_price:asc|price_per_sqm:asc`

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 interface FlipScoreBadgeProps {
   score: number | null | undefined;
   size?: "sm" | "md";
+  showLabel?: boolean;
   className?: string;
 }
 
@@ -25,31 +26,36 @@ function getScoreLabel(score: number | null | undefined): string {
 export function FlipScoreBadge({
   score,
   size = "md",
+  showLabel = false,
   className,
 }: FlipScoreBadgeProps) {
   const colorClass = getScoreColor(score);
   const label = getScoreLabel(score);
 
   const sizeClasses = {
-    sm: "h-5 min-w-[28px] px-1.5 text-xs",
-    md: "h-6 min-w-[32px] px-2 text-sm",
+    sm: showLabel ? "h-5 px-2 text-xs" : "h-5 min-w-[28px] px-1.5 text-xs",
+    md: showLabel ? "h-6 px-2.5 text-sm" : "h-6 min-w-[32px] px-2 text-sm",
   };
 
   const tooltipText = score != null
     ? `Flip Score: ${label}`
     : "Flip Score: Sem score - Clique para calcular";
 
+  const displayText = score != null
+    ? showLabel ? `${score} ${label}` : score
+    : "—";
+
   return (
     <div
       title={tooltipText}
       className={cn(
-        "inline-flex items-center justify-center rounded-full font-semibold cursor-default",
+        "inline-flex items-center justify-center rounded-full font-semibold cursor-default whitespace-nowrap",
         colorClass,
         sizeClasses[size],
         className
       )}
     >
-      {score != null ? score : "—"}
+      {displayText}
     </div>
   );
 }

@@ -155,7 +155,7 @@ func (a *api) getProspectWithFlipScore(ctx context.Context, prospectID, userID s
 		        p.flip_score_breakdown, p.flip_score_updated_at
 		 FROM prospecting_properties p
 		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
-		 WHERE p.id = $1 AND m.user_id = $2`,
+		 WHERE p.id = $1 AND m.user_id = $2 AND p.deleted_at IS NULL`,
 		prospectID, userID,
 	).Scan(
 		&p.ID, &p.WorkspaceID, &p.Status, &p.Link, &p.Neighborhood, &p.Address,
@@ -209,6 +209,7 @@ func (a *api) getCohortStats(ctx context.Context, p *prospect) flipscore.CohortS
 				  AND asking_price IS NOT NULL
 				  AND area_usable IS NOT NULL
 				  AND area_usable > 0
+				  AND deleted_at IS NULL
 			)
 			SELECT COUNT(*) as n,
 			       COALESCE(
@@ -239,6 +240,7 @@ func (a *api) getCohortStats(ctx context.Context, p *prospect) flipscore.CohortS
 			  AND asking_price IS NOT NULL
 			  AND area_usable IS NOT NULL
 			  AND area_usable > 0
+			  AND deleted_at IS NULL
 		)
 		SELECT COUNT(*) as n,
 		       COALESCE(

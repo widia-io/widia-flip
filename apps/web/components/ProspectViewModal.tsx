@@ -804,7 +804,7 @@ export function ProspectViewModal({
                   Observações
                 </h3>
                 <p className="whitespace-pre-wrap text-sm italic text-muted-foreground">
-                  "{prospect.comments}"
+                  &ldquo;{prospect.comments}&rdquo;
                 </p>
               </section>
             )}

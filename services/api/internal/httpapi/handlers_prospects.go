@@ -155,6 +155,16 @@ func (a *api) handleProspectsSubroutes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// /api/v1/prospects/:id/restore
+	if len(parts) == 2 && parts[1] == "restore" {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		a.handleRestoreProspect(w, r, prospectID)
+		return
+	}
+
 	// /api/v1/prospects/:id/flip-score/recompute
 	if len(parts) == 3 && parts[1] == "flip-score" && parts[2] == "recompute" {
 		if r.Method != http.MethodPost {
@@ -225,7 +235,7 @@ func (a *api) handleListProspects(w http.ResponseWriter, r *http.Request) {
 		       comments, tags, created_at, updated_at,
 		       flip_score
 		FROM prospecting_properties
-		WHERE workspace_id = $1
+		WHERE workspace_id = $1 AND deleted_at IS NULL
 	`
 	args := []any{workspaceID}
 	argIdx := 2
@@ -381,7 +391,7 @@ func (a *api) handleGetProspect(w http.ResponseWriter, r *http.Request, prospect
 		        p.comments, p.tags, p.created_at, p.updated_at
 		 FROM prospecting_properties p
 		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
-		 WHERE p.id = $1 AND m.user_id = $2`,
+		 WHERE p.id = $1 AND m.user_id = $2 AND p.deleted_at IS NULL`,
 		prospectID, userID,
 	).Scan(
 		&p.ID, &p.WorkspaceID, &p.Status, &p.Link, &p.Neighborhood, &p.Address,
@@ -435,14 +445,14 @@ func (a *api) handleUpdateProspect(w http.ResponseWriter, r *http.Request, prosp
 		return
 	}
 
-	// Check access
+	// Check access (only non-deleted prospects)
 	var workspaceID string
 	err := a.db.QueryRowContext(
 		r.Context(),
 		`SELECT p.workspace_id
 		 FROM prospecting_properties p
 		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
-		 WHERE p.id = $1 AND m.user_id = $2`,
+		 WHERE p.id = $1 AND m.user_id = $2 AND p.deleted_at IS NULL`,
 		prospectID, userID,
 	).Scan(&workspaceID)
 	if err != nil {
@@ -597,14 +607,14 @@ func (a *api) handleDeleteProspect(w http.ResponseWriter, r *http.Request, prosp
 		return
 	}
 
-	// Check access
+	// Check access (only non-deleted prospects)
 	var workspaceID string
 	err := a.db.QueryRowContext(
 		r.Context(),
 		`SELECT p.workspace_id
 		 FROM prospecting_properties p
 		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
-		 WHERE p.id = $1 AND m.user_id = $2`,
+		 WHERE p.id = $1 AND m.user_id = $2 AND p.deleted_at IS NULL`,
 		prospectID, userID,
 	).Scan(&workspaceID)
 	if err != nil {
@@ -616,9 +626,46 @@ func (a *api) handleDeleteProspect(w http.ResponseWriter, r *http.Request, prosp
 		return
 	}
 
-	_, err = a.db.ExecContext(r.Context(), `DELETE FROM prospecting_properties WHERE id = $1`, prospectID)
+	// Soft delete: set deleted_at timestamp
+	_, err = a.db.ExecContext(r.Context(), `UPDATE prospecting_properties SET deleted_at = NOW() WHERE id = $1`, prospectID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to delete prospect"})
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *api) handleRestoreProspect(w http.ResponseWriter, r *http.Request, prospectID string) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	// Check access (only deleted prospects)
+	var workspaceID string
+	err := a.db.QueryRowContext(
+		r.Context(),
+		`SELECT p.workspace_id
+		 FROM prospecting_properties p
+		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
+		 WHERE p.id = $1 AND m.user_id = $2 AND p.deleted_at IS NOT NULL`,
+		prospectID, userID,
+	).Scan(&workspaceID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "prospect not found or not deleted"})
+			return
+		}
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check prospect"})
+		return
+	}
+
+	// Restore: clear deleted_at timestamp
+	_, err = a.db.ExecContext(r.Context(), `UPDATE prospecting_properties SET deleted_at = NULL WHERE id = $1`, prospectID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to restore prospect"})
 		return
 	}
 
@@ -632,7 +679,7 @@ func (a *api) handleConvertProspect(w http.ResponseWriter, r *http.Request, pros
 		return
 	}
 
-	// Get prospect data and check access
+	// Get prospect data and check access (only non-deleted)
 	var p prospect
 	var tags []byte
 	err := a.db.QueryRowContext(
@@ -643,7 +690,7 @@ func (a *api) handleConvertProspect(w http.ResponseWriter, r *http.Request, pros
 		        p.comments, p.tags, p.created_at, p.updated_at
 		 FROM prospecting_properties p
 		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
-		 WHERE p.id = $1 AND m.user_id = $2`,
+		 WHERE p.id = $1 AND m.user_id = $2 AND p.deleted_at IS NULL`,
 		prospectID, userID,
 	).Scan(
 		&p.ID, &p.WorkspaceID, &p.Status, &p.Link, &p.Neighborhood, &p.Address,
