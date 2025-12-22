@@ -50,9 +50,9 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-08 — Extended MVP`
-* **Milestone em andamento:** `M7 — UI/UX Polish + Extended Features (CONCLUÍDO)`
-* **Próximo milestone (planejado):** `M8 — Flip Score (Prospecção)`
+* **Current Checkpoint:** `CP-09 — Flip Score v0 (Prospecção)`
+* **Milestone em andamento:** `M8 — Flip Score (Prospecção) (CONCLUÍDO)`
+* **Próximo milestone (planejado):** `M9 — Flip Score v1 (Economics + ARV)`
 * **Última atualização:** `2025-12-22`
 
 ## 1.2 Milestones (visão macro)
@@ -284,14 +284,14 @@ Deve existir:
 
 ### M8 — Flip Score (Prospecção)
 
-* ⬜ T8.1 Modelagem DB: campos `flip_score_*` em `prospecting_properties` + migration
-* ⬜ T8.2 `packages/shared`: schemas para `FlipRiskAssessment` e `FlipScoreBreakdown`
-* ⬜ T8.3 Go API: serviço de score v0 (determinístico) + persistência
-* ⬜ T8.4 Go API: endpoint para recompute manual do score
-* ⬜ T8.5 Integração LLM (OpenRouter): extração de risco (JSON estrito) + fallback
-* ⬜ T8.6 Web: exibir score no `ProspectCard` + breakdown leve + “Atualizar score”
-* ⬜ T8.7 Observabilidade: logs (request_id) + contagem de falhas LLM
-  **Checkpoint alvo:** `CP-09 (Flip Score v0)`
+* ✅ T8.1 Modelagem DB: campos `flip_score_*` em `prospecting_properties` + migration
+* ✅ T8.2 `packages/shared`: schemas para `FlipRiskAssessment` e `FlipScoreBreakdown`
+* ✅ T8.3 Go API: serviço de score v0 (determinístico) + persistência
+* ✅ T8.4 Go API: endpoint para recompute manual do score
+* ✅ T8.5 Integração LLM (OpenRouter): extração de risco (JSON estrito) + fallback
+* ✅ T8.6 Web: exibir score no `ProspectCard` + breakdown leve + "Atualizar score"
+* ✅ T8.7 Observabilidade: logs (request_id) + contagem de falhas LLM
+  **Checkpoint alvo:** `CP-09 (Flip Score v0) — ALCANÇADO`
 
 ### M9 — Flip Score v1 (Economics + ARV)
 
@@ -900,3 +900,4 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-07` — 2025-12-19 — M6 entregue: validações consistentes (percentuais 0-1, mensagens PT-BR), UI polish (loading states, empty states, aria-labels), smoke test executável documentado, demo script atualizado. MVP Ready.
 * `CP-08` — 2025-12-21 — M7 entregue: UI comercial com shadcn/ui (design system completo), light/dark mode toggle, dashboard comercializado, gestão completa de workspaces (CRUD + seletor no header + settings page + DangerZone), redesign prospecção (cards responsivos + modals de adição/visualização/edição), importação de imóveis via URL (Firecrawl + OpenRouter LLM extraction). Extended MVP.
 * `CP-08` — 2025-12-22 — PRD: adicionado milestone M8 (Flip Score v0) + planejamento do V1 (M9) com dados, endpoints e acceptance criteria.
+* `CP-09` — 2025-12-22 — M8 entregue: DB migration (flip_score_* fields), Zod schemas (RedFlag, FlipRiskAssessment, FlipScoreBreakdown), Go flipscore package (v0 formula 5 componentes), endpoint recompute c/ rate limiting (15min) + fallback LLM, OpenRouter/Haiku integration (risk assessment), Web UI (FlipScoreBadge, modal "Atualizar score"), structured logs. Fixed: list query now includes flip_score. Flip Score v0 production-ready.
