@@ -10,6 +10,12 @@ type Config struct {
 	DatabaseURL       string
 	BetterAuthJWKSURL string
 	S3                S3Config
+	LLM               LLMConfig
+}
+
+type LLMConfig struct {
+	OpenRouterAPIKey string
+	OpenRouterModel  string
 }
 
 type S3Config struct {
@@ -33,6 +39,10 @@ func Load() (Config, error) {
 			Bucket:         getenv("S3_BUCKET", "widia-flip-dev"),
 			Region:         getenv("S3_REGION", "us-east-1"),
 			ForcePathStyle: getenv("S3_FORCE_PATH_STYLE", "true") == "true",
+		},
+		LLM: LLMConfig{
+			OpenRouterAPIKey: os.Getenv("OPENROUTER_API_KEY"),
+			OpenRouterModel:  getenv("OPENROUTER_MODEL", "anthropic/claude-haiku-4.5"),
 		},
 	}
 

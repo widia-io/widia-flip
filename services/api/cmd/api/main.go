@@ -14,6 +14,7 @@ import (
 
 	"github.com/widia-projects/widia-flip/services/api/internal/config"
 	"github.com/widia-projects/widia-flip/services/api/internal/httpapi"
+	"github.com/widia-projects/widia-flip/services/api/internal/llm"
 	"github.com/widia-projects/widia-flip/services/api/internal/storage"
 )
 
@@ -46,10 +47,23 @@ func main() {
 		log.Printf("S3 client initialized for bucket: %s", cfg.S3.Bucket)
 	}
 
+	// Initialize LLM client for Flip Score risk assessment
+	var llmClient *llm.Client
+	if cfg.LLM.OpenRouterAPIKey != "" {
+		llmClient = llm.NewClient(llm.Config{
+			APIKey: cfg.LLM.OpenRouterAPIKey,
+			Model:  cfg.LLM.OpenRouterModel,
+		})
+		log.Printf("LLM client initialized with model: %s", cfg.LLM.OpenRouterModel)
+	} else {
+		log.Printf("warning: OPENROUTER_API_KEY not set (Flip Score LLM analysis will be disabled)")
+	}
+
 	handler := httpapi.NewHandler(httpapi.Deps{
 		DB:                db,
 		BetterAuthJWKSURL: cfg.BetterAuthJWKSURL,
 		S3Client:          s3Client,
+		LLMClient:         llmClient,
 	})
 
 	srv := &http.Server{

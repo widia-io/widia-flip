@@ -52,7 +52,8 @@
 
 * **Current Checkpoint:** `CP-08 — Extended MVP`
 * **Milestone em andamento:** `M7 — UI/UX Polish + Extended Features (CONCLUÍDO)`
-* **Última atualização:** `2025-12-21`
+* **Próximo milestone (planejado):** `M8 — Flip Score (Prospecção)`
+* **Última atualização:** `2025-12-22`
 
 ## 1.2 Milestones (visão macro)
 
@@ -64,6 +65,8 @@
 * `M5 — SEO Calculator + Gating`
 * `M6 — Polimento MVP`
 * `M7 — UI/UX Polish + Extended Features`
+* `M8 — Flip Score (Prospecção)`
+* `M9 — Flip Score v1 (Economics + ARV)`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
 
@@ -162,6 +165,41 @@ Deve existir:
   * Firecrawl API para scraping de anúncios
   * OpenRouter/LLM para extração estruturada de dados
 
+### CP-09 — Flip Score v0 (Prospecção)
+
+Deve existir:
+
+* **Flip Score persistido no prospect:**
+  * `flip_score` (0–100) + `flip_score_updated_at`
+  * `flip_score_version` (ex: `v0`)
+  * `flip_score_confidence` (0–1)
+  * `flip_score_breakdown` (componentes + detalhes)
+* **Cálculo server-side (fonte da verdade):**
+  * Score calculado e persistido no backend (Go API), nunca no browser.
+  * LLM usado apenas para sinais de risco (não para “dar nota final” diretamente).
+* **UI (prospecção):**
+  * Cards exibem o score e uma explicação mínima (tooltip/drawer leve).
+  * Botão “Atualizar score” para recomputar manualmente.
+* **Sem ARV/comps externos no v0:**
+  * v0 usa rank interno do workspace + heurísticas objetivas.
+
+### CP-10 — Flip Score v1 (Economics + ARV)
+
+Deve existir:
+
+* **Inputs mínimos no prospect para v1:**
+  * `offer_price` (ou usa `asking_price` como default)
+  * `expected_sale_price` (ARV alvo)
+  * `renovation_cost_estimate`
+  * `hold_months` (default 6)
+  * `other_costs_estimate` (opcional)
+* **Score v1 usa economia do deal (server-side):**
+  * ROI, lucro líquido, margem de segurança e “break-even sale price”.
+  * Usa `workspace_settings` (taxas) como fonte de verdade.
+* **UI:**
+  * Cards exibem `v0` e `v1` (ou toggle), com breakdown leve.
+  * “Atualizar score v1” deve funcionar sem converter para property.
+
 ---
 
 ## 1.4 Task Board (MVP)
@@ -243,6 +281,27 @@ Deve existir:
 * ✅ T7.11 Importação de imóveis via URL (scrape-property API route + Firecrawl + LLM)
 * ✅ T7.12 Schemas Zod para scraping (ScrapePropertyRequest/Response, ScrapedProperty)
   **Checkpoint alvo:** `CP-08 (Extended MVP)`
+
+### M8 — Flip Score (Prospecção)
+
+* ⬜ T8.1 Modelagem DB: campos `flip_score_*` em `prospecting_properties` + migration
+* ⬜ T8.2 `packages/shared`: schemas para `FlipRiskAssessment` e `FlipScoreBreakdown`
+* ⬜ T8.3 Go API: serviço de score v0 (determinístico) + persistência
+* ⬜ T8.4 Go API: endpoint para recompute manual do score
+* ⬜ T8.5 Integração LLM (OpenRouter): extração de risco (JSON estrito) + fallback
+* ⬜ T8.6 Web: exibir score no `ProspectCard` + breakdown leve + “Atualizar score”
+* ⬜ T8.7 Observabilidade: logs (request_id) + contagem de falhas LLM
+  **Checkpoint alvo:** `CP-09 (Flip Score v0)`
+
+### M9 — Flip Score v1 (Economics + ARV)
+
+* ⬜ T9.1 Modelagem DB: inputs `offer_price`, `expected_sale_price`, `renovation_cost_estimate`, `hold_months`, `other_costs_estimate`
+* ⬜ T9.2 Go API: calcular “cash viability” para prospect (sem converter) usando `workspace_settings`
+* ⬜ T9.3 Go API: serviço de score v1 (economia do deal) + persistência em `flip_score_*` com `flip_score_version=v1`
+* ⬜ T9.4 Web: inputs mínimos v1 no Prospect modal + estado “is_partial”/validações
+* ⬜ T9.5 Web: exibir breakdown v1 (ROI, lucro, break-even) nos cards (leve)
+* ⬜ T9.6 Guardrails: score v1 só se inputs mínimos existirem; senão exibir “Complete os dados”
+  **Checkpoint alvo:** `CP-10 (Flip Score v1)`
 
 ---
 
@@ -327,9 +386,11 @@ O web (Next) atua como **BFF (Backend for Frontend)**:
   * status, link, neighborhood, address
   * area_usable, bedrooms, suites, bathrooms
   * gas, floor, elevator, face, parking
-  * condo_fee, asking_price
+  * condo_fee, iptu, asking_price
   * agency, broker_name, broker_phone
   * comments, tags
+  * flip_score, flip_score_version, flip_score_confidence, flip_score_breakdown, flip_score_updated_at
+  * offer_price, expected_sale_price, renovation_cost_estimate, other_costs_estimate, hold_months (V1)
   * created_at, updated_at
 
 ## 3.3 Imóvel central
@@ -471,6 +532,211 @@ Timeline:
 * `POST /api/scrape-property` → `{ url }` → `{ success, data: ScrapedProperty, warning? }`
   * Internamente usa Firecrawl para scraping + OpenRouter LLM para extração
   * Retorna dados estruturados do imóvel (bairro, endereço, área, quartos, valor, etc.)
+  * (Extensão M8 - opcional) pode retornar também `risk_assessment` para alimentar o Flip Score
+
+---
+
+## M8 — Flip Score (Prospecção)
+
+### Objetivo
+
+Dar um **score de 0–100** em cada prospect para priorização rápida no contexto de House Flipping.
+
+**Princípios:**
+
+* **Server-side é fonte da verdade:** score calculado e persistido no backend (Go).
+* **LLM não “decide” o score:** LLM só extrai **sinais de risco** (red flags + nível de reforma).
+* **v0 não usa ARV/comps externos:** apenas rank interno do workspace + heurísticas objetivas.
+* **Sem UI pesada:** mostrar score e um breakdown leve (tooltip/drawer).
+
+### Modelo de dados (proposta)
+
+Adicionar em `prospecting_properties`:
+
+* `flip_score` (int 0–100, nullable)
+* `flip_score_version` (text, ex: `v0`, nullable)
+* `flip_score_confidence` (numeric 0–1, nullable)
+* `flip_score_breakdown` (jsonb, nullable)
+* `flip_score_updated_at` (timestamptz, nullable)
+
+`flip_score_breakdown` deve armazenar, no mínimo:
+
+* componentes (`S_price`, `S_carry`, `S_liquidity`, `S_risk`, `S_data`)
+* valores intermediários relevantes (`price_per_sqm`, `carry_ratio`, `cohort_n`, `cohort_scope`)
+* `risk_assessment` (abaixo), quando disponível
+* `missing_fields` (lista de campos críticos ausentes)
+
+### Contrato do LLM (OpenRouter) — FlipRiskAssessment
+
+O LLM deve retornar **JSON estrito**:
+
+```json
+{
+  "rehab_level": "light|medium|heavy|null",
+  "llm_confidence": 0,
+  "red_flags": [
+    {
+      "category": "legal|structural|moisture|condo_rules|security|noise|access|listing_inconsistency",
+      "severity": 1,
+      "confidence": 0,
+      "evidence": "trecho curto do anúncio"
+    }
+  ],
+  "missing_critical": ["asking_price", "area_usable"]
+}
+```
+
+Notas:
+
+* `llm_confidence` deve refletir o quão “apoiado em texto” o output está.
+* Se não houver texto suficiente, o LLM deve retornar `llm_confidence` baixo e `red_flags` vazio.
+
+### Fórmula do Flip Score v0 (0–100)
+
+O score final é calculado a partir de um **raw score** e multiplicadores de qualidade/confiança:
+
+1) **Componentes (0–100)**
+
+* `S_price` (peso 40%) — “barato vs. seus prospects”
+  * `price_per_sqm = asking_price / area_usable` (se ambos existirem)
+  * Coorte:
+    * Se `neighborhood` existir e houver `n >= 10` prospects no mesmo bairro com `price_per_sqm`, usar **bairro**
+    * Senão, usar **workspace**
+  * `percent_rank` (0–1):
+    * Definição: percentil do `price_per_sqm` dentro da coorte (mais baixo = melhor)
+    * Fallback: se `n < 5`, `S_price = 50`
+  * `S_price = round(100 * (1 - percent_rank))`
+
+* `S_carry` (peso 15%) — custo recorrente relativo ao ticket
+  * `carry_month = condo_fee + (iptu / 12)` (missing tratados como 0, mas penalizados em `S_data`)
+  * `carry_ratio = carry_month / asking_price`
+  * Mapeamento (interpolação linear entre pontos):
+    * `<= 0.10%` → 100
+    * `0.20%` → 85
+    * `0.30%` → 70
+    * `0.50%` → 50
+    * `0.70%` → 30
+    * `>= 1.00%` → 0
+
+* `S_liquidity` (peso 20%) — proxy simples de “vendabilidade”
+  * Base 50, ajustes (clamp 0–100):
+    * `bedrooms` 2–3: `+15` | `bedrooms` 1 ou 4+: `-5`
+    * `parking >= 1`: `+10` | `parking == 0`: `-5`
+    * `area_usable` 50–120: `+15` | fora disso: `-5`
+    * `elevator == true`: `+5` (se existir o campo)
+
+* `S_risk` (peso 25%) — penalidades por risco + nível de reforma
+  * Sem `risk_assessment`: `S_risk = 50`
+  * Penalidade por nível de reforma:
+    * `light`: 0 | `medium`: 8 | `heavy`: 15
+  * Penalidade por red flags:
+    * `risk_penalty = Σ (weight[category] * severity(1–5) * confidence(0–1))`
+    * Pesos por categoria:
+      * `legal=10`, `structural=9`, `moisture=8`, `condo_rules=6`, `security=6`,
+        `listing_inconsistency=5`, `noise=4`, `access=3`
+  * `S_risk = clamp(100 - rehab_penalty - risk_penalty, 0, 100)`
+
+* `S_data` (0–100) — completude dos dados críticos
+  * Começa em 100 e perde pontos:
+    * sem `asking_price`: `-35`
+    * sem `area_usable`: `-35`
+    * sem `neighborhood`: `-15`
+    * sem `bedrooms`: `-10`
+    * sem `condo_fee`: `-5`
+    * sem `iptu`: `-5`
+  * `S_data = clamp(S_data, 0, 100)`
+
+2) **Raw score**
+
+`raw = 0.40*S_price + 0.15*S_carry + 0.20*S_liquidity + 0.25*S_risk`
+
+3) **Multiplicadores**
+
+* Qualidade de dados: `m_data = 0.6 + 0.4*(S_data/100)`
+* Confiança do LLM (se disponível):
+  * `m_llm = 0.7 + 0.3*(llm_confidence)` (se `risk_assessment` não existir, `llm_confidence=0`)
+
+4) **Final**
+
+`final = round(clamp(raw * m_data * m_llm, 0, 100))`
+
+### Recomputation (manual)
+
+* Score deve ser recalculado por ação explícita do usuário (botão “Atualizar score”).
+* Fallback obrigatório:
+  * Se OpenRouter falhar, computar score sem `risk_assessment` (usar `S_risk=50`, `llm_confidence=0`).
+* Rate limit / custo:
+  * Evitar chamadas repetidas: se `flip_score_updated_at` < 15 min, retornar o atual (a menos que `force=true`).
+
+### Endpoints
+
+* `POST /api/v1/prospects/:id/flip-score/recompute` → retorna o prospect atualizado (incluindo `flip_score_*`)
+
+---
+
+# (PLANEJADO) ## M9 — Flip Score v1 (Economics + ARV)
+
+### Objetivo
+
+Transformar o score em **priorização por economia do deal**, usando inputs mínimos (ARV e custos) no próprio prospect — **sem depender de dados externos** no início.
+
+**Princípios (mantidos):**
+
+* Score calculado **server-side** e persistido.
+* UI não recalcula viabilidade como fonte de verdade.
+* LLM continua apenas como “sinais de risco” (opcional no v1).
+
+### Inputs v1 (mínimos)
+
+Campos no prospect (valores em BRL / meses):
+
+* `offer_price` (nullable) — se null, usar `asking_price`
+* `expected_sale_price` (nullable) — ARV alvo (manual)
+* `renovation_cost_estimate` (nullable)
+* `other_costs_estimate` (nullable)
+* `hold_months` (nullable, default 6)
+
+### Saídas calculadas (para breakdown)
+
+Reusar a lógica do cálculo cash existente (viability engine) adaptada para prospect:
+
+* `roi`, `net_profit`, `investment_total`
+* `gross_profit`, `broker_fee`, `pj_tax_value`
+* `break_even_sale_price` (novo, útil no v1)
+* `is_partial` (se inputs faltantes)
+
+### Fórmula do Flip Score v1 (0–100)
+
+v1 substitui o peso principal por economia do deal:
+
+* `S_econ` (peso 60%) — derivado de ROI + margem + buffer
+  * Exemplo de mapeamento:
+    * ROI:
+      * `roi <= 0` → 0
+      * `roi 10%` → 40
+      * `roi 20%` → 70
+      * `roi 30%` → 90
+      * `roi >= 40%` → 100
+    * Buffer:
+      * `buffer = expected_sale_price - break_even_sale_price` (ou 0 se parcial)
+      * Normalizar por `expected_sale_price` para reduzir efeito do ticket
+* `S_liquidity` (peso 20%) — mantém proxy simples do v0 (ou evolui para “time-to-sell” manual)
+* `S_risk` (peso 20%) — mantém sinal de risco do v0 (se disponível)
+
+Multiplicadores:
+
+* `m_data` e `m_llm` seguem a mesma ideia do v0, mas:
+  * v1 exige inputs mínimos; se faltarem, não calcular (ou calcular parcial e marcar como “incompleto”)
+
+### Recomputation (manual)
+
+* “Atualizar score v1” recomputa e persiste.
+* Se inputs mínimos faltarem, responder `VALIDATION_ERROR` com mensagem curta.
+
+### Endpoints (proposta)
+
+* `PUT /api/v1/prospects/:id/flip-inputs` → atualiza inputs v1 (parcial)
+* `POST /api/v1/prospects/:id/flip-score/recompute?v=1` → retorna prospect com `flip_score_*` e breakdown v1
 
 ---
 
@@ -505,6 +771,27 @@ Critérios:
 * Define saldo devedor
 * Outputs aparecem (incluindo ROI e lucro líquido)
 * Snapshot financiado é criado e aparece no histórico
+
+## Journey D — Flip Score v0 (prospecção)
+
+Critérios:
+
+* Em `/app/prospects`, cada card mostra um **Flip Score (0–100)** quando disponível.
+* Ao abrir o prospect (modal), existe ação **“Atualizar score”**.
+* Ao atualizar:
+  * o score é calculado server-side e persistido no prospect
+  * a UI mostra um breakdown leve (componentes + red flags, se existirem)
+  * falha do LLM não bloqueia (score volta com fallback)
+
+## Journey E — Flip Score v1 (economia do deal)
+
+Critérios:
+
+* No modal do prospect, usuário preenche `expected_sale_price` e `renovation_cost_estimate` (mínimos).
+* Ao clicar “Atualizar score v1”, o backend calcula viabilidade cash para o prospect e persiste:
+  * `flip_score_version=v1`
+  * `flip_score_breakdown` contendo ao menos ROI, lucro líquido e break-even
+* Cards exibem `Flip Score v1` quando disponível; caso contrário mostram “Complete os dados”.
 
 ---
 
@@ -612,3 +899,4 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-06` — 2025-12-19 — M5 entregue: página pública /calculator com inputs mínimos, cálculo server-side via BFF (endpoint público POST /api/v1/public/cash-calc), AuthModal para gating (login/signup), fluxo save (cria property + inputs + snapshot + redirect), eventos de funil via logs estruturados.
 * `CP-07` — 2025-12-19 — M6 entregue: validações consistentes (percentuais 0-1, mensagens PT-BR), UI polish (loading states, empty states, aria-labels), smoke test executável documentado, demo script atualizado. MVP Ready.
 * `CP-08` — 2025-12-21 — M7 entregue: UI comercial com shadcn/ui (design system completo), light/dark mode toggle, dashboard comercializado, gestão completa de workspaces (CRUD + seletor no header + settings page + DangerZone), redesign prospecção (cards responsivos + modals de adição/visualização/edição), importação de imóveis via URL (Firecrawl + OpenRouter LLM extraction). Extended MVP.
+* `CP-08` — 2025-12-22 — PRD: adicionado milestone M8 (Flip Score v0) + planejamento do V1 (M9) com dados, endpoints e acceptance criteria.

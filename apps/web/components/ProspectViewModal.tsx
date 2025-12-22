@@ -15,11 +15,16 @@ import {
   MessageSquare,
   Check,
   Phone,
+  RefreshCw,
+  TrendingUp,
+  AlertTriangle,
 } from "lucide-react";
 
 import type { Prospect } from "@widia/shared";
 
 import { updateProspectAction } from "@/lib/actions/prospects";
+import { recomputeFlipScoreAction } from "@/lib/actions/flip-score";
+import { FlipScoreBadge } from "@/components/FlipScoreBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,8 +60,25 @@ export function ProspectViewModal({
 }: ProspectViewModalProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isScoreRecomputing, setIsScoreRecomputing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scoreError, setScoreError] = useState<string | null>(null);
+
+  const handleRecomputeScore = async (force: boolean = false) => {
+    setScoreError(null);
+    setIsScoreRecomputing(true);
+    try {
+      const result = await recomputeFlipScoreAction(prospect.id, force);
+      if ("error" in result) {
+        setScoreError(result.error);
+      } else {
+        router.refresh();
+      }
+    } finally {
+      setIsScoreRecomputing(false);
+    }
+  };
 
   // Form state initialized from prospect
   const [formData, setFormData] = useState({
@@ -572,6 +594,75 @@ export function ProspectViewModal({
               </div>
             )}
 
+            {/* Flip Score Section */}
+            <section className="space-y-3">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                <TrendingUp className="h-4 w-4" />
+                Flip Score
+              </h3>
+              <div className="flex items-center gap-4 rounded-lg border p-4">
+                <FlipScoreBadge score={prospect.flip_score} size="md" />
+                <div className="flex-1">
+                  {prospect.flip_score != null ? (
+                    <>
+                      <p className="text-sm font-medium">
+                        {prospect.flip_score >= 70 ? "Boa oportunidade" :
+                         prospect.flip_score >= 40 ? "Oportunidade regular" : "Oportunidade arriscada"}
+                      </p>
+                      {prospect.flip_score_updated_at && (
+                        <p className="text-xs text-muted-foreground">
+                          Atualizado em{" "}
+                          {new Date(prospect.flip_score_updated_at).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Score não calculado
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRecomputeScore(false)}
+                  disabled={isScoreRecomputing}
+                  className="gap-1.5"
+                >
+                  {isScoreRecomputing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  {prospect.flip_score != null ? "Atualizar" : "Calcular"}
+                </Button>
+              </div>
+              {scoreError && (
+                <div className="flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-700 dark:text-yellow-400">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <p>{scoreError}</p>
+                    {scoreError.includes("RATE_LIMITED") && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => handleRecomputeScore(true)}
+                        disabled={isScoreRecomputing}
+                        className="h-auto p-0 text-yellow-700 dark:text-yellow-400"
+                      >
+                        Forçar recálculo
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+
             {/* Location Section */}
             <section className="space-y-3">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
@@ -749,4 +840,5 @@ export function ProspectViewModal({
     </Dialog>
   );
 }
+
 

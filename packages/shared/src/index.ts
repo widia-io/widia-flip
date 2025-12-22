@@ -77,6 +77,13 @@ export const ProspectSchema = z.object({
   comments: z.string().nullable(),
   tags: z.array(z.string()),
   price_per_sqm: z.number().nullable(),
+  // M8 - Flip Score fields
+  listing_text: z.string().nullable().optional(),
+  flip_score: z.number().int().min(0).max(100).nullable().optional(),
+  flip_score_version: z.string().nullable().optional(),
+  flip_score_confidence: z.number().min(0).max(1).nullable().optional(),
+  flip_score_breakdown: z.any().nullable().optional(), // FlipScoreBreakdownSchema (defined later)
+  flip_score_updated_at: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -554,3 +561,89 @@ export const ScrapePropertyResponseSchema = z.object({
   warning: z.string().optional(),
 });
 export type ScrapePropertyResponse = z.infer<typeof ScrapePropertyResponseSchema>;
+
+// M8 - Flip Score
+
+export const RedFlagCategoryEnum = z.enum([
+  "legal",
+  "structural",
+  "moisture",
+  "condo_rules",
+  "security",
+  "noise",
+  "access",
+  "listing_inconsistency",
+]);
+export type RedFlagCategory = z.infer<typeof RedFlagCategoryEnum>;
+
+export const RedFlagSchema = z.object({
+  category: RedFlagCategoryEnum,
+  severity: z.number().int().min(1).max(5),
+  confidence: z.number().min(0).max(1),
+  evidence: z.string(),
+});
+export type RedFlag = z.infer<typeof RedFlagSchema>;
+
+export const RehabLevelEnum = z.enum(["light", "medium", "heavy"]);
+export type RehabLevel = z.infer<typeof RehabLevelEnum>;
+
+export const FlipRiskAssessmentSchema = z.object({
+  rehab_level: RehabLevelEnum.nullable(),
+  llm_confidence: z.number().min(0).max(1),
+  red_flags: z.array(RedFlagSchema),
+  missing_critical: z.array(z.string()),
+});
+export type FlipRiskAssessment = z.infer<typeof FlipRiskAssessmentSchema>;
+
+export const CohortScopeEnum = z.enum(["neighborhood", "workspace"]);
+export type CohortScope = z.infer<typeof CohortScopeEnum>;
+
+export const FlipScoreComponentsSchema = z.object({
+  s_price: z.number(),
+  s_carry: z.number(),
+  s_liquidity: z.number(),
+  s_risk: z.number(),
+  s_data: z.number(),
+});
+export type FlipScoreComponents = z.infer<typeof FlipScoreComponentsSchema>;
+
+export const FlipScoreIntermediateSchema = z.object({
+  price_per_sqm: z.number().nullable(),
+  carry_ratio: z.number().nullable(),
+  cohort_n: z.number(),
+  cohort_scope: CohortScopeEnum,
+});
+export type FlipScoreIntermediate = z.infer<typeof FlipScoreIntermediateSchema>;
+
+export const FlipScoreMultipliersSchema = z.object({
+  m_data: z.number(),
+  m_llm: z.number(),
+});
+export type FlipScoreMultipliers = z.infer<typeof FlipScoreMultipliersSchema>;
+
+export const FlipScoreBreakdownSchema = z.object({
+  components: FlipScoreComponentsSchema,
+  intermediate: FlipScoreIntermediateSchema,
+  risk_assessment: FlipRiskAssessmentSchema.nullable(),
+  missing_fields: z.array(z.string()),
+  multipliers: FlipScoreMultipliersSchema,
+  raw_score: z.number(),
+});
+export type FlipScoreBreakdown = z.infer<typeof FlipScoreBreakdownSchema>;
+
+export const RecomputeFlipScoreRequestSchema = z.object({
+  force: z.boolean().optional(),
+});
+export type RecomputeFlipScoreRequest = z.infer<typeof RecomputeFlipScoreRequestSchema>;
+
+export const RecomputeFlipScoreResponseSchema = z.object({
+  prospect: z.object({
+    id: z.string(),
+    flip_score: z.number().int().min(0).max(100).nullable(),
+    flip_score_version: z.string().nullable(),
+    flip_score_confidence: z.number().min(0).max(1).nullable(),
+    flip_score_breakdown: FlipScoreBreakdownSchema.nullable(),
+    flip_score_updated_at: z.string().nullable(),
+  }),
+});
+export type RecomputeFlipScoreResponse = z.infer<typeof RecomputeFlipScoreResponseSchema>;

@@ -423,3 +423,4 @@ function CostForm({ initialData, onSubmit, onCancel, isPending }: CostFormProps)
     </Card>
   );
 }
+

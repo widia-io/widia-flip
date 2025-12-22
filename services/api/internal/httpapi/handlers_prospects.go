@@ -56,8 +56,15 @@ type prospect struct {
 	Comments     *string   `json:"comments"`
 	Tags         []string  `json:"tags"`
 	PricePerSqm  *float64  `json:"price_per_sqm"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	// M8 - Flip Score fields
+	ListingText          *string          `json:"listing_text,omitempty"`
+	FlipScore            *int             `json:"flip_score,omitempty"`
+	FlipScoreVersion     *string          `json:"flip_score_version,omitempty"`
+	FlipScoreConfidence  *float64         `json:"flip_score_confidence,omitempty"`
+	FlipScoreBreakdown   *json.RawMessage `json:"flip_score_breakdown,omitempty"`
+	FlipScoreUpdatedAt   *time.Time       `json:"flip_score_updated_at,omitempty"`
+	CreatedAt            time.Time        `json:"created_at"`
+	UpdatedAt            time.Time        `json:"updated_at"`
 }
 
 type listProspectsResponse struct {
@@ -148,6 +155,16 @@ func (a *api) handleProspectsSubroutes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// /api/v1/prospects/:id/flip-score/recompute
+	if len(parts) == 3 && parts[1] == "flip-score" && parts[2] == "recompute" {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		a.handleFlipScoreRecompute(w, r, prospectID)
+		return
+	}
+
 	// /api/v1/prospects/:id
 	if len(parts) == 1 {
 		switch r.Method {
@@ -205,7 +222,8 @@ func (a *api) handleListProspects(w http.ResponseWriter, r *http.Request) {
 		SELECT id, workspace_id, status, link, neighborhood, address,
 		       area_usable, bedrooms, suites, bathrooms, gas, floor, elevator, face, parking,
 		       condo_fee, iptu, asking_price, agency, broker_name, broker_phone,
-		       comments, tags, created_at, updated_at
+		       comments, tags, created_at, updated_at,
+		       flip_score
 		FROM prospecting_properties
 		WHERE workspace_id = $1
 	`
@@ -249,6 +267,7 @@ func (a *api) handleListProspects(w http.ResponseWriter, r *http.Request) {
 			&p.AreaUsable, &p.Bedrooms, &p.Suites, &p.Bathrooms, &p.Gas, &p.Floor, &p.Elevator, &p.Face, &p.Parking,
 			&p.CondoFee, &p.IPTU, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
 			&p.Comments, &tags, &p.CreatedAt, &p.UpdatedAt,
+			&p.FlipScore,
 		)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan prospect"})

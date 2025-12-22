@@ -477,3 +477,4 @@ func (a *api) handleDeleteDocument(w http.ResponseWriter, r *http.Request, docID
 func (a *api) SetS3Client(client *storage.S3Client) {
 	a.s3Client = client
 }
+

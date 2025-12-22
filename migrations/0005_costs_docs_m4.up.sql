@@ -44,3 +44,4 @@ CREATE INDEX IF NOT EXISTS idx_documents_workspace ON documents(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_documents_cost ON documents(cost_item_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_documents_storage_key ON documents(storage_key);
 
+

@@ -25,6 +25,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProspectViewModal } from "@/components/ProspectViewModal";
+import { FlipScoreBadge } from "@/components/FlipScoreBadge";
 
 interface ProspectCardProps {
   prospect: Prospect;
@@ -154,9 +155,12 @@ export function ProspectCard({ prospect }: ProspectCardProps) {
                 </p>
               )}
             </div>
-            <Badge variant={status.variant} className="shrink-0">
-              {status.label}
-            </Badge>
+            <div className="flex items-center gap-2 shrink-0">
+              <FlipScoreBadge score={prospect.flip_score} size="sm" />
+              <Badge variant={status.variant}>
+                {status.label}
+              </Badge>
+            </div>
           </div>
 
           {/* Body */}

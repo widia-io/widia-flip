@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/widia-projects/widia-flip/services/api/internal/auth"
+	"github.com/widia-projects/widia-flip/services/api/internal/llm"
 	"github.com/widia-projects/widia-flip/services/api/internal/storage"
 )
 
@@ -12,6 +13,7 @@ type Deps struct {
 	DB                *sql.DB
 	BetterAuthJWKSURL string
 	S3Client          *storage.S3Client
+	LLMClient         *llm.Client
 }
 
 func NewHandler(deps Deps) http.Handler {
@@ -19,6 +21,7 @@ func NewHandler(deps Deps) http.Handler {
 		db:            deps.DB,
 		tokenVerifier: auth.NewJWKSVerifier(deps.BetterAuthJWKSURL),
 		s3Client:      deps.S3Client,
+		llmClient:     deps.LLMClient,
 	}
 
 	// Public routes (no auth required)
@@ -71,4 +74,5 @@ type api struct {
 	db            *sql.DB
 	tokenVerifier *auth.JWKSVerifier
 	s3Client      *storage.S3Client
+	llmClient     *llm.Client
 }
