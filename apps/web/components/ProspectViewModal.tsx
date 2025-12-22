@@ -25,6 +25,7 @@ import type { Prospect } from "@widia/shared";
 import { updateProspectAction } from "@/lib/actions/prospects";
 import { recomputeFlipScoreAction } from "@/lib/actions/flip-score";
 import { FlipScoreBadge } from "@/components/FlipScoreBadge";
+import { InvestmentPremisesView } from "@/components/prospect/InvestmentPremisesView";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -246,7 +247,7 @@ export function ProspectViewModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
         <DialogHeader className="flex flex-row items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2">
@@ -500,80 +501,103 @@ export function ProspectViewModal({
               </div>
             </fieldset>
 
-            {/* Investment Section (M9 - Flip Score v1) */}
+            {/* Investment Analysis (M9 - Flip Score v1) */}
             <fieldset className="space-y-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
               <legend className="flex items-center gap-2 px-2 text-sm font-medium">
                 <TrendingUp className="h-4 w-4 text-primary" />
-                Dados de Investimento
+                Análise de Investimento
                 <span className="ml-1 rounded-full bg-primary/20 px-2 py-0.5 text-[10px] text-primary">Score v1</span>
               </legend>
               <p className="text-xs text-muted-foreground">
                 Preencha para calcular o Flip Score v1 baseado em ROI.
               </p>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-offer_price">Valor da Proposta (R$)</Label>
-                  <Input
-                    id="edit-offer_price"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={formData.offer_price}
-                    onChange={(e) => handleChange("offer_price", e.target.value)}
-                    placeholder="Deixe vazio para usar preço pedido"
-                    disabled={isPending}
-                  />
+
+              {/* Objetivo do Investimento */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-medium text-muted-foreground">Objetivo do Investimento</h4>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-expected_sale_price">Preço de Venda Esperado (R$)</Label>
+                    <Input
+                      id="edit-expected_sale_price"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={formData.expected_sale_price}
+                      onChange={(e) => handleChange("expected_sale_price", e.target.value)}
+                      placeholder="ARV - After Repair Value"
+                      disabled={isPending}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-renovation_cost_estimate">Custo de Reforma (R$)</Label>
+                    <Input
+                      id="edit-renovation_cost_estimate"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={formData.renovation_cost_estimate}
+                      onChange={(e) => handleChange("renovation_cost_estimate", e.target.value)}
+                      disabled={isPending}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-hold_months">Prazo (meses)</Label>
+                    <Input
+                      id="edit-hold_months"
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={formData.hold_months}
+                      onChange={(e) => handleChange("hold_months", e.target.value)}
+                      placeholder="6"
+                      disabled={isPending}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-expected_sale_price">Preço de Venda Esperado (R$)</Label>
-                  <Input
-                    id="edit-expected_sale_price"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={formData.expected_sale_price}
-                    onChange={(e) => handleChange("expected_sale_price", e.target.value)}
-                    placeholder="ARV - After Repair Value"
-                    disabled={isPending}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-renovation_cost_estimate">Custo de Reforma (R$)</Label>
-                  <Input
-                    id="edit-renovation_cost_estimate"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={formData.renovation_cost_estimate}
-                    onChange={(e) => handleChange("renovation_cost_estimate", e.target.value)}
-                    disabled={isPending}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-hold_months">Prazo (meses)</Label>
-                  <Input
-                    id="edit-hold_months"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={formData.hold_months}
-                    onChange={(e) => handleChange("hold_months", e.target.value)}
-                    placeholder="6"
-                    disabled={isPending}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-other_costs_estimate">Outros Custos (R$)</Label>
-                  <Input
-                    id="edit-other_costs_estimate"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={formData.other_costs_estimate}
-                    onChange={(e) => handleChange("other_costs_estimate", e.target.value)}
-                    placeholder="Taxas, despesas, etc."
-                    disabled={isPending}
-                  />
+              </div>
+
+              {/* Tributos e Custos (info only) */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium text-muted-foreground">Tributos e Custos</h4>
+                <p className="text-xs text-muted-foreground/70">
+                  Taxas padrão BR: ITBI 3%, Escritura 1%, Corretagem 6%, IR 15%
+                </p>
+              </div>
+
+              {/* Estratégia de Compra */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-medium text-muted-foreground">Estratégia de Compra</h4>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-offer_price">Valor da Proposta (R$)</Label>
+                    <Input
+                      id="edit-offer_price"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={formData.offer_price}
+                      onChange={(e) => handleChange("offer_price", e.target.value)}
+                      placeholder="Deixe vazio para usar preço pedido"
+                      disabled={isPending}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-other_costs_estimate">Outros Custos (R$)</Label>
+                    <Input
+                      id="edit-other_costs_estimate"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={formData.other_costs_estimate}
+                      onChange={(e) => handleChange("other_costs_estimate", e.target.value)}
+                      placeholder="Taxas, despesas, etc."
+                      disabled={isPending}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Badge variant="secondary" className="mb-2">À Vista</Badge>
+                  </div>
                 </div>
               </div>
             </fieldset>
@@ -906,42 +930,8 @@ export function ProspectViewModal({
               </section>
             )}
 
-            {/* Investment Section (M9 - Flip Score v1) */}
-            {(prospect.offer_price != null ||
-              prospect.expected_sale_price != null ||
-              prospect.renovation_cost_estimate != null ||
-              prospect.hold_months != null ||
-              prospect.other_costs_estimate != null) && (
-              <section className="space-y-3">
-                <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                  <TrendingUp className="h-4 w-4" />
-                  Dados de Investimento
-                  <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] text-primary">v1</span>
-                </h3>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  <ViewField
-                    label="Valor da Proposta"
-                    value={prospect.offer_price != null ? formatCurrency(prospect.offer_price) : null}
-                  />
-                  <ViewField
-                    label="Preço de Venda Esperado (ARV)"
-                    value={prospect.expected_sale_price != null ? formatCurrency(prospect.expected_sale_price) : null}
-                  />
-                  <ViewField
-                    label="Custo de Reforma"
-                    value={prospect.renovation_cost_estimate != null ? formatCurrency(prospect.renovation_cost_estimate) : null}
-                  />
-                  <ViewField
-                    label="Prazo (meses)"
-                    value={prospect.hold_months}
-                  />
-                  <ViewField
-                    label="Outros Custos"
-                    value={prospect.other_costs_estimate != null ? formatCurrency(prospect.other_costs_estimate) : null}
-                  />
-                </div>
-              </section>
-            )}
+            {/* Investment Analysis (M9 - Flip Score v1) */}
+            <InvestmentPremisesView prospect={prospect} />
 
             {/* Contact Section */}
             {(prospect.agency ||

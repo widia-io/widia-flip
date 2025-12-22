@@ -902,6 +902,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-08` — 2025-12-22 — PRD: adicionado milestone M8 (Flip Score v0) + planejamento do V1 (M9) com dados, endpoints e acceptance criteria.
 * `CP-09` — 2025-12-22 — M8 entregue: DB migration (flip_score_* fields), Zod schemas (RedFlag, FlipRiskAssessment, FlipScoreBreakdown), Go flipscore package (v0 formula 5 componentes), endpoint recompute c/ rate limiting (15min) + fallback LLM, OpenRouter/Haiku integration (risk assessment), Web UI (FlipScoreBadge, modal "Atualizar score"), structured logs. Fixed: list query now includes flip_score. Flip Score v0 production-ready.
 * `CP-09` — 2025-12-22 — UI polish prospecção: soft delete c/ undo (migration 0008, restore endpoint), toast feedback (sonner), ordenação client-side (score/recente/preço/R$m²), skeleton loading (Suspense boundary), filtros avançados (chips/limpar/×), microcopy padronizado, FlipScoreBadge c/ label, a11y (aria-labels).
+* `CP-10` — 2025-12-22 — M9 UI: "Análise de Investimento" refactor - new components (MetricDisplay, PremiseCard, PaymentMethodToggle, InvestmentPremisesView), 3-card layout (Objetivo/Tributos/Pagamento), view mode with tooltips, edit mode reorganized with subheadings, static BR tax rates, disabled financing toggle. Visual polish: compacted padding, mobile-first grid (1→2→3 cols), renamed from "Premissas".
 
 ---
 
