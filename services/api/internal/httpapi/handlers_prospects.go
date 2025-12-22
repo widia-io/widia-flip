@@ -63,8 +63,14 @@ type prospect struct {
 	FlipScoreConfidence  *float64         `json:"flip_score_confidence,omitempty"`
 	FlipScoreBreakdown   *json.RawMessage `json:"flip_score_breakdown,omitempty"`
 	FlipScoreUpdatedAt   *time.Time       `json:"flip_score_updated_at,omitempty"`
-	CreatedAt            time.Time        `json:"created_at"`
-	UpdatedAt            time.Time        `json:"updated_at"`
+	// M9 - Flip Score v1 inputs
+	OfferPrice             *float64 `json:"offer_price,omitempty"`
+	ExpectedSalePrice      *float64 `json:"expected_sale_price,omitempty"`
+	RenovationCostEstimate *float64 `json:"renovation_cost_estimate,omitempty"`
+	HoldMonths             *int     `json:"hold_months,omitempty"`
+	OtherCostsEstimate     *float64 `json:"other_costs_estimate,omitempty"`
+	CreatedAt              time.Time `json:"created_at"`
+	UpdatedAt              time.Time `json:"updated_at"`
 }
 
 type listProspectsResponse struct {
@@ -94,6 +100,12 @@ type createProspectRequest struct {
 	BrokerPhone  *string  `json:"broker_phone"`
 	Comments     *string  `json:"comments"`
 	Tags         []string `json:"tags"`
+	// M9 - Flip Score v1 inputs
+	OfferPrice             *float64 `json:"offer_price"`
+	ExpectedSalePrice      *float64 `json:"expected_sale_price"`
+	RenovationCostEstimate *float64 `json:"renovation_cost_estimate"`
+	HoldMonths             *int     `json:"hold_months"`
+	OtherCostsEstimate     *float64 `json:"other_costs_estimate"`
 }
 
 type updateProspectRequest struct {
@@ -118,6 +130,12 @@ type updateProspectRequest struct {
 	BrokerPhone  *string  `json:"broker_phone"`
 	Comments     *string  `json:"comments"`
 	Tags         []string `json:"tags"`
+	// M9 - Flip Score v1 inputs
+	OfferPrice             *float64 `json:"offer_price"`
+	ExpectedSalePrice      *float64 `json:"expected_sale_price"`
+	RenovationCostEstimate *float64 `json:"renovation_cost_estimate"`
+	HoldMonths             *int     `json:"hold_months"`
+	OtherCostsEstimate     *float64 `json:"other_costs_estimate"`
 }
 
 type convertProspectResponse struct {
@@ -233,7 +251,8 @@ func (a *api) handleListProspects(w http.ResponseWriter, r *http.Request) {
 		       area_usable, bedrooms, suites, bathrooms, gas, floor, elevator, face, parking,
 		       condo_fee, iptu, asking_price, agency, broker_name, broker_phone,
 		       comments, tags, created_at, updated_at,
-		       flip_score
+		       flip_score, flip_score_version,
+		       offer_price, expected_sale_price, renovation_cost_estimate, hold_months, other_costs_estimate
 		FROM prospecting_properties
 		WHERE workspace_id = $1 AND deleted_at IS NULL
 	`
@@ -277,7 +296,8 @@ func (a *api) handleListProspects(w http.ResponseWriter, r *http.Request) {
 			&p.AreaUsable, &p.Bedrooms, &p.Suites, &p.Bathrooms, &p.Gas, &p.Floor, &p.Elevator, &p.Face, &p.Parking,
 			&p.CondoFee, &p.IPTU, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
 			&p.Comments, &tags, &p.CreatedAt, &p.UpdatedAt,
-			&p.FlipScore,
+			&p.FlipScore, &p.FlipScoreVersion,
+			&p.OfferPrice, &p.ExpectedSalePrice, &p.RenovationCostEstimate, &p.HoldMonths, &p.OtherCostsEstimate,
 		)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan prospect"})
@@ -348,21 +368,26 @@ func (a *api) handleCreateProspect(w http.ResponseWriter, r *http.Request) {
 		`INSERT INTO prospecting_properties
 			(workspace_id, link, neighborhood, address, area_usable, bedrooms, suites, bathrooms,
 			 gas, floor, elevator, face, parking, condo_fee, iptu, asking_price, agency, broker_name, broker_phone,
-			 comments, tags)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+			 comments, tags,
+			 offer_price, expected_sale_price, renovation_cost_estimate, hold_months, other_costs_estimate)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
+		         $22, $23, $24, $25, $26)
 		 RETURNING id, workspace_id, status, link, neighborhood, address,
 		           area_usable, bedrooms, suites, bathrooms, gas, floor, elevator, face, parking,
 		           condo_fee, iptu, asking_price, agency, broker_name, broker_phone,
-		           comments, tags, created_at, updated_at`,
+		           comments, tags, created_at, updated_at,
+		           offer_price, expected_sale_price, renovation_cost_estimate, hold_months, other_costs_estimate`,
 		req.WorkspaceID, req.Link, req.Neighborhood, req.Address, req.AreaUsable,
 		req.Bedrooms, req.Suites, req.Bathrooms, req.Gas, req.Floor, req.Elevator, req.Face, req.Parking,
 		req.CondoFee, req.IPTU, req.AskingPrice, req.Agency, req.BrokerName, req.BrokerPhone,
 		req.Comments, pq.Array(req.Tags),
+		req.OfferPrice, req.ExpectedSalePrice, req.RenovationCostEstimate, req.HoldMonths, req.OtherCostsEstimate,
 	).Scan(
 		&p.ID, &p.WorkspaceID, &p.Status, &p.Link, &p.Neighborhood, &p.Address,
 		&p.AreaUsable, &p.Bedrooms, &p.Suites, &p.Bathrooms, &p.Gas, &p.Floor, &p.Elevator, &p.Face, &p.Parking,
 		&p.CondoFee, &p.IPTU, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
 		&p.Comments, &tagsBytes, &p.CreatedAt, &p.UpdatedAt,
+		&p.OfferPrice, &p.ExpectedSalePrice, &p.RenovationCostEstimate, &p.HoldMonths, &p.OtherCostsEstimate,
 	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to create prospect", Details: []string{err.Error()}})
@@ -388,7 +413,9 @@ func (a *api) handleGetProspect(w http.ResponseWriter, r *http.Request, prospect
 		`SELECT p.id, p.workspace_id, p.status, p.link, p.neighborhood, p.address,
 		        p.area_usable, p.bedrooms, p.suites, p.bathrooms, p.gas, p.floor, p.elevator, p.face, p.parking,
 		        p.condo_fee, p.iptu, p.asking_price, p.agency, p.broker_name, p.broker_phone,
-		        p.comments, p.tags, p.created_at, p.updated_at
+		        p.comments, p.tags, p.created_at, p.updated_at,
+		        p.flip_score, p.flip_score_version, p.flip_score_confidence, p.flip_score_breakdown, p.flip_score_updated_at,
+		        p.offer_price, p.expected_sale_price, p.renovation_cost_estimate, p.hold_months, p.other_costs_estimate
 		 FROM prospecting_properties p
 		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
 		 WHERE p.id = $1 AND m.user_id = $2 AND p.deleted_at IS NULL`,
@@ -398,6 +425,8 @@ func (a *api) handleGetProspect(w http.ResponseWriter, r *http.Request, prospect
 		&p.AreaUsable, &p.Bedrooms, &p.Suites, &p.Bathrooms, &p.Gas, &p.Floor, &p.Elevator, &p.Face, &p.Parking,
 		&p.CondoFee, &p.IPTU, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
 		&p.Comments, &tags, &p.CreatedAt, &p.UpdatedAt,
+		&p.FlipScore, &p.FlipScoreVersion, &p.FlipScoreConfidence, &p.FlipScoreBreakdown, &p.FlipScoreUpdatedAt,
+		&p.OfferPrice, &p.ExpectedSalePrice, &p.RenovationCostEstimate, &p.HoldMonths, &p.OtherCostsEstimate,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -574,13 +603,41 @@ func (a *api) handleUpdateProspect(w http.ResponseWriter, r *http.Request, prosp
 		args = append(args, pq.Array(req.Tags))
 		argIdx++
 	}
+	// M9 - Flip Score v1 inputs
+	if req.OfferPrice != nil {
+		sets = append(sets, "offer_price = $"+strconv.Itoa(argIdx))
+		args = append(args, *req.OfferPrice)
+		argIdx++
+	}
+	if req.ExpectedSalePrice != nil {
+		sets = append(sets, "expected_sale_price = $"+strconv.Itoa(argIdx))
+		args = append(args, *req.ExpectedSalePrice)
+		argIdx++
+	}
+	if req.RenovationCostEstimate != nil {
+		sets = append(sets, "renovation_cost_estimate = $"+strconv.Itoa(argIdx))
+		args = append(args, *req.RenovationCostEstimate)
+		argIdx++
+	}
+	if req.HoldMonths != nil {
+		sets = append(sets, "hold_months = $"+strconv.Itoa(argIdx))
+		args = append(args, *req.HoldMonths)
+		argIdx++
+	}
+	if req.OtherCostsEstimate != nil {
+		sets = append(sets, "other_costs_estimate = $"+strconv.Itoa(argIdx))
+		args = append(args, *req.OtherCostsEstimate)
+		argIdx++
+	}
 
 	args = append(args, prospectID)
 	query := `UPDATE prospecting_properties SET ` + strings.Join(sets, ", ") + ` WHERE id = $` + strconv.Itoa(argIdx) + `
 		 RETURNING id, workspace_id, status, link, neighborhood, address,
 		           area_usable, bedrooms, suites, bathrooms, gas, floor, elevator, face, parking,
 		           condo_fee, iptu, asking_price, agency, broker_name, broker_phone,
-		           comments, tags, created_at, updated_at`
+		           comments, tags, created_at, updated_at,
+		           flip_score, flip_score_version,
+		           offer_price, expected_sale_price, renovation_cost_estimate, hold_months, other_costs_estimate`
 
 	var p prospect
 	var tags []byte
@@ -589,6 +646,8 @@ func (a *api) handleUpdateProspect(w http.ResponseWriter, r *http.Request, prosp
 		&p.AreaUsable, &p.Bedrooms, &p.Suites, &p.Bathrooms, &p.Gas, &p.Floor, &p.Elevator, &p.Face, &p.Parking,
 		&p.CondoFee, &p.IPTU, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
 		&p.Comments, &tags, &p.CreatedAt, &p.UpdatedAt,
+		&p.FlipScore, &p.FlipScoreVersion,
+		&p.OfferPrice, &p.ExpectedSalePrice, &p.RenovationCostEstimate, &p.HoldMonths, &p.OtherCostsEstimate,
 	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to update prospect"})

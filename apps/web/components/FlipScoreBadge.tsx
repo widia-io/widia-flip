@@ -13,6 +13,7 @@ interface FlipScoreBadgeProps {
   size?: "sm" | "md";
   showLabel?: boolean;
   className?: string;
+  version?: string; // "v0" | "v1"
 }
 
 function getScoreColor(score: number | null | undefined): string {
@@ -34,6 +35,7 @@ export function FlipScoreBadge({
   size = "md",
   showLabel = false,
   className,
+  version,
 }: FlipScoreBadgeProps) {
   const colorClass = getScoreColor(score);
   const label = getScoreLabel(score);
@@ -46,6 +48,8 @@ export function FlipScoreBadge({
   const displayText = score != null
     ? showLabel ? `${score} ${label}` : score
     : "—";
+
+  const isV1 = version === "v1";
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -64,9 +68,18 @@ export function FlipScoreBadge({
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-[280px] text-left">
           <div className="space-y-1">
-            <p className="font-semibold">Flip Score (0–100)</p>
+            <p className="font-semibold">
+              Flip Score (0–100)
+              {version && (
+                <span className="ml-1 rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-normal text-primary">
+                  {version}
+                </span>
+              )}
+            </p>
             <p className="text-xs text-muted-foreground">
-              Prioriza oportunidades no seu workspace. Baseado em preço/m², custos, liquidez, riscos e completude dos dados.
+              {isV1
+                ? "Baseado em ROI econômico: considera preço de compra, reforma, venda esperada e custos."
+                : "Baseado em preço/m², custos, liquidez, riscos e completude dos dados. Comparativo ao seu workspace."}
             </p>
             <p className="text-xs text-muted-foreground/80">
               ≥70 Bom • 40–69 Regular • &lt;40 Ruim

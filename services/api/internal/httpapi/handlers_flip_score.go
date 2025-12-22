@@ -95,8 +95,8 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 		}
 	}
 
-	// Build inputs
-	inputs := flipscore.ProspectInputs{
+	// Build v0 inputs
+	inputsV0 := flipscore.ProspectInputs{
 		AskingPrice:  prospect.AskingPrice,
 		AreaUsable:   prospect.AreaUsable,
 		CondoFee:     prospect.CondoFee,
@@ -107,30 +107,81 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 		Neighborhood: prospect.Neighborhood,
 	}
 
-	// Calculate score
-	result := flipscore.Calculate(inputs, riskAssessment, cohort)
+	// Build v1 inputs (extends v0)
+	inputsV1 := flipscore.ProspectInputsV1{
+		ProspectInputs:         inputsV0,
+		OfferPrice:             prospect.OfferPrice,
+		ExpectedSalePrice:      prospect.ExpectedSalePrice,
+		RenovationCostEstimate: prospect.RenovationCostEstimate,
+		HoldMonths:             prospect.HoldMonths,
+		OtherCostsEstimate:     prospect.OtherCostsEstimate,
+	}
 
-	// Persist to DB
-	if err := a.persistFlipScore(r.Context(), prospectID, result); err != nil {
-		log.Printf("flip_score_persist_error request_id=%s prospect_id=%s error=%v", reqID, prospectID, err)
-		writeError(w, http.StatusInternalServerError, apiError{Code: "SCORE_CALC_FAILED", Message: "failed to persist score"})
-		return
+	// Auto-detect version: use v1 if inputs are sufficient, else v0
+	var (
+		finalScore      int
+		scoreVersion    string
+		scoreConfidence float64
+		computedAt      time.Time
+		breakdownBytes  []byte
+	)
+
+	if flipscore.CanCalculateV1(inputsV1) {
+		// Get workspace settings for v1 calculation
+		settings, err := a.getWorkspaceCashSettings(r.Context(), prospect.WorkspaceID)
+		if err != nil {
+			log.Printf("flip_score_settings_error request_id=%s prospect_id=%s error=%v", reqID, prospectID, err)
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch workspace settings"})
+			return
+		}
+
+		// Calculate v1 score
+		resultV1 := flipscore.CalculateV1(inputsV1, riskAssessment, cohort, settings)
+
+		// Persist v1 to DB
+		if err := a.persistFlipScoreV1(r.Context(), prospectID, resultV1); err != nil {
+			log.Printf("flip_score_persist_error request_id=%s prospect_id=%s error=%v", reqID, prospectID, err)
+			writeError(w, http.StatusInternalServerError, apiError{Code: "SCORE_CALC_FAILED", Message: "failed to persist score"})
+			return
+		}
+
+		finalScore = resultV1.Score
+		scoreVersion = resultV1.Version
+		scoreConfidence = resultV1.Confidence
+		computedAt = resultV1.ComputedAt
+		breakdownBytes, _ = json.Marshal(resultV1.Breakdown)
+
+		log.Printf("flip_score_recompute_done request_id=%s prospect_id=%s score=%d version=%s confidence=%.2f roi=%.2f",
+			reqID, prospectID, resultV1.Score, resultV1.Version, resultV1.Confidence,
+			resultV1.Breakdown.Economics.ROI)
+	} else {
+		// Calculate v0 score (fallback)
+		resultV0 := flipscore.Calculate(inputsV0, riskAssessment, cohort)
+
+		// Persist v0 to DB
+		if err := a.persistFlipScore(r.Context(), prospectID, resultV0); err != nil {
+			log.Printf("flip_score_persist_error request_id=%s prospect_id=%s error=%v", reqID, prospectID, err)
+			writeError(w, http.StatusInternalServerError, apiError{Code: "SCORE_CALC_FAILED", Message: "failed to persist score"})
+			return
+		}
+
+		finalScore = resultV0.Score
+		scoreVersion = resultV0.Version
+		scoreConfidence = resultV0.Confidence
+		computedAt = resultV0.ComputedAt
+		breakdownBytes, _ = json.Marshal(resultV0.Breakdown)
+
+		log.Printf("flip_score_recompute_done request_id=%s prospect_id=%s score=%d version=%s confidence=%.2f",
+			reqID, prospectID, resultV0.Score, resultV0.Version, resultV0.Confidence)
 	}
 
 	// Build response
-	breakdownBytes, _ := json.Marshal(result.Breakdown)
 	breakdownRaw := json.RawMessage(breakdownBytes)
-	scoreVersion := result.Version
-	scoreConfidence := result.Confidence
-	computedAt := result.ComputedAt
-
-	log.Printf("flip_score_recompute_done request_id=%s prospect_id=%s score=%d version=%s confidence=%.2f",
-		reqID, prospectID, result.Score, result.Version, result.Confidence)
 
 	writeJSON(w, http.StatusOK, recomputeFlipScoreResponse{
 		Prospect: flipScoreProspect{
 			ID:                   prospectID,
-			FlipScore:            &result.Score,
+			FlipScore:            &finalScore,
 			FlipScoreVersion:     &scoreVersion,
 			FlipScoreConfidence:  &scoreConfidence,
 			FlipScoreBreakdown:   &breakdownRaw,
@@ -139,7 +190,7 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 	})
 }
 
-// getProspectWithFlipScore fetches a prospect including flip_score fields with access check
+// getProspectWithFlipScore fetches a prospect including flip_score fields and v1 inputs with access check
 func (a *api) getProspectWithFlipScore(ctx context.Context, prospectID, userID string) (*prospect, error) {
 	var p prospect
 	var tags []byte
@@ -152,7 +203,8 @@ func (a *api) getProspectWithFlipScore(ctx context.Context, prospectID, userID s
 		        p.condo_fee, p.iptu, p.asking_price, p.agency, p.broker_name, p.broker_phone,
 		        p.comments, p.tags, p.created_at, p.updated_at,
 		        p.listing_text, p.flip_score, p.flip_score_version, p.flip_score_confidence,
-		        p.flip_score_breakdown, p.flip_score_updated_at
+		        p.flip_score_breakdown, p.flip_score_updated_at,
+		        p.offer_price, p.expected_sale_price, p.renovation_cost_estimate, p.hold_months, p.other_costs_estimate
 		 FROM prospecting_properties p
 		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
 		 WHERE p.id = $1 AND m.user_id = $2 AND p.deleted_at IS NULL`,
@@ -164,6 +216,7 @@ func (a *api) getProspectWithFlipScore(ctx context.Context, prospectID, userID s
 		&p.Comments, &tags, &p.CreatedAt, &p.UpdatedAt,
 		&p.ListingText, &p.FlipScore, &p.FlipScoreVersion, &p.FlipScoreConfidence,
 		&flipScoreBreakdown, &p.FlipScoreUpdatedAt,
+		&p.OfferPrice, &p.ExpectedSalePrice, &p.RenovationCostEstimate, &p.HoldMonths, &p.OtherCostsEstimate,
 	)
 	if err != nil {
 		return nil, err
@@ -261,6 +314,33 @@ func (a *api) getCohortStats(ctx context.Context, p *prospect) flipscore.CohortS
 
 // persistFlipScore saves the flip score result to the database
 func (a *api) persistFlipScore(ctx context.Context, prospectID string, result flipscore.Result) error {
+	breakdownBytes, err := json.Marshal(result.Breakdown)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.db.ExecContext(
+		ctx,
+		`UPDATE prospecting_properties
+		 SET flip_score = $1,
+		     flip_score_version = $2,
+		     flip_score_confidence = $3,
+		     flip_score_breakdown = $4,
+		     flip_score_updated_at = $5,
+		     updated_at = now()
+		 WHERE id = $6`,
+		result.Score,
+		result.Version,
+		result.Confidence,
+		breakdownBytes,
+		result.ComputedAt,
+		prospectID,
+	)
+	return err
+}
+
+// persistFlipScoreV1 saves the v1 flip score result to the database
+func (a *api) persistFlipScoreV1(ctx context.Context, prospectID string, result flipscore.ResultV1) error {
 	breakdownBytes, err := json.Marshal(result.Breakdown)
 	if err != nil {
 		return err

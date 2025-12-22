@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { recomputeFlipScoreAction } from "@/lib/actions/flip-score";
+
 import {
   CreateProspectRequestSchema,
   UpdateProspectRequestSchema,
@@ -164,6 +166,22 @@ export async function updateProspectAction(
   const brokerPhone = formData.get("broker_phone");
   if (brokerPhone !== null) data.broker_phone = String(brokerPhone);
 
+  // M9 - Flip Score v1 investment inputs
+  const offerPrice = formData.get("offer_price");
+  if (offerPrice) data.offer_price = Number(offerPrice);
+
+  const expectedSalePrice = formData.get("expected_sale_price");
+  if (expectedSalePrice) data.expected_sale_price = Number(expectedSalePrice);
+
+  const renovationCostEstimate = formData.get("renovation_cost_estimate");
+  if (renovationCostEstimate) data.renovation_cost_estimate = Number(renovationCostEstimate);
+
+  const holdMonths = formData.get("hold_months");
+  if (holdMonths) data.hold_months = parseInt(String(holdMonths), 10);
+
+  const otherCostsEstimate = formData.get("other_costs_estimate");
+  if (otherCostsEstimate) data.other_costs_estimate = Number(otherCostsEstimate);
+
   const parsed = UpdateProspectRequestSchema.safeParse(data);
   if (!parsed.success) {
     return {
@@ -177,6 +195,13 @@ export async function updateProspectAction(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(parsed.data),
     });
+
+    // Auto-recalculate flip score when expected_sale_price is set (enables v1 scoring)
+    if (data.expected_sale_price != null) {
+      recomputeFlipScoreAction(prospectId, false).catch(() => {
+        // Silent fail - score recalc is best-effort
+      });
+    }
 
     revalidatePath("/app/prospects");
     return { success: true };

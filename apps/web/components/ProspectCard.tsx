@@ -187,7 +187,19 @@ export function ProspectCard({ prospect }: ProspectCardProps) {
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <FlipScoreBadge score={prospect.flip_score} size="sm" showLabel />
+              <div className="flex flex-col items-end gap-0.5">
+                <FlipScoreBadge
+                  score={prospect.flip_score}
+                  size="sm"
+                  showLabel
+                  version={prospect.flip_score_version ?? undefined}
+                />
+                {prospect.flip_score_version === "v1" && prospect.flip_score_breakdown?.economics && (
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    ROI {prospect.flip_score_breakdown.economics.roi.toFixed(0)}%
+                  </span>
+                )}
+              </div>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge variant={status.variant} className="cursor-default">
@@ -262,6 +274,16 @@ export function ProspectCard({ prospect }: ProspectCardProps) {
               {prospect.face && (
                 <span className="rounded-full bg-muted px-2 py-0.5">
                   Face: {prospect.face}
+                </span>
+              )}
+              {prospect.expected_sale_price != null && (
+                <span className="rounded-full bg-primary/20 px-2 py-0.5 font-medium text-primary">
+                  ARV: {formatCurrency(prospect.expected_sale_price)}
+                </span>
+              )}
+              {prospect.renovation_cost_estimate != null && (
+                <span className="rounded-full bg-orange-100 px-2 py-0.5 font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                  Reforma: {formatCurrency(prospect.renovation_cost_estimate)}
                 </span>
               )}
             </div>

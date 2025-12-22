@@ -79,12 +79,25 @@ type Result struct {
 	ComputedAt  time.Time `json:"computed_at"`
 }
 
-// Weights for score components (must sum to 1.0)
+// Version constants
+const (
+	VersionV0 = "v0"
+	VersionV1 = "v1"
+)
+
+// Weights for v0 score components (must sum to 1.0)
 const (
 	WeightPrice     = 0.40
 	WeightCarry     = 0.15
 	WeightLiquidity = 0.20
 	WeightRisk      = 0.25
+)
+
+// Weights for v1 score components (must sum to 1.0)
+const (
+	WeightV1Econ      = 0.60
+	WeightV1Liquidity = 0.20
+	WeightV1Risk      = 0.20
 )
 
 // Category weights for red flag penalty calculation
@@ -104,4 +117,61 @@ var RehabPenalties = map[string]float64{
 	"light":  0,
 	"medium": 8,
 	"heavy":  15,
+}
+
+// ============================================================================
+// V1 Types (Economics-based scoring)
+// ============================================================================
+
+// ProspectInputsV1 extends ProspectInputs with investment estimate fields
+type ProspectInputsV1 struct {
+	ProspectInputs // Embed v0 inputs
+
+	// V1 investment estimates
+	OfferPrice             *float64 // If nil, use AskingPrice
+	ExpectedSalePrice      *float64 // ARV target (required for v1)
+	RenovationCostEstimate *float64
+	HoldMonths             *int // Default 6 if nil
+	OtherCostsEstimate     *float64
+}
+
+// EconomicsBreakdown contains ROI-based calculation outputs
+type EconomicsBreakdown struct {
+	ROI                float64 `json:"roi"`
+	NetProfit          float64 `json:"net_profit"`
+	GrossProfit        float64 `json:"gross_profit"`
+	InvestmentTotal    float64 `json:"investment_total"`
+	BrokerFee          float64 `json:"broker_fee"`
+	PJTaxValue         float64 `json:"pj_tax_value"`
+	BreakEvenSalePrice float64 `json:"break_even_sale_price"`
+	Buffer             float64 `json:"buffer"` // expected_sale_price - break_even_sale_price
+	IsPartial          bool    `json:"is_partial"`
+}
+
+// ComponentsV1 holds v1 score components (60/20/20 weights)
+type ComponentsV1 struct {
+	SEcon      float64 `json:"s_econ"`      // 60% - ROI-based
+	SLiquidity float64 `json:"s_liquidity"` // 20% - same as v0
+	SRisk      float64 `json:"s_risk"`      // 20% - same as v0
+	SData      float64 `json:"s_data"`      // Used for multiplier
+}
+
+// BreakdownV1 contains all components to explain the v1 score
+type BreakdownV1 struct {
+	Components     ComponentsV1        `json:"components"`
+	Economics      *EconomicsBreakdown `json:"economics"`
+	Intermediate   Intermediate        `json:"intermediate"`
+	RiskAssessment *FlipRiskAssessment `json:"risk_assessment"`
+	MissingFields  []string            `json:"missing_fields"`
+	Multipliers    Multipliers         `json:"multipliers"`
+	RawScore       float64             `json:"raw_score"`
+}
+
+// ResultV1 is the final output of the v1 flip score calculation
+type ResultV1 struct {
+	Score      int         `json:"score"`      // 0-100
+	Version    string      `json:"version"`    // "v1"
+	Confidence float64     `json:"confidence"` // 0-1
+	Breakdown  BreakdownV1 `json:"breakdown"`
+	ComputedAt time.Time   `json:"computed_at"`
 }

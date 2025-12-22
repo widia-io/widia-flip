@@ -82,8 +82,14 @@ export const ProspectSchema = z.object({
   flip_score: z.number().int().min(0).max(100).nullable().optional(),
   flip_score_version: z.string().nullable().optional(),
   flip_score_confidence: z.number().min(0).max(1).nullable().optional(),
-  flip_score_breakdown: z.any().nullable().optional(), // FlipScoreBreakdownSchema (defined later)
+  flip_score_breakdown: z.any().nullable().optional(), // FlipScoreBreakdownSchema or FlipScoreBreakdownV1Schema
   flip_score_updated_at: z.string().nullable().optional(),
+  // M9 - Flip Score v1 investment inputs
+  offer_price: z.number().nullable().optional(),
+  expected_sale_price: z.number().nullable().optional(),
+  renovation_cost_estimate: z.number().nullable().optional(),
+  hold_months: z.number().int().nullable().optional(),
+  other_costs_estimate: z.number().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -117,6 +123,12 @@ export const CreateProspectRequestSchema = z.object({
   broker_phone: z.string().optional(),
   comments: z.string().optional(),
   tags: z.array(z.string()).optional(),
+  // M9 - Flip Score v1 inputs
+  offer_price: z.number().nonnegative().optional(),
+  expected_sale_price: z.number().nonnegative().optional(),
+  renovation_cost_estimate: z.number().nonnegative().optional(),
+  hold_months: z.number().int().positive().optional(),
+  other_costs_estimate: z.number().nonnegative().optional(),
 });
 export type CreateProspectRequest = z.infer<typeof CreateProspectRequestSchema>;
 
@@ -142,6 +154,12 @@ export const UpdateProspectRequestSchema = z.object({
   broker_phone: z.string().optional(),
   comments: z.string().optional(),
   tags: z.array(z.string()).optional(),
+  // M9 - Flip Score v1 inputs
+  offer_price: z.number().nonnegative().optional(),
+  expected_sale_price: z.number().nonnegative().optional(),
+  renovation_cost_estimate: z.number().nonnegative().optional(),
+  hold_months: z.number().int().positive().optional(),
+  other_costs_estimate: z.number().nonnegative().optional(),
 });
 export type UpdateProspectRequest = z.infer<typeof UpdateProspectRequestSchema>;
 
@@ -630,6 +648,40 @@ export const FlipScoreBreakdownSchema = z.object({
   raw_score: z.number(),
 });
 export type FlipScoreBreakdown = z.infer<typeof FlipScoreBreakdownSchema>;
+
+// M9 - Flip Score v1 (Economics-based)
+
+export const EconomicsBreakdownSchema = z.object({
+  roi: z.number(),
+  net_profit: z.number(),
+  gross_profit: z.number(),
+  investment_total: z.number(),
+  broker_fee: z.number(),
+  pj_tax_value: z.number(),
+  break_even_sale_price: z.number(),
+  buffer: z.number(),
+  is_partial: z.boolean(),
+});
+export type EconomicsBreakdown = z.infer<typeof EconomicsBreakdownSchema>;
+
+export const FlipScoreComponentsV1Schema = z.object({
+  s_econ: z.number(),
+  s_liquidity: z.number(),
+  s_risk: z.number(),
+  s_data: z.number(),
+});
+export type FlipScoreComponentsV1 = z.infer<typeof FlipScoreComponentsV1Schema>;
+
+export const FlipScoreBreakdownV1Schema = z.object({
+  components: FlipScoreComponentsV1Schema,
+  economics: EconomicsBreakdownSchema.nullable(),
+  intermediate: FlipScoreIntermediateSchema,
+  risk_assessment: FlipRiskAssessmentSchema.nullable(),
+  missing_fields: z.array(z.string()),
+  multipliers: FlipScoreMultipliersSchema,
+  raw_score: z.number(),
+});
+export type FlipScoreBreakdownV1 = z.infer<typeof FlipScoreBreakdownV1Schema>;
 
 export const RecomputeFlipScoreRequestSchema = z.object({
   force: z.boolean().optional(),

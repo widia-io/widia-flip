@@ -188,3 +188,85 @@ func round2(val float64) float64 {
 func interpolate(x, x0, x1, y0, y1 float64) float64 {
 	return y0 + (y1-y0)*(x-x0)/(x1-x0)
 }
+
+// ============================================================================
+// V1 Components (Economics-based scoring)
+// ============================================================================
+
+// CalculateSEcon computes S_econ (60% weight in v1) - ROI-based score
+// ROI interpolation: 0%→0, 10%→40, 20%→70, 30%→90, 40%+→100
+func CalculateSEcon(roi float64) float64 {
+	switch {
+	case roi <= 0:
+		return 0
+	case roi <= 10:
+		return interpolate(roi, 0, 10, 0, 40)
+	case roi <= 20:
+		return interpolate(roi, 10, 20, 40, 70)
+	case roi <= 30:
+		return interpolate(roi, 20, 30, 70, 90)
+	case roi < 40:
+		return interpolate(roi, 30, 40, 90, 100)
+	default:
+		return 100
+	}
+}
+
+// CalculateBreakEvenSalePrice calculates minimum sale price for 0% profit
+// breakEven = investmentTotal / (1 - brokerRate - pjTaxRate)
+func CalculateBreakEvenSalePrice(investmentTotal, brokerRate, pjTaxRate float64) float64 {
+	if investmentTotal <= 0 {
+		return 0
+	}
+	denominator := 1 - brokerRate - pjTaxRate
+	if denominator <= 0 {
+		return 0 // Invalid rates
+	}
+	return round2(investmentTotal / denominator)
+}
+
+// CalculateSDataV1 computes data completeness score for v1
+// Core v1 fields: expected_sale_price (required), offer_price or asking_price
+func CalculateSDataV1(inputs ProspectInputsV1) (float64, []string) {
+	score := 100.0
+	missing := []string{}
+
+	// V1 critical: expected_sale_price
+	if inputs.ExpectedSalePrice == nil {
+		score -= 40
+		missing = append(missing, "expected_sale_price")
+	}
+
+	// Purchase price (offer or asking)
+	if inputs.OfferPrice == nil && inputs.AskingPrice == nil {
+		score -= 30
+		missing = append(missing, "offer_price_or_asking_price")
+	}
+
+	// Optional but valuable
+	if inputs.AreaUsable == nil {
+		score -= 10
+		missing = append(missing, "area_usable")
+	}
+	if inputs.RenovationCostEstimate == nil {
+		score -= 10
+		missing = append(missing, "renovation_cost_estimate")
+	}
+	if inputs.Bedrooms == nil {
+		score -= 5
+		missing = append(missing, "bedrooms")
+	}
+	if inputs.Neighborhood == nil || *inputs.Neighborhood == "" {
+		score -= 5
+		missing = append(missing, "neighborhood")
+	}
+
+	return clamp(score, 0, 100), missing
+}
+
+// CanCalculateV1 checks if v1 inputs are sufficient for calculation
+func CanCalculateV1(inputs ProspectInputsV1) bool {
+	hasPrice := inputs.OfferPrice != nil || inputs.AskingPrice != nil
+	hasSalePrice := inputs.ExpectedSalePrice != nil
+	return hasPrice && hasSalePrice
+}
