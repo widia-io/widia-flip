@@ -178,13 +178,26 @@ export async function POST(request: Request) {
 
     const markdown = firecrawlData.data.markdown;
 
+    // Remove image references and clean up markdown for better extraction
+    // Images add noise and consume tokens without useful data
+    const cleanedMarkdown = markdown
+      .replace(/!\[[^\]]*\]\([^)]+\)/g, "") // Remove ![alt](url)
+      .replace(/\n{3,}/g, "\n\n") // Collapse multiple newlines
+      .replace(/^Previous\n?$/gm, "") // Remove navigation text
+      .replace(/^Next\n?$/gm, "")
+      .trim();
+
     // Limit markdown size to avoid token limits (roughly 4 chars per token)
-    const maxChars = 15000;
+    const maxChars = 20000;
     const truncatedMarkdown =
-      markdown.length > maxChars ? markdown.slice(0, maxChars) : markdown;
+      cleanedMarkdown.length > maxChars
+        ? cleanedMarkdown.slice(0, maxChars)
+        : cleanedMarkdown;
 
     console.log(
-      "[scrape-property] Got markdown, length:",
+      "[scrape-property] Got markdown, original:",
+      markdown.length,
+      "cleaned:",
       truncatedMarkdown.length,
     );
 
