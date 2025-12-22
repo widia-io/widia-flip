@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition, useMemo } from "react";
-import { Loader2, Search, Filter, X, ArrowUpDown } from "lucide-react";
+import { Loader2, Search, Filter, X, ArrowUpDown, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 import type { Prospect } from "@widia/shared";
 
@@ -18,6 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface ProspectGridProps {
   prospects: Prospect[];
@@ -46,6 +51,7 @@ export function ProspectGrid({
   const [localStatus, setLocalStatus] = useState(statusFilter ?? "all");
   const [localSearch, setLocalSearch] = useState(searchQuery ?? "");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const hasFilters = statusFilter || searchQuery;
 
@@ -126,6 +132,44 @@ export function ProspectGrid({
 
   return (
     <div className="space-y-4">
+      {/* Commercial Header + Guide */}
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground">
+          Capture anúncios/leads, priorize pelo Flip Score e converta para Imóveis quando decidir analisar a fundo.
+        </p>
+        <Collapsible open={guideOpen} onOpenChange={setGuideOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground">
+              <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
+              Como funciona?
+              {guideOpen ? (
+                <ChevronUp className="h-3 w-3" aria-hidden="true" />
+              ) : (
+                <ChevronDown className="h-3 w-3" aria-hidden="true" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2">
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+              <ol className="space-y-2 text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">1</span>
+                  <span><strong className="text-foreground">Adicione um lead</strong> — cole a URL do anúncio ou preencha manualmente</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">2</span>
+                  <span><strong className="text-foreground">Revise os dados</strong> — abra o lead para completar informações e calcular o Flip Score</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">3</span>
+                  <span><strong className="text-foreground">Converta para Imóveis</strong> — quando decidir avançar, inicie a análise de viabilidade</span>
+                </li>
+              </ol>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+
       {/* Filters Bar */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Left: Filters */}
@@ -156,10 +200,10 @@ export function ProspectGrid({
                 type="text"
                 value={localSearch}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Buscar bairro/endereço..."
+                placeholder="Buscar bairro, rua, imobiliária..."
                 disabled={isPending}
                 className="w-48 pl-9 pr-8 sm:w-64"
-                aria-label="Buscar por bairro ou endereço"
+                aria-label="Buscar por bairro, rua, imobiliária ou corretor"
               />
               {localSearch && (
                 <button
@@ -256,12 +300,12 @@ export function ProspectGrid({
             <Search className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
           </div>
           <h3 className="mt-4 text-lg font-semibold">
-            Nenhum imóvel encontrado
+            {searchQuery || statusFilter ? "Nenhum lead encontrado" : "Nenhum lead ainda"}
           </h3>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
             {searchQuery || statusFilter
               ? "Tente ajustar os filtros ou termo de busca."
-              : "Comece adicionando seu primeiro imóvel para prospecção."}
+              : "Adicione seu primeiro lead para começar a priorizar pelo Flip Score."}
           </p>
           {!searchQuery && !statusFilter && (
             <div className="mt-6">

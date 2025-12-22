@@ -27,6 +27,12 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ProspectViewModal } from "@/components/ProspectViewModal";
 import { FlipScoreBadge } from "@/components/FlipScoreBadge";
 
@@ -36,11 +42,11 @@ interface ProspectCardProps {
 
 const statusConfig: Record<
   string,
-  { label: string; variant: "default" | "secondary" | "outline" }
+  { label: string; variant: "default" | "secondary" | "outline"; tooltip: string }
 > = {
-  active: { label: "Ativo", variant: "default" },
-  discarded: { label: "Descartado", variant: "secondary" },
-  converted: { label: "Convertido", variant: "outline" },
+  active: { label: "Ativo", variant: "default", tooltip: "Lead em acompanhamento. Arquive quando não fizer mais sentido." },
+  discarded: { label: "Descartado", variant: "secondary", tooltip: "Lead descartado. Pode ser restaurado." },
+  converted: { label: "Convertido", variant: "outline", tooltip: "Já convertido para Imóvel para análise." },
 };
 
 export function ProspectCard({ prospect }: ProspectCardProps) {
@@ -132,6 +138,7 @@ export function ProspectCard({ prospect }: ProspectCardProps) {
   const status = statusConfig[prospect.status] ?? {
     label: prospect.status,
     variant: "secondary" as const,
+    tooltip: "Status do lead",
   };
 
   const pricePerSqm = formatPricePerSqm(prospect.price_per_sqm);
@@ -141,7 +148,7 @@ export function ProspectCard({ prospect }: ProspectCardProps) {
   const iptu = formatCurrency(prospect.iptu);
 
   return (
-    <>
+    <TooltipProvider delayDuration={300}>
       <Card
         className="group relative cursor-pointer overflow-hidden transition-all hover:shadow-lg"
         onClick={handleCardClick}
@@ -155,31 +162,40 @@ export function ProspectCard({ prospect }: ProspectCardProps) {
                   {prospect.neighborhood || "Sem bairro"}
                 </h3>
                 {prospect.link && (
-                  <a
-                    href={prospect.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
-                    title="Ver anúncio"
-                    aria-label="Ver anúncio original"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                  </a>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <a
+                        href={prospect.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                        aria-label="Abrir anúncio original"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                      </a>
+                    </TooltipTrigger>
+                    <TooltipContent>Abrir anúncio original</TooltipContent>
+                  </Tooltip>
                 )}
               </div>
               {prospect.address && (
-                <p className="mt-0.5 flex items-center gap-1 truncate text-sm text-muted-foreground">
-                  <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
+                <p className="mt-0.5 flex items-center gap-1 truncate text-sm font-medium text-foreground/80">
+                  <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
                   {prospect.address}
                 </p>
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <FlipScoreBadge score={prospect.flip_score} size="sm" showLabel />
-              <Badge variant={status.variant}>
-                {status.label}
-              </Badge>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant={status.variant} className="cursor-default">
+                    {status.label}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>{status.tooltip}</TooltipContent>
+              </Tooltip>
             </div>
           </div>
 
@@ -226,35 +242,29 @@ export function ProspectCard({ prospect }: ProspectCardProps) {
             </div>
 
             {/* Additional Details */}
-            {(prospect.floor != null || prospect.elevator != null || condoFee || iptu) && (
-              <div className="flex flex-wrap gap-2 text-xs">
-                {prospect.floor != null && (
-                  <span className="rounded-full bg-muted px-2 py-0.5">
-                    {prospect.floor}º andar
-                  </span>
-                )}
-                {prospect.elevator && (
-                  <span className="rounded-full bg-muted px-2 py-0.5">
-                    Elevador
-                  </span>
-                )}
-                {condoFee && (
-                  <span className="rounded-full bg-muted px-2 py-0.5">
-                    Condomínio: {condoFee}
-                  </span>
-                )}
-                {iptu && (
-                  <span className="rounded-full bg-muted px-2 py-0.5">
-                    IPTU: {iptu}
-                  </span>
-                )}
-                {prospect.face && (
-                  <span className="rounded-full bg-muted px-2 py-0.5">
-                    Face: {prospect.face}
-                  </span>
-                )}
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2 text-xs">
+              {prospect.floor != null && (
+                <span className="rounded-full bg-muted px-2 py-0.5">
+                  {prospect.floor}º andar
+                </span>
+              )}
+              {prospect.elevator && (
+                <span className="rounded-full bg-muted px-2 py-0.5">
+                  Elevador
+                </span>
+              )}
+              <span className="rounded-full bg-muted px-2 py-0.5">
+                Condomínio: {condoFee || <Tooltip><TooltipTrigger asChild><span className="text-muted-foreground/60">—</span></TooltipTrigger><TooltipContent>Não informado</TooltipContent></Tooltip>}
+              </span>
+              <span className="rounded-full bg-muted px-2 py-0.5">
+                IPTU: {iptu || <Tooltip><TooltipTrigger asChild><span className="text-muted-foreground/60">—</span></TooltipTrigger><TooltipContent>Não informado</TooltipContent></Tooltip>}
+              </span>
+              {prospect.face && (
+                <span className="rounded-full bg-muted px-2 py-0.5">
+                  Face: {prospect.face}
+                </span>
+              )}
+            </div>
 
             {/* Broker Info */}
             {(prospect.agency || prospect.broker_name || prospect.broker_phone) && (
@@ -343,36 +353,46 @@ export function ProspectCard({ prospect }: ProspectCardProps) {
                       </Button>
                     </div>
                   ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowConfirmConvert(true)}
-                      disabled={isPending}
-                      className="h-8 gap-1.5"
-                      aria-label="Converter prospect em imóvel"
-                    >
-                      <ArrowRightCircle className="h-4 w-4" aria-hidden="true" />
-                      Converter
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowConfirmConvert(true)}
+                          disabled={isPending}
+                          className="h-8 gap-1.5"
+                          aria-label="Converter prospect em imóvel"
+                        >
+                          <ArrowRightCircle className="h-4 w-4" aria-hidden="true" />
+                          Converter
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Move este lead para Imóveis e inicia o fluxo de análise</TooltipContent>
+                    </Tooltip>
                   )}
                 </>
               )}
 
               {/* Delete button */}
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleDelete}
-                disabled={isPending}
-                className="h-8 text-muted-foreground hover:text-destructive"
-                aria-label="Excluir prospect"
-              >
-                {isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                )}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleDelete}
+                    disabled={isPending}
+                    className="h-8 text-muted-foreground hover:text-destructive"
+                    aria-label="Remover lead"
+                  >
+                    {isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Remover lead</TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardContent>
@@ -384,6 +404,6 @@ export function ProspectCard({ prospect }: ProspectCardProps) {
         open={showViewModal}
         onOpenChange={setShowViewModal}
       />
-    </>
+    </TooltipProvider>
   );
 }
