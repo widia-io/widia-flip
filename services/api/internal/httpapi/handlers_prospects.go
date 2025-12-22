@@ -48,6 +48,7 @@ type prospect struct {
 	Face         *string   `json:"face"`
 	Parking      *int      `json:"parking"`
 	CondoFee     *float64  `json:"condo_fee"`
+	IPTU         *float64  `json:"iptu"`
 	AskingPrice  *float64  `json:"asking_price"`
 	Agency       *string   `json:"agency"`
 	BrokerName   *string   `json:"broker_name"`
@@ -79,6 +80,7 @@ type createProspectRequest struct {
 	Face         *string  `json:"face"`
 	Parking      *int     `json:"parking"`
 	CondoFee     *float64 `json:"condo_fee"`
+	IPTU         *float64 `json:"iptu"`
 	AskingPrice  *float64 `json:"asking_price"`
 	Agency       *string  `json:"agency"`
 	BrokerName   *string  `json:"broker_name"`
@@ -102,6 +104,7 @@ type updateProspectRequest struct {
 	Face         *string  `json:"face"`
 	Parking      *int     `json:"parking"`
 	CondoFee     *float64 `json:"condo_fee"`
+	IPTU         *float64 `json:"iptu"`
 	AskingPrice  *float64 `json:"asking_price"`
 	Agency       *string  `json:"agency"`
 	BrokerName   *string  `json:"broker_name"`
@@ -201,7 +204,7 @@ func (a *api) handleListProspects(w http.ResponseWriter, r *http.Request) {
 	query := `
 		SELECT id, workspace_id, status, link, neighborhood, address,
 		       area_usable, bedrooms, suites, bathrooms, gas, floor, elevator, face, parking,
-		       condo_fee, asking_price, agency, broker_name, broker_phone,
+		       condo_fee, iptu, asking_price, agency, broker_name, broker_phone,
 		       comments, tags, created_at, updated_at
 		FROM prospecting_properties
 		WHERE workspace_id = $1
@@ -244,7 +247,7 @@ func (a *api) handleListProspects(w http.ResponseWriter, r *http.Request) {
 		err := rows.Scan(
 			&p.ID, &p.WorkspaceID, &p.Status, &p.Link, &p.Neighborhood, &p.Address,
 			&p.AreaUsable, &p.Bedrooms, &p.Suites, &p.Bathrooms, &p.Gas, &p.Floor, &p.Elevator, &p.Face, &p.Parking,
-			&p.CondoFee, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
+			&p.CondoFee, &p.IPTU, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
 			&p.Comments, &tags, &p.CreatedAt, &p.UpdatedAt,
 		)
 		if err != nil {
@@ -313,23 +316,23 @@ func (a *api) handleCreateProspect(w http.ResponseWriter, r *http.Request) {
 	var tagsBytes []byte
 	err := a.db.QueryRowContext(
 		r.Context(),
-		`INSERT INTO prospecting_properties 
+		`INSERT INTO prospecting_properties
 			(workspace_id, link, neighborhood, address, area_usable, bedrooms, suites, bathrooms,
-			 gas, floor, elevator, face, parking, condo_fee, asking_price, agency, broker_name, broker_phone,
+			 gas, floor, elevator, face, parking, condo_fee, iptu, asking_price, agency, broker_name, broker_phone,
 			 comments, tags)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
 		 RETURNING id, workspace_id, status, link, neighborhood, address,
 		           area_usable, bedrooms, suites, bathrooms, gas, floor, elevator, face, parking,
-		           condo_fee, asking_price, agency, broker_name, broker_phone,
+		           condo_fee, iptu, asking_price, agency, broker_name, broker_phone,
 		           comments, tags, created_at, updated_at`,
 		req.WorkspaceID, req.Link, req.Neighborhood, req.Address, req.AreaUsable,
 		req.Bedrooms, req.Suites, req.Bathrooms, req.Gas, req.Floor, req.Elevator, req.Face, req.Parking,
-		req.CondoFee, req.AskingPrice, req.Agency, req.BrokerName, req.BrokerPhone,
+		req.CondoFee, req.IPTU, req.AskingPrice, req.Agency, req.BrokerName, req.BrokerPhone,
 		req.Comments, pq.Array(req.Tags),
 	).Scan(
 		&p.ID, &p.WorkspaceID, &p.Status, &p.Link, &p.Neighborhood, &p.Address,
 		&p.AreaUsable, &p.Bedrooms, &p.Suites, &p.Bathrooms, &p.Gas, &p.Floor, &p.Elevator, &p.Face, &p.Parking,
-		&p.CondoFee, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
+		&p.CondoFee, &p.IPTU, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
 		&p.Comments, &tagsBytes, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
@@ -355,7 +358,7 @@ func (a *api) handleGetProspect(w http.ResponseWriter, r *http.Request, prospect
 		r.Context(),
 		`SELECT p.id, p.workspace_id, p.status, p.link, p.neighborhood, p.address,
 		        p.area_usable, p.bedrooms, p.suites, p.bathrooms, p.gas, p.floor, p.elevator, p.face, p.parking,
-		        p.condo_fee, p.asking_price, p.agency, p.broker_name, p.broker_phone,
+		        p.condo_fee, p.iptu, p.asking_price, p.agency, p.broker_name, p.broker_phone,
 		        p.comments, p.tags, p.created_at, p.updated_at
 		 FROM prospecting_properties p
 		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
@@ -364,7 +367,7 @@ func (a *api) handleGetProspect(w http.ResponseWriter, r *http.Request, prospect
 	).Scan(
 		&p.ID, &p.WorkspaceID, &p.Status, &p.Link, &p.Neighborhood, &p.Address,
 		&p.AreaUsable, &p.Bedrooms, &p.Suites, &p.Bathrooms, &p.Gas, &p.Floor, &p.Elevator, &p.Face, &p.Parking,
-		&p.CondoFee, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
+		&p.CondoFee, &p.IPTU, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
 		&p.Comments, &tags, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
@@ -507,6 +510,11 @@ func (a *api) handleUpdateProspect(w http.ResponseWriter, r *http.Request, prosp
 		args = append(args, *req.CondoFee)
 		argIdx++
 	}
+	if req.IPTU != nil {
+		sets = append(sets, "iptu = $"+strconv.Itoa(argIdx))
+		args = append(args, *req.IPTU)
+		argIdx++
+	}
 	if req.AskingPrice != nil {
 		sets = append(sets, "asking_price = $"+strconv.Itoa(argIdx))
 		args = append(args, *req.AskingPrice)
@@ -542,7 +550,7 @@ func (a *api) handleUpdateProspect(w http.ResponseWriter, r *http.Request, prosp
 	query := `UPDATE prospecting_properties SET ` + strings.Join(sets, ", ") + ` WHERE id = $` + strconv.Itoa(argIdx) + `
 		 RETURNING id, workspace_id, status, link, neighborhood, address,
 		           area_usable, bedrooms, suites, bathrooms, gas, floor, elevator, face, parking,
-		           condo_fee, asking_price, agency, broker_name, broker_phone,
+		           condo_fee, iptu, asking_price, agency, broker_name, broker_phone,
 		           comments, tags, created_at, updated_at`
 
 	var p prospect
@@ -550,7 +558,7 @@ func (a *api) handleUpdateProspect(w http.ResponseWriter, r *http.Request, prosp
 	err = a.db.QueryRowContext(r.Context(), query, args...).Scan(
 		&p.ID, &p.WorkspaceID, &p.Status, &p.Link, &p.Neighborhood, &p.Address,
 		&p.AreaUsable, &p.Bedrooms, &p.Suites, &p.Bathrooms, &p.Gas, &p.Floor, &p.Elevator, &p.Face, &p.Parking,
-		&p.CondoFee, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
+		&p.CondoFee, &p.IPTU, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
 		&p.Comments, &tags, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
@@ -612,7 +620,7 @@ func (a *api) handleConvertProspect(w http.ResponseWriter, r *http.Request, pros
 		r.Context(),
 		`SELECT p.id, p.workspace_id, p.status, p.link, p.neighborhood, p.address,
 		        p.area_usable, p.bedrooms, p.suites, p.bathrooms, p.gas, p.floor, p.elevator, p.face, p.parking,
-		        p.condo_fee, p.asking_price, p.agency, p.broker_name, p.broker_phone,
+		        p.condo_fee, p.iptu, p.asking_price, p.agency, p.broker_name, p.broker_phone,
 		        p.comments, p.tags, p.created_at, p.updated_at
 		 FROM prospecting_properties p
 		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
@@ -621,7 +629,7 @@ func (a *api) handleConvertProspect(w http.ResponseWriter, r *http.Request, pros
 	).Scan(
 		&p.ID, &p.WorkspaceID, &p.Status, &p.Link, &p.Neighborhood, &p.Address,
 		&p.AreaUsable, &p.Bedrooms, &p.Suites, &p.Bathrooms, &p.Gas, &p.Floor, &p.Elevator, &p.Face, &p.Parking,
-		&p.CondoFee, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
+		&p.CondoFee, &p.IPTU, &p.AskingPrice, &p.Agency, &p.BrokerName, &p.BrokerPhone,
 		&p.Comments, &tags, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {

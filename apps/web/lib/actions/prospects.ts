@@ -65,6 +65,7 @@ export async function createProspectAction(formData: FormData) {
     // Financial
     asking_price: getNumber("asking_price"),
     condo_fee: getNumber("condo_fee"),
+    iptu: getNumber("iptu"),
     // Contact
     agency: getString("agency"),
     broker_name: getString("broker_name"),
@@ -150,7 +151,10 @@ export async function updateProspectAction(
   
   const condoFee = formData.get("condo_fee");
   if (condoFee) data.condo_fee = Number(condoFee);
-  
+
+  const iptu = formData.get("iptu");
+  if (iptu) data.iptu = Number(iptu);
+
   const agency = formData.get("agency");
   if (agency !== null) data.agency = String(agency);
   

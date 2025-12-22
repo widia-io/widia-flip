@@ -74,6 +74,7 @@ export function ProspectViewModal({
     gas: prospect.gas ?? "",
     asking_price: prospect.asking_price?.toString() ?? "",
     condo_fee: prospect.condo_fee?.toString() ?? "",
+    iptu: prospect.iptu?.toString() ?? "",
     agency: prospect.agency ?? "",
     broker_name: prospect.broker_name ?? "",
     broker_phone: prospect.broker_phone ?? "",
@@ -96,6 +97,7 @@ export function ProspectViewModal({
       gas: prospect.gas ?? "",
       asking_price: prospect.asking_price?.toString() ?? "",
       condo_fee: prospect.condo_fee?.toString() ?? "",
+      iptu: prospect.iptu?.toString() ?? "",
       agency: prospect.agency ?? "",
       broker_name: prospect.broker_name ?? "",
       broker_phone: prospect.broker_phone ?? "",
@@ -127,6 +129,7 @@ export function ProspectViewModal({
     if (formData.gas) fd.set("gas", formData.gas);
     if (formData.asking_price) fd.set("asking_price", formData.asking_price);
     if (formData.condo_fee) fd.set("condo_fee", formData.condo_fee);
+    if (formData.iptu) fd.set("iptu", formData.iptu);
     if (formData.agency) fd.set("agency", formData.agency);
     if (formData.broker_name) fd.set("broker_name", formData.broker_name);
     if (formData.broker_phone) fd.set("broker_phone", formData.broker_phone);
@@ -415,7 +418,7 @@ export function ProspectViewModal({
                 <DollarSign className="h-4 w-4 text-primary" />
                 Valores
               </legend>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="edit-price">Valor Pedido (R$)</Label>
                   <Input
@@ -439,6 +442,18 @@ export function ProspectViewModal({
                     step="1"
                     value={formData.condo_fee}
                     onChange={(e) => handleChange("condo_fee", e.target.value)}
+                    disabled={isPending}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-iptu">IPTU Anual (R$)</Label>
+                  <Input
+                    id="edit-iptu"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.iptu}
+                    onChange={(e) => handleChange("iptu", e.target.value)}
                     disabled={isPending}
                   />
                 </div>
@@ -641,7 +656,7 @@ export function ProspectViewModal({
             )}
 
             {/* Financial Section */}
-            {prospect.condo_fee != null && (
+            {(prospect.condo_fee != null || prospect.iptu != null) && (
               <section className="space-y-3">
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                   <DollarSign className="h-4 w-4" />
@@ -650,7 +665,11 @@ export function ProspectViewModal({
                 <div className="grid gap-4 sm:grid-cols-2">
                   <ViewField
                     label="Condomínio"
-                    value={formatCurrency(prospect.condo_fee)}
+                    value={prospect.condo_fee != null ? formatCurrency(prospect.condo_fee) : null}
+                  />
+                  <ViewField
+                    label="IPTU Anual"
+                    value={prospect.iptu != null ? formatCurrency(prospect.iptu) : null}
                   />
                 </div>
               </section>

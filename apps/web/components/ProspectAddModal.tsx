@@ -52,6 +52,7 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
     gas: "",
     asking_price: "",
     condo_fee: "",
+    iptu: "",
     agency: "",
     broker_name: "",
     broker_phone: "",
@@ -74,6 +75,7 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
       gas: "",
       asking_price: "",
       condo_fee: "",
+      iptu: "",
       agency: "",
       broker_name: "",
       broker_phone: "",
@@ -136,6 +138,7 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
         floor: response.data?.floor?.toString() ?? prev.floor,
         asking_price: response.data?.asking_price?.toString() ?? prev.asking_price,
         condo_fee: response.data?.condo_fee?.toString() ?? prev.condo_fee,
+        iptu: response.data?.iptu?.toString() ?? prev.iptu,
         agency: response.data?.agency ?? prev.agency,
         broker_name: response.data?.broker_name ?? prev.broker_name,
       }));
@@ -178,6 +181,7 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
     if (formData.gas) fd.set("gas", formData.gas);
     if (formData.asking_price) fd.set("asking_price", formData.asking_price);
     if (formData.condo_fee) fd.set("condo_fee", formData.condo_fee);
+    if (formData.iptu) fd.set("iptu", formData.iptu);
     if (formData.agency) fd.set("agency", formData.agency);
     if (formData.broker_name) fd.set("broker_name", formData.broker_name);
     if (formData.broker_phone) fd.set("broker_phone", formData.broker_phone);
@@ -460,7 +464,7 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
               <DollarSign className="h-4 w-4 text-primary" />
               Valores
             </legend>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="asking_price">Valor Pedido (R$)</Label>
                 <Input
@@ -484,6 +488,19 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
                   value={formData.condo_fee}
                   onChange={(e) => handleChange("condo_fee", e.target.value)}
                   placeholder="800"
+                  disabled={isPending}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="iptu">IPTU Anual (R$)</Label>
+                <Input
+                  id="iptu"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={formData.iptu}
+                  onChange={(e) => handleChange("iptu", e.target.value)}
+                  placeholder="1200"
                   disabled={isPending}
                 />
               </div>

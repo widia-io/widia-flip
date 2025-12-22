@@ -30,6 +30,7 @@ SCHEMA EXATO (use estes nomes de campos):
   "floor": andar ou null,
   "asking_price": valor pedido em reais (número) ou null,
   "condo_fee": valor do condomínio (número) ou null,
+  "iptu": valor do IPTU anual (número) ou null,
   "agency": nome da imobiliária ou null,
   "broker_name": nome do corretor ou null
 }
@@ -328,6 +329,10 @@ export async function POST(request: Request) {
         condo_fee:
           typeof extractedData.condo_fee === "number"
             ? extractedData.condo_fee
+            : null,
+        iptu:
+          typeof extractedData.iptu === "number"
+            ? extractedData.iptu
             : null,
         agency:
           typeof extractedData.agency === "string"
