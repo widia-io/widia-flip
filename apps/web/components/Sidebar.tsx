@@ -4,21 +4,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Search, Building2, FolderKanban } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useSidebar } from "@/lib/hooks/useSidebar";
 
-export function Sidebar() {
+const navItems = [
+  { href: "/app", label: "Dashboard", icon: Home },
+  { href: "/app/prospects", label: "Prospecção", icon: Search },
+  { href: "/app/properties", label: "Imóveis", icon: Building2 },
+  { href: "/app/workspaces", label: "Projetos", icon: FolderKanban },
+];
+
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
-  const navItems = [
-    { href: "/app", label: "Dashboard", icon: Home },
-    { href: "/app/prospects", label: "Prospecção", icon: Search },
-    { href: "/app/properties", label: "Imóveis", icon: Building2 },
-    { href: "/app/workspaces", label: "Projetos", icon: FolderKanban },
-  ];
-
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-border bg-background">
+    <div className="flex h-full flex-col">
       <div className="border-b border-border px-4 py-4">
-        <Link href="/app" className="flex items-center gap-2">
+        <Link href="/app" className="flex items-center gap-2" onClick={onNavigate}>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <span className="text-sm font-bold text-primary-foreground">W</span>
           </div>
@@ -28,14 +30,15 @@ export function Sidebar() {
 
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || 
+          const isActive = pathname === item.href ||
             (item.href !== "/app" && pathname.startsWith(item.href));
           const Icon = item.icon;
-          
+
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isActive
@@ -49,8 +52,26 @@ export function Sidebar() {
           );
         })}
       </nav>
-    </aside>
+    </div>
   );
 }
 
+export function Sidebar() {
+  const { isOpen, close } = useSidebar();
 
+  return (
+    <>
+      {/* Mobile drawer */}
+      <Sheet open={isOpen} onOpenChange={(open) => !open && close()}>
+        <SheetContent side="left" className="w-64 p-0">
+          <SidebarContent onNavigate={close} />
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex h-full w-64 flex-col border-r border-border bg-background">
+        <SidebarContent />
+      </aside>
+    </>
+  );
+}

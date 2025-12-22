@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PropertyCard } from "@/components/PropertyCard";
 
 interface PropertyTableProps {
   properties: Property[];
@@ -76,100 +77,119 @@ export function PropertyTable({
     });
   };
 
-  return (
-    <Card>
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 border-b border-border p-4">
-        <Select
-          value={localStatus}
-          onValueChange={handleFilterChange}
-          disabled={isPending}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os status</SelectItem>
-            <SelectItem value="prospecting">Prospecção</SelectItem>
-            <SelectItem value="analyzing">Analisando</SelectItem>
-            <SelectItem value="bought">Comprado</SelectItem>
-            <SelectItem value="renovation">Reforma</SelectItem>
-            <SelectItem value="for_sale">À Venda</SelectItem>
-            <SelectItem value="sold">Vendido</SelectItem>
-            <SelectItem value="archived">Arquivado</SelectItem>
-          </SelectContent>
-        </Select>
+  const emptyMessage = "Você ainda não tem imóveis cadastrados. Comece adicionando uma prospecção!";
 
-        {isPending && (
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+  return (
+    <div>
+      {/* Filters */}
+      <Card className="mb-4 lg:mb-0 lg:rounded-b-none">
+        <div className="flex flex-wrap items-center gap-4 p-4 lg:border-b lg:border-border">
+          <Select
+            value={localStatus}
+            onValueChange={handleFilterChange}
+            disabled={isPending}
+          >
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="prospecting">Prospecção</SelectItem>
+              <SelectItem value="analyzing">Analisando</SelectItem>
+              <SelectItem value="bought">Comprado</SelectItem>
+              <SelectItem value="renovation">Reforma</SelectItem>
+              <SelectItem value="for_sale">À Venda</SelectItem>
+              <SelectItem value="sold">Vendido</SelectItem>
+              <SelectItem value="archived">Arquivado</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {isPending && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          )}
+        </div>
+      </Card>
+
+      {/* Mobile: Card list */}
+      <div className="lg:hidden space-y-3">
+        {properties.length === 0 ? (
+          <Card className="p-6">
+            <p className="text-center text-muted-foreground">{emptyMessage}</p>
+          </Card>
+        ) : (
+          properties.map((property) => (
+            <PropertyCard key={property.id} property={property} />
+          ))
         )}
       </div>
 
-      {/* Table */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Endereço</TableHead>
-            <TableHead>Bairro</TableHead>
-            <TableHead className="text-right">Área</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Criado em</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {properties.length === 0 ? (
+      {/* Desktop: Table */}
+      <Card className="hidden lg:block lg:rounded-t-none lg:border-t-0">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell
-                colSpan={6}
-                className="h-24 text-center text-muted-foreground"
-              >
-                Você ainda não tem imóveis cadastrados. Comece adicionando uma prospecção! 🏠
-              </TableCell>
+              <TableHead>Endereço</TableHead>
+              <TableHead>Bairro</TableHead>
+              <TableHead className="text-right">Área</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Criado em</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
-          ) : (
-            properties.map((property) => {
-              const status = STATUS_CONFIG[property.status_pipeline] ?? {
-                label: property.status_pipeline,
-                variant: "secondary" as const,
-              };
+          </TableHeader>
+          <TableBody>
+            {properties.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  {emptyMessage}
+                </TableCell>
+              </TableRow>
+            ) : (
+              properties.map((property) => {
+                const status = STATUS_CONFIG[property.status_pipeline] ?? {
+                  label: property.status_pipeline,
+                  variant: "secondary" as const,
+                };
 
-              return (
-                <TableRow key={property.id}>
-                  <TableCell>
-                    <Link
-                      href={`/app/properties/${property.id}`}
-                      className="font-medium hover:text-primary hover:underline"
-                    >
-                      {property.address || "-"}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {property.neighborhood || "-"}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {formatArea(property.area_usable)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={status.variant}>{status.label}</Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {formatDate(property.created_at)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href={`/app/properties/${property.id}`}>
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        Abrir
+                return (
+                  <TableRow key={property.id}>
+                    <TableCell>
+                      <Link
+                        href={`/app/properties/${property.id}`}
+                        className="font-medium hover:text-primary hover:underline"
+                      >
+                        {property.address || "-"}
                       </Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
-    </Card>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {property.neighborhood || "-"}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {formatArea(property.area_usable)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={status.variant}>{status.label}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(property.created_at)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href={`/app/properties/${property.id}`}>
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Abrir
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
   );
 }

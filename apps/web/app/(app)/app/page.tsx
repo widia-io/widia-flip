@@ -36,7 +36,7 @@ export default async function AppHomePage(props: {
 
       {/* Quick Actions */}
       {hasWorkspaces && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           <Link href="/app/prospects">
             <Card className="transition-colors hover:border-primary/50">
               <CardHeader className="flex flex-row items-center gap-4">
@@ -81,13 +81,13 @@ export default async function AppHomePage(props: {
             </div>
           ) : null}
 
-          <form action={createWorkspaceAction} className="flex gap-2">
+          <form action={createWorkspaceAction} className="flex flex-col gap-2 sm:flex-row">
             <Input
               name="name"
               placeholder="Ex: Flips 2025, Zona Sul..."
               className="flex-1"
             />
-            <Button type="submit">
+            <Button type="submit" className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-1" />
               Criar projeto
             </Button>

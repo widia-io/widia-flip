@@ -247,7 +247,7 @@ export function ProspectViewModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-xl md:max-w-2xl lg:max-w-4xl max-h-[95vh] overflow-y-auto">
         <DialogHeader className="flex flex-row items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2">
@@ -291,7 +291,7 @@ export function ProspectViewModal({
                 <MapPin className="h-4 w-4 text-primary" />
                 Localização
               </legend>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="edit-neighborhood">Bairro</Label>
                   <Input
@@ -334,7 +334,7 @@ export function ProspectViewModal({
                 <Home className="h-4 w-4 text-primary" />
                 Características do Imóvel
               </legend>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-area">Área Útil (m²)</Label>
                   <Input
@@ -406,7 +406,7 @@ export function ProspectViewModal({
                 <Building2 className="h-4 w-4 text-primary" />
                 Características do Prédio
               </legend>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-floor">Andar</Label>
                   <Input
@@ -459,7 +459,7 @@ export function ProspectViewModal({
                 <DollarSign className="h-4 w-4 text-primary" />
                 Valores
               </legend>
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="edit-price">Valor Pedido (R$)</Label>
                   <Input
@@ -515,7 +515,7 @@ export function ProspectViewModal({
               {/* Objetivo do Investimento */}
               <div className="space-y-3">
                 <h4 className="text-xs font-medium text-muted-foreground">Objetivo do Investimento</h4>
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="edit-expected_sale_price">Preço de Venda Esperado (R$)</Label>
                     <Input
@@ -568,7 +568,7 @@ export function ProspectViewModal({
               {/* Estratégia de Compra */}
               <div className="space-y-3">
                 <h4 className="text-xs font-medium text-muted-foreground">Estratégia de Compra</h4>
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="edit-offer_price">Valor da Proposta (R$)</Label>
                     <Input
@@ -608,7 +608,7 @@ export function ProspectViewModal({
                 <User className="h-4 w-4 text-primary" />
                 Contato
               </legend>
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="edit-agency">Imobiliária</Label>
                   <Input
@@ -833,7 +833,7 @@ export function ProspectViewModal({
                 <MapPin className="h-4 w-4" />
                 Localização
               </h3>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                 <ViewField label="Bairro" value={prospect.neighborhood} />
                 <ViewField label="Endereço" value={prospect.address} />
                 {prospect.link && (
@@ -866,7 +866,7 @@ export function ProspectViewModal({
                   <Home className="h-4 w-4" />
                   Características do Imóvel
                 </h3>
-                <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
                   <ViewField
                     label="Área Útil"
                     value={
@@ -893,7 +893,7 @@ export function ProspectViewModal({
                   <Building2 className="h-4 w-4" />
                   Características do Prédio
                 </h3>
-                <div className="grid gap-4 sm:grid-cols-4">
+                <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
                   <ViewField
                     label="Andar"
                     value={
@@ -917,7 +917,7 @@ export function ProspectViewModal({
                   <DollarSign className="h-4 w-4" />
                   Valores
                 </h3>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                   <ViewField
                     label="Condomínio"
                     value={prospect.condo_fee != null ? formatCurrency(prospect.condo_fee) : null}
@@ -942,7 +942,7 @@ export function ProspectViewModal({
                   <User className="h-4 w-4" />
                   Contato
                 </h3>
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   <ViewField label="Imobiliária" value={prospect.agency} />
                   <ViewField label="Corretor" value={prospect.broker_name} />
                   {prospect.broker_phone && (

@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition, useMemo } from "react";
-import { Loader2, Search, Filter, X, ArrowUpDown, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Search, Filter, X, ArrowUpDown, HelpCircle, ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 
 import type { Prospect } from "@widia/shared";
 
@@ -23,6 +23,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 interface ProspectGridProps {
   prospects: Prospect[];
@@ -39,6 +45,13 @@ const statusLabels: Record<string, string> = {
   converted: "Convertidos",
 };
 
+const sortLabels: Record<SortOption, string> = {
+  score: "Maior Score",
+  recent: "Mais recente",
+  price: "Menor preço",
+  price_per_sqm: "Menor R$/m²",
+};
+
 export function ProspectGrid({
   prospects,
   workspaceId,
@@ -52,8 +65,10 @@ export function ProspectGrid({
   const [localSearch, setLocalSearch] = useState(searchQuery ?? "");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [guideOpen, setGuideOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const hasFilters = statusFilter || searchQuery;
+  const activeFiltersCount = (statusFilter && statusFilter !== "all" ? 1 : 0) + (searchQuery ? 1 : 0);
 
   const handleFilterChange = (status: string) => {
     setLocalStatus(status);
@@ -83,6 +98,7 @@ export function ProspectGrid({
     startTransition(() => {
       router.push(`/app/prospects?${params.toString()}`);
     });
+    setFiltersOpen(false);
   };
 
   const clearSearch = () => {
@@ -130,11 +146,87 @@ export function ProspectGrid({
     return sorted;
   }, [prospects, sortBy]);
 
+  // Filter controls component (used in both desktop and mobile)
+  const FilterControls = ({ inSheet = false }: { inSheet?: boolean }) => (
+    <div className={inSheet ? "space-y-4" : "flex flex-wrap items-center gap-3"}>
+      <div className={inSheet ? "space-y-2" : "flex items-center gap-2"}>
+        {inSheet && <label className="text-sm font-medium">Status</label>}
+        {!inSheet && <Filter className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+        <Select
+          value={localStatus}
+          onValueChange={handleFilterChange}
+          disabled={isPending}
+        >
+          <SelectTrigger className={inSheet ? "w-full" : "w-[160px]"} aria-label="Filtrar por status">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os status</SelectItem>
+            <SelectItem value="active">Ativos</SelectItem>
+            <SelectItem value="discarded">Descartados</SelectItem>
+            <SelectItem value="converted">Convertidos</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className={inSheet ? "space-y-2" : "flex items-center gap-2"}>
+        {inSheet && <label className="text-sm font-medium">Ordenar por</label>}
+        {!inSheet && <ArrowUpDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+        <Select
+          value={sortBy}
+          onValueChange={(v) => setSortBy(v as SortOption)}
+          disabled={isPending}
+        >
+          <SelectTrigger className={inSheet ? "w-full" : "w-[140px]"} aria-label="Ordenar por">
+            <SelectValue placeholder="Ordenar" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="score">Maior Score</SelectItem>
+            <SelectItem value="recent">Mais recente</SelectItem>
+            <SelectItem value="price">Menor preço</SelectItem>
+            <SelectItem value="price_per_sqm">Menor R$/m²</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {inSheet && (
+        <form onSubmit={handleSearchSubmit} className="space-y-2">
+          <label className="text-sm font-medium">Buscar</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Input
+              type="text"
+              value={localSearch}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Bairro, rua, imobiliária..."
+              disabled={isPending}
+              className="w-full pl-9 pr-8"
+              aria-label="Buscar"
+            />
+            {localSearch && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Limpar busca"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+          <Button type="submit" variant="secondary" className="w-full" disabled={isPending}>
+            Buscar
+          </Button>
+        </form>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       {/* Commercial Header + Guide */}
       <div className="space-y-2">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground line-clamp-2 sm:line-clamp-none">
           Capture anúncios/leads, priorize pelo Flip Score e converta para Imóveis quando decidir analisar a fundo.
         </p>
         <Collapsible open={guideOpen} onOpenChange={setGuideOpen}>
@@ -170,83 +262,85 @@ export function ProspectGrid({
         </Collapsible>
       </div>
 
-      {/* Filters Bar */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Left: Filters */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-            <Select
-              value={localStatus}
-              onValueChange={handleFilterChange}
-              disabled={isPending}
-            >
-              <SelectTrigger className="w-[160px]" aria-label="Filtrar por status">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="active">Ativos</SelectItem>
-                <SelectItem value="discarded">Descartados</SelectItem>
-                <SelectItem value="converted">Convertidos</SelectItem>
-              </SelectContent>
-            </Select>
+      {/* Mobile Filters Sheet */}
+      <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <SheetContent side="right" className="w-80 sm:w-96">
+          <SheetHeader>
+            <SheetTitle>Filtros</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            <FilterControls inSheet />
           </div>
-
-          <form onSubmit={handleSearchSubmit} className="flex gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-              <Input
-                type="text"
-                value={localSearch}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Buscar bairro, rua, imobiliária..."
-                disabled={isPending}
-                className="w-48 pl-9 pr-8 sm:w-64"
-                aria-label="Buscar por bairro, rua, imobiliária ou corretor"
-              />
-              {localSearch && (
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  aria-label="Limpar busca"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
+          {hasFilters && (
+            <div className="mt-6 pt-4 border-t">
+              <Button variant="outline" className="w-full" onClick={clearAllFilters}>
+                Limpar filtros
+              </Button>
             </div>
-            <Button type="submit" variant="secondary" disabled={isPending}>
-              Buscar
-            </Button>
-          </form>
-
-          <div className="flex items-center gap-2">
-            <ArrowUpDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-            <Select
-              value={sortBy}
-              onValueChange={(v) => setSortBy(v as SortOption)}
-              disabled={isPending}
-            >
-              <SelectTrigger className="w-[140px]" aria-label="Ordenar por">
-                <SelectValue placeholder="Ordenar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="score">Maior Score</SelectItem>
-                <SelectItem value="recent">Mais recente</SelectItem>
-                <SelectItem value="price">Menor preço</SelectItem>
-                <SelectItem value="price_per_sqm">Menor R$/m²</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {isPending && (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden="true" />
           )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Filters Bar */}
+      <div className="flex flex-col gap-3">
+        {/* Mobile: Filters button + Add button */}
+        <div className="flex items-center gap-2 lg:hidden">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => setFiltersOpen(true)}
+          >
+            <SlidersHorizontal className="h-4 w-4 mr-2" />
+            Filtros
+            {activeFiltersCount > 0 && (
+              <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                {activeFiltersCount}
+              </Badge>
+            )}
+          </Button>
+          <ProspectAddModal workspaceId={workspaceId} />
         </div>
 
-        {/* Right: Add Button */}
-        <ProspectAddModal workspaceId={workspaceId} />
+        {/* Desktop: Full filters bar */}
+        <div className="hidden lg:flex lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <FilterControls />
+
+            <form onSubmit={handleSearchSubmit} className="flex gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  type="text"
+                  value={localSearch}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder="Buscar bairro, rua, imobiliária..."
+                  disabled={isPending}
+                  className="w-48 pl-9 pr-8 sm:w-64"
+                  aria-label="Buscar por bairro, rua, imobiliária ou corretor"
+                />
+                {localSearch && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label="Limpar busca"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+              <Button type="submit" variant="secondary" disabled={isPending}>
+                Buscar
+              </Button>
+            </form>
+
+            {isPending && (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden="true" />
+            )}
+          </div>
+
+          <ProspectAddModal workspaceId={workspaceId} />
+        </div>
       </div>
 
       {/* Active Filters + Count */}
@@ -280,7 +374,7 @@ export function ProspectGrid({
           {hasFilters && (
             <button
               onClick={clearAllFilters}
-              className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+              className="hidden sm:inline text-sm text-muted-foreground hover:text-foreground hover:underline"
             >
               Limpar filtros
             </button>
@@ -288,14 +382,14 @@ export function ProspectGrid({
 
           {/* Results count */}
           <span className="ml-auto text-sm text-muted-foreground">
-            {prospects.length} imóve{prospects.length === 1 ? "l" : "is"} encontrado{prospects.length === 1 ? "" : "s"}
+            {prospects.length} {prospects.length === 1 ? "lead" : "leads"}
           </span>
         </div>
       )}
 
       {/* Grid */}
       {sortedProspects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/25 py-16 text-center">
+        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/25 py-12 sm:py-16 text-center px-4">
           <div className="rounded-full bg-muted p-4">
             <Search className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
           </div>
@@ -314,7 +408,7 @@ export function ProspectGrid({
           )}
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
           {sortedProspects.map((prospect) => (
             <ProspectCard key={prospect.id} prospect={prospect} />
           ))}

@@ -6,6 +6,7 @@ import { ListWorkspacesResponseSchema } from "@widia/shared";
 
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
+import { SidebarProvider } from "@/lib/hooks/useSidebar";
 import { getServerSession } from "@/lib/serverAuth";
 import { apiFetch } from "@/lib/apiFetch";
 import { getActiveWorkspaceId } from "@/lib/workspace";
@@ -36,7 +37,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   // Get active workspace from cookie
   let activeWorkspaceId = await getActiveWorkspaceId();
-  
+
   // If no active workspace or it doesn't exist in the list, use the first one
   // (The cookie will be set when the user interacts with the selector)
   if (workspaces.items.length > 0) {
@@ -47,19 +48,19 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
+    <SidebarProvider>
+      <div className="flex min-h-screen">
+        <Sidebar />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Header 
-          userEmail={session.user.email}
-          workspaces={workspaces.items}
-          activeWorkspaceId={activeWorkspaceId}
-        />
-        <main className="flex-1 px-4 py-6">{children}</main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Header
+            userEmail={session.user.email}
+            workspaces={workspaces.items}
+            activeWorkspaceId={activeWorkspaceId}
+          />
+          <main className="flex-1 px-4 py-4 sm:py-6">{children}</main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
-
-
