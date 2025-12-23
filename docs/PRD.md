@@ -50,23 +50,24 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-09 — Flip Score v0 (Prospecção)`
-* **Milestone em andamento:** `M8 — Flip Score (Prospecção) (CONCLUÍDO)`
-* **Próximo milestone (planejado):** `M9 — Flip Score v1 (Economics + ARV)`
-* **Última atualização:** `2025-12-22`
+* **Current Checkpoint:** `CP-10 — Flip Score v1 (Economics + ARV)`
+* **Milestone em andamento:** `M9 — Flip Score v1 (CONCLUÍDO)`
+* **Próximo milestone (planejado):** `M10 — Mobile Polish + Optimizations` (a definir)
+* **Última atualização:** `2025-12-23`
 
 ## 1.2 Milestones (visão macro)
 
-* `M0 — Setup & Foundation`
-* `M1 — Prospecção + Quick Add`
-* `M2 — Imóvel Hub + Viabilidade à Vista`
-* `M3 — Financiamento`
-* `M4 — Custos + Documentos + Timeline`
-* `M5 — SEO Calculator + Gating`
-* `M6 — Polimento MVP`
-* `M7 — UI/UX Polish + Extended Features`
-* `M8 — Flip Score (Prospecção)`
-* `M9 — Flip Score v1 (Economics + ARV)`
+* ✅ `M0 — Setup & Foundation`
+* ✅ `M1 — Prospecção + Quick Add`
+* ✅ `M2 — Imóvel Hub + Viabilidade à Vista`
+* ✅ `M3 — Financiamento`
+* ✅ `M4 — Custos + Documentos + Timeline`
+* ✅ `M5 — SEO Calculator + Gating`
+* ✅ `M6 — Polimento MVP`
+* ✅ `M7 — UI/UX Polish + Extended Features`
+* ✅ `M8 — Flip Score (Prospecção)`
+* ✅ `M9 — Flip Score v1 (Economics + ARV) + Responsive Refactor`
+* ⬜ `M10 — (a definir)`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
 
@@ -295,13 +296,15 @@ Deve existir:
 
 ### M9 — Flip Score v1 (Economics + ARV)
 
-* ⬜ T9.1 Modelagem DB: inputs `offer_price`, `expected_sale_price`, `renovation_cost_estimate`, `hold_months`, `other_costs_estimate`
-* ⬜ T9.2 Go API: calcular “cash viability” para prospect (sem converter) usando `workspace_settings`
-* ⬜ T9.3 Go API: serviço de score v1 (economia do deal) + persistência em `flip_score_*` com `flip_score_version=v1`
-* ⬜ T9.4 Web: inputs mínimos v1 no Prospect modal + estado “is_partial”/validações
-* ⬜ T9.5 Web: exibir breakdown v1 (ROI, lucro, break-even) nos cards (leve)
-* ⬜ T9.6 Guardrails: score v1 só se inputs mínimos existirem; senão exibir “Complete os dados”
-  **Checkpoint alvo:** `CP-10 (Flip Score v1)`
+* ✅ T9.1 Modelagem DB: inputs `offer_price`, `expected_sale_price`, `renovation_cost_estimate`, `hold_months`, `other_costs_estimate`
+* ✅ T9.2 Go API: calcular "cash viability" para prospect (sem converter) usando `workspace_settings`
+* ✅ T9.3 Go API: serviço de score v1 (economia do deal) + persistência em `flip_score_*` com `flip_score_version=v1`
+* ✅ T9.4 Web: inputs mínimos v1 no Prospect modal + estado "is_partial"/validações
+* ✅ T9.5 Web: exibir breakdown v1 (ROI, lucro, break-even) nos cards (leve)
+* ✅ T9.6 Guardrails: score v1 só se inputs mínimos existirem; senão exibir "Complete os dados"
+* ✅ T9.7 UI: "Análise de Investimento" cards (Objetivo/Tributos/Pagamento) + view/edit modes
+* ✅ T9.8 Responsive refactor: mobile-first grid, compacted padding, breakpoints otimizados
+  **Checkpoint alvo:** `CP-10 (Flip Score v1) — ALCANÇADO`
 
 ---
 
@@ -903,6 +906,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-09` — 2025-12-22 — M8 entregue: DB migration (flip_score_* fields), Zod schemas (RedFlag, FlipRiskAssessment, FlipScoreBreakdown), Go flipscore package (v0 formula 5 componentes), endpoint recompute c/ rate limiting (15min) + fallback LLM, OpenRouter/Haiku integration (risk assessment), Web UI (FlipScoreBadge, modal "Atualizar score"), structured logs. Fixed: list query now includes flip_score. Flip Score v0 production-ready.
 * `CP-09` — 2025-12-22 — UI polish prospecção: soft delete c/ undo (migration 0008, restore endpoint), toast feedback (sonner), ordenação client-side (score/recente/preço/R$m²), skeleton loading (Suspense boundary), filtros avançados (chips/limpar/×), microcopy padronizado, FlipScoreBadge c/ label, a11y (aria-labels).
 * `CP-10` — 2025-12-22 — M9 UI: "Análise de Investimento" refactor - new components (MetricDisplay, PremiseCard, PaymentMethodToggle, InvestmentPremisesView), 3-card layout (Objetivo/Tributos/Pagamento), view mode with tooltips, edit mode reorganized with subheadings, static BR tax rates, disabled financing toggle. Visual polish: compacted padding, mobile-first grid (1→2→3 cols), renamed from "Premissas".
+* `CP-10` — 2025-12-23 — M9 entregue: Flip Score v1 economics-based (migration 0009 v1 inputs), Go API viability calc para prospects, score v1 formula (S_econ peso 60%), endpoint recompute?v=1, Web inputs v1 no modal, breakdown ROI/lucro/break-even, guardrails inputs mínimos. Responsive refactor: mobile-first grids, compacted padding, breakpoints otimizados desktop/mobile.
 
 ---
 

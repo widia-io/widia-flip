@@ -2,6 +2,16 @@
 
 Technical reference for Claude Code when developing in this repository. For project scope, milestones, and strategic guidelines, see `AGENTS.md`.
 
+## PRD Updates (OBRIGATÓRIO)
+
+**Ao concluir qualquer milestone ou task significativa, SEMPRE atualizar `docs/PRD.md`:**
+
+1. **Current Checkpoint** (seção 1.1): atualizar CP atual, milestone em andamento, próximo milestone, data
+2. **Task Board** (seção 1.4): marcar tasks como ✅ done
+3. **Checkpoint Log** (seção 8): adicionar linha com data e resumo do que foi entregue
+
+Isso mantém o PRD como source of truth do projeto.
+
 ## Quick Start
 
 ```bash
