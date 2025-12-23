@@ -10,9 +10,10 @@ import {
   type ListPaymentsResponse,
   type CreateSnapshotResponse,
   type ListFinancingSnapshotsResponse,
+  type EnforcementErrorResponse,
 } from "@widia/shared";
 
-import { apiFetch } from "@/lib/apiFetch";
+import { apiFetch, EnforcementBlockedError } from "@/lib/apiFetch";
 
 // Financing Plan
 
@@ -149,11 +150,21 @@ export async function createFinancingSnapshotAction(propertyId: string) {
     revalidatePath(`/app/properties/${propertyId}/timeline`);
     return { data: result };
   } catch (e) {
+    // M12 - Handle enforcement errors
+    if (e instanceof EnforcementBlockedError) {
+      return { enforcement: e.response };
+    }
     const message =
       e instanceof Error ? e.message : "Erro ao salvar snapshot";
     return { error: message };
   }
 }
+
+// Type for financing snapshot action result with enforcement support
+export type FinancingSnapshotActionResult =
+  | { data: CreateSnapshotResponse }
+  | { error: string }
+  | { enforcement: EnforcementErrorResponse };
 
 export async function listFinancingSnapshotsAction(propertyId: string) {
   try {

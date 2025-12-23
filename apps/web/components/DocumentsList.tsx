@@ -8,6 +8,7 @@ import {
   registerDocumentAction,
   deleteDocumentAction,
 } from "@/lib/actions/documents";
+import { usePaywall } from "@/components/PaywallModal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -75,6 +76,7 @@ export function DocumentsList({
   workspaceId,
   initialDocuments,
 }: DocumentsListProps) {
+  const { showPaywall } = usePaywall();
   const [documents, setDocuments] = useState<Document[]>(initialDocuments);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -154,7 +156,9 @@ export function DocumentsList({
           propertyId,
         );
 
-        if (registerResult.error) {
+        if ("enforcement" in registerResult && registerResult.enforcement) {
+          showPaywall(registerResult.enforcement, workspaceId);
+        } else if ("error" in registerResult && registerResult.error) {
           setError(registerResult.error);
         } else if (registerResult.data) {
           setDocuments((prev) => [registerResult.data!, ...prev]);

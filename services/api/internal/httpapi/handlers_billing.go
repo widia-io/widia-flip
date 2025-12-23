@@ -22,22 +22,22 @@ type tierLimits struct {
 
 var tierLimitsMap = map[string]tierLimits{
 	"starter": {
-		MaxWorkspaces:         1,
-		MaxProspectsPerMonth:  150,
-		MaxSnapshotsPerMonth:  120,
-		MaxDocsPerMonth:       30,
+		MaxWorkspaces:        1,
+		MaxProspectsPerMonth: 50,
+		MaxSnapshotsPerMonth: 30,
+		MaxDocsPerMonth:      10,
 	},
 	"pro": {
-		MaxWorkspaces:         5,
-		MaxProspectsPerMonth:  500,
-		MaxSnapshotsPerMonth:  400,
-		MaxDocsPerMonth:       120,
+		MaxWorkspaces:        3,
+		MaxProspectsPerMonth: 300,
+		MaxSnapshotsPerMonth: 200,
+		MaxDocsPerMonth:      100,
 	},
 	"growth": {
-		MaxWorkspaces:         20,
-		MaxProspectsPerMonth:  1500,
-		MaxSnapshotsPerMonth:  1200,
-		MaxDocsPerMonth:       400,
+		MaxWorkspaces:        10,
+		MaxProspectsPerMonth: 999999, // Unlimited
+		MaxSnapshotsPerMonth: 999999, // Unlimited
+		MaxDocsPerMonth:      500,
 	},
 }
 
@@ -47,7 +47,7 @@ func canAccessFinancing(tier string) bool {
 }
 
 func canAccessFlipScoreV1(tier string) bool {
-	return tier == "growth"
+	return tier == "pro" || tier == "growth"
 }
 
 // User billing record

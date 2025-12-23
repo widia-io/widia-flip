@@ -6,6 +6,7 @@ import { Plus, Loader2, MapPin, Home, Building2, DollarSign, User, MessageSquare
 
 import { type ScrapePropertyResponse } from "@widia/shared";
 import { createProspectAction } from "@/lib/actions/prospects";
+import { usePaywall } from "@/components/PaywallModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +27,7 @@ interface ProspectAddModalProps {
 
 export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
   const router = useRouter();
+  const { showPaywall } = usePaywall();
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -200,7 +202,11 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
 
     startTransition(async () => {
       const result = await createProspectAction(fd);
-      if (result.error) {
+      if ("enforcement" in result && result.enforcement) {
+        // M12 - Show paywall modal for enforcement errors
+        setOpen(false);
+        showPaywall(result.enforcement, workspaceId);
+      } else if ("error" in result && result.error) {
         setError(result.error);
       } else {
         resetForm();

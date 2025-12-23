@@ -11,9 +11,10 @@ import {
   type Prospect,
   type ListProspectsResponse,
   type ConvertProspectResponse,
+  type EnforcementErrorResponse,
 } from "@widia/shared";
 
-import { apiFetch } from "@/lib/apiFetch";
+import { apiFetch, EnforcementBlockedError } from "@/lib/apiFetch";
 
 export async function createProspectAction(formData: FormData) {
   const workspaceId = String(formData.get("workspace_id") ?? "");
@@ -94,10 +95,20 @@ export async function createProspectAction(formData: FormData) {
     revalidatePath("/app/prospects");
     return { success: true };
   } catch (e) {
+    // M12 - Handle enforcement errors (paywall/limits)
+    if (e instanceof EnforcementBlockedError) {
+      return { enforcement: e.response };
+    }
     const message = e instanceof Error ? e.message : "Erro ao criar prospect";
     return { error: message };
   }
 }
+
+// Type for action result with enforcement support
+export type ProspectActionResult =
+  | { success: true }
+  | { error: string }
+  | { enforcement: EnforcementErrorResponse };
 
 export async function updateProspectAction(
   prospectId: string,

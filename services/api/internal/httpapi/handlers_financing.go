@@ -569,6 +569,12 @@ func (a *api) handleCreateFinancingSnapshot(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// M12 - Enforce snapshot creation limit
+	requestID := r.Header.Get("X-Request-ID")
+	if !a.enforceSnapshotCreation(w, r, userID, workspaceID, requestID) {
+		return
+	}
+
 	// Get financing plan
 	var planID string
 	var inputs financingInputs

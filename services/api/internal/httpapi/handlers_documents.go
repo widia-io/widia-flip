@@ -284,6 +284,12 @@ func (a *api) handleRegisterDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// M12 - Enforce document creation limit
+	requestID := r.Header.Get("X-Request-ID")
+	if !a.enforceDocumentCreation(w, r, userID, req.WorkspaceID, requestID) {
+		return
+	}
+
 	// Verify storage_key is scoped to workspace
 	expectedPrefix := fmt.Sprintf("workspaces/%s/", req.WorkspaceID)
 	if !strings.HasPrefix(req.StorageKey, expectedPrefix) {

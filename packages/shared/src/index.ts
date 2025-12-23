@@ -727,21 +727,21 @@ export type TierLimits = z.infer<typeof TierLimitsSchema>;
 export const TIER_LIMITS: Record<BillingTier, TierLimits> = {
   starter: {
     max_workspaces: 1,
-    max_prospects_per_month: 150,
-    max_snapshots_per_month: 120,
-    max_docs_per_month: 30,
+    max_prospects_per_month: 50,
+    max_snapshots_per_month: 30,
+    max_docs_per_month: 10,
   },
   pro: {
-    max_workspaces: 5,
-    max_prospects_per_month: 500,
-    max_snapshots_per_month: 400,
-    max_docs_per_month: 120,
+    max_workspaces: 3,
+    max_prospects_per_month: 300,
+    max_snapshots_per_month: 200,
+    max_docs_per_month: 100,
   },
   growth: {
-    max_workspaces: 20,
-    max_prospects_per_month: 1500,
-    max_snapshots_per_month: 1200,
-    max_docs_per_month: 400,
+    max_workspaces: 10,
+    max_prospects_per_month: 999999, // Unlimited
+    max_snapshots_per_month: 999999, // Unlimited
+    max_docs_per_month: 500,
   },
 };
 
@@ -843,3 +843,59 @@ export const WorkspaceUsageResponseSchema = z.object({
   metrics: UsageMetricsSchema,
 });
 export type WorkspaceUsageResponse = z.infer<typeof WorkspaceUsageResponseSchema>;
+
+// M12 - Paywall + Enforcement (Hard Limits)
+
+export const EnforcementErrorCodeEnum = z.enum([
+  "PAYWALL_REQUIRED",
+  "LIMIT_EXCEEDED",
+]);
+export type EnforcementErrorCode = z.infer<typeof EnforcementErrorCodeEnum>;
+
+export const EnforcementDetailsSchema = z.object({
+  tier: BillingTierEnum,
+  metric: z.string().optional(),
+  usage: z.number().optional(),
+  limit: z.number().optional(),
+  period_start: z.string().optional(),
+  period_end: z.string().optional(),
+  workspace_limit: z.number().optional(),
+  workspaces_used: z.number().optional(),
+  billing_status: z.string().optional(),
+});
+export type EnforcementDetails = z.infer<typeof EnforcementDetailsSchema>;
+
+export const EnforcementErrorSchema = z.object({
+  code: EnforcementErrorCodeEnum,
+  message: z.string(),
+  details: EnforcementDetailsSchema,
+});
+export type EnforcementError = z.infer<typeof EnforcementErrorSchema>;
+
+export const EnforcementErrorResponseSchema = z.object({
+  error: EnforcementErrorSchema,
+});
+export type EnforcementErrorResponse = z.infer<typeof EnforcementErrorResponseSchema>;
+
+// Helper to detect enforcement errors
+export function isEnforcementError(
+  error: unknown
+): error is EnforcementErrorResponse {
+  return EnforcementErrorResponseSchema.safeParse(error).success;
+}
+
+// Helper to parse enforcement error from API response text
+export function parseEnforcementError(
+  text: string
+): EnforcementErrorResponse | null {
+  try {
+    const json = JSON.parse(text);
+    const parsed = EnforcementErrorResponseSchema.safeParse(json);
+    if (parsed.success) {
+      return parsed.data;
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+}

@@ -6,6 +6,7 @@ import { Loader2, Save } from "lucide-react";
 
 import type { CashInputs, CashOutputs } from "@widia/shared";
 import { updateCashAnalysisAction, createCashSnapshotAction } from "@/lib/actions/properties";
+import { usePaywall } from "@/components/PaywallModal";
 import { CashAnalysisOutputs } from "@/components/CashAnalysisOutputs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,16 +15,19 @@ import { Button } from "@/components/ui/button";
 
 interface CashAnalysisFormProps {
   propertyId: string;
+  workspaceId: string;
   initialInputs?: CashInputs;
   initialOutputs?: CashOutputs;
 }
 
 export function CashAnalysisForm({
   propertyId,
+  workspaceId,
   initialInputs,
   initialOutputs,
 }: CashAnalysisFormProps) {
   const router = useRouter();
+  const { showPaywall } = usePaywall();
   const [isPending, startTransition] = useTransition();
   const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +100,9 @@ export function CashAnalysisForm({
 
     const result = await createCashSnapshotAction(propertyId);
 
-    if (result.error) {
+    if ("enforcement" in result && result.enforcement) {
+      showPaywall(result.enforcement, workspaceId);
+    } else if ("error" in result && result.error) {
       setError(result.error);
     } else {
       setSuccess("Análise salva com sucesso!");

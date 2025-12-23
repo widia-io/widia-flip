@@ -9,6 +9,7 @@ import {
   updateFinancingAction,
   createFinancingSnapshotAction,
 } from "@/lib/actions/financing";
+import { usePaywall } from "@/components/PaywallModal";
 import { FinancingOutputsDisplay } from "@/components/FinancingOutputs";
 import { FinancingPaymentsList } from "@/components/FinancingPaymentsList";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
 
 interface FinancingFormProps {
   propertyId: string;
+  workspaceId: string;
   planId?: string;
   initialInputs?: FinancingInputs;
   initialPayments?: FinancingPayment[];
@@ -26,12 +28,14 @@ interface FinancingFormProps {
 
 export function FinancingForm({
   propertyId,
+  workspaceId,
   planId: initialPlanId,
   initialInputs,
   initialPayments,
   initialOutputs,
 }: FinancingFormProps) {
   const router = useRouter();
+  const { showPaywall } = usePaywall();
   const [isPending, startTransition] = useTransition();
   const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -151,7 +155,9 @@ export function FinancingForm({
 
     const result = await createFinancingSnapshotAction(propertyId);
 
-    if (result.error) {
+    if ("enforcement" in result && result.enforcement) {
+      showPaywall(result.enforcement, workspaceId);
+    } else if ("error" in result && result.error) {
       setError(result.error);
     } else {
       setSuccess("Análise salva com sucesso!");

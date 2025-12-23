@@ -140,6 +140,12 @@ func (a *api) handleCreateWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// M12 - Enforce workspace creation limit
+	requestID := r.Header.Get("X-Request-ID")
+	if !a.enforceWorkspaceCreation(w, r, userID, requestID) {
+		return
+	}
+
 	var req createWorkspaceRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()

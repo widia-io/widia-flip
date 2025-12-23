@@ -263,6 +263,12 @@ func (a *api) handleCreateCashSnapshot(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 
+	// M12 - Enforce snapshot creation limit
+	requestID := r.Header.Get("X-Request-ID")
+	if !a.enforceSnapshotCreation(w, r, userID, workspaceID, requestID) {
+		return
+	}
+
 	// Get current inputs
 	var inputs cashInputs
 	err = a.db.QueryRowContext(

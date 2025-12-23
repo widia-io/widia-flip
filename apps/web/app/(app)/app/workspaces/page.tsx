@@ -1,14 +1,13 @@
-import { Plus, FolderKanban, Calendar, MapPin, Users, Settings, HelpCircle } from "lucide-react";
+import { FolderKanban, Calendar, MapPin, Users, Settings, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import {
   ListWorkspacesResponseSchema,
   type ListWorkspacesResponse,
 } from "@widia/shared";
 
-import { createWorkspaceAction } from "@/lib/actions/workspaces";
 import { apiFetch } from "@/lib/apiFetch";
+import { CreateWorkspaceForm } from "@/components/CreateWorkspaceForm";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -20,12 +19,7 @@ function formatDate(dateString: string) {
   });
 }
 
-export default async function WorkspacesPage(props: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const searchParams = (await props.searchParams) ?? {};
-  const error = typeof searchParams.error === "string" ? searchParams.error : "";
-
+export default async function WorkspacesPage() {
   const workspacesRaw = await apiFetch<ListWorkspacesResponse>("/api/v1/workspaces");
   const workspaces = ListWorkspacesResponseSchema.parse(workspacesRaw);
 
@@ -94,23 +88,7 @@ export default async function WorkspacesPage(props: {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error ? (
-            <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {error}
-            </div>
-          ) : null}
-
-          <form action={createWorkspaceAction} className="flex gap-2">
-            <Input
-              name="name"
-              placeholder="Ex: Flips 2025, Zona Sul, Parceria João..."
-              className="flex-1"
-            />
-            <Button type="submit">
-              <Plus className="mr-1 h-4 w-4" />
-              Criar projeto
-            </Button>
-          </form>
+          <CreateWorkspaceForm />
         </CardContent>
       </Card>
 

@@ -20,26 +20,37 @@ interface PlanOption {
 
 const PLANS: PlanOption[] = [
   {
+    tier: "starter",
+    name: "Starter",
+    price: "R$ 29/mês",
+    features: [
+      "1 projeto",
+      "50 prospects/mês",
+      "Viabilidade cash",
+      "Flip Score básico",
+    ],
+  },
+  {
     tier: "pro",
     name: "Pro",
-    price: "R$ 49/mês",
+    price: "R$ 97/mês",
     features: [
-      "Até 5 projetos",
-      "500 prospects/mês",
-      "Financiamento",
+      "3 projetos",
+      "300 prospects/mês",
+      "Financiamento completo",
+      "Flip Score v1",
       "Custos e documentos",
-      "Timeline completa",
     ],
   },
   {
     tier: "growth",
     name: "Growth",
-    price: "R$ 99/mês",
+    price: "R$ 297/mês",
     features: [
-      "Até 20 projetos",
-      "1500 prospects/mês",
-      "Flip Score v1",
-      "Calculadora avançada",
+      "10 projetos",
+      "Prospects ilimitados",
+      "Snapshots ilimitados",
+      "Import via URL",
       "Suporte prioritário",
     ],
   },

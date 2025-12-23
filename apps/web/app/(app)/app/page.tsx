@@ -1,22 +1,15 @@
-import { Plus, Building2, Search } from "lucide-react";
+import { Building2, Search } from "lucide-react";
 import Link from "next/link";
 import {
   ListWorkspacesResponseSchema,
   type ListWorkspacesResponse,
 } from "@widia/shared";
 
-import { createWorkspaceAction } from "@/lib/actions/workspaces";
 import { apiFetch } from "@/lib/apiFetch";
+import { CreateWorkspaceForm } from "@/components/CreateWorkspaceForm";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 
-export default async function AppHomePage(props: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const searchParams = (await props.searchParams) ?? {};
-  const error = typeof searchParams.error === "string" ? searchParams.error : "";
-
+export default async function AppHomePage() {
   const workspacesRaw = await apiFetch<ListWorkspacesResponse>("/api/v1/workspaces");
   const workspaces = ListWorkspacesResponseSchema.parse(workspacesRaw);
 
@@ -75,23 +68,7 @@ export default async function AppHomePage(props: {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error ? (
-            <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {error}
-            </div>
-          ) : null}
-
-          <form action={createWorkspaceAction} className="flex flex-col gap-2 sm:flex-row">
-            <Input
-              name="name"
-              placeholder="Ex: Flips 2025, Zona Sul..."
-              className="flex-1"
-            />
-            <Button type="submit" className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-1" />
-              Criar projeto
-            </Button>
-          </form>
+          <CreateWorkspaceForm />
 
           <div className="mt-4 divide-y divide-border rounded-lg border border-border">
             {workspaces.items.length === 0 ? (

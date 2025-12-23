@@ -1,10 +1,34 @@
 import "server-only";
 
-import { ApiErrorSchema } from "@widia/shared";
+import {
+  ApiErrorSchema,
+  EnforcementErrorResponseSchema,
+  type EnforcementErrorResponse,
+} from "@widia/shared";
 
 import { getServerAccessToken } from "@/lib/serverAuth";
 
 const GO_API_BASE_URL = process.env.GO_API_BASE_URL ?? "http://localhost:8080";
+
+// Custom error class for enforcement errors (M12 - Paywall)
+export class EnforcementBlockedError extends Error {
+  public readonly response: EnforcementErrorResponse;
+  public readonly code: string;
+
+  constructor(response: EnforcementErrorResponse) {
+    super(`${response.error.code}: ${response.error.message}`);
+    this.name = "EnforcementBlockedError";
+    this.response = response;
+    this.code = response.error.code;
+  }
+}
+
+// Helper to serialize enforcement error for client
+export function serializeEnforcementError(
+  err: EnforcementBlockedError
+): { enforcement: EnforcementErrorResponse } {
+  return { enforcement: err.response };
+}
 
 export async function apiFetch<T>(
   path: string,
@@ -27,7 +51,17 @@ export async function apiFetch<T>(
   }
 
   const text = await res.text();
-  const parsed = ApiErrorSchema.safeParse(safeJsonParse(text));
+  const json = safeJsonParse(text);
+
+  // M12 - Check for enforcement errors (402 Payment Required)
+  if (res.status === 402) {
+    const enforcementParsed = EnforcementErrorResponseSchema.safeParse(json);
+    if (enforcementParsed.success) {
+      throw new EnforcementBlockedError(enforcementParsed.data);
+    }
+  }
+
+  const parsed = ApiErrorSchema.safeParse(json);
   if (parsed.success) {
     throw new Error(`${parsed.data.error.code}: ${parsed.data.error.message}`);
   }

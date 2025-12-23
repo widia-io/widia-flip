@@ -12,9 +12,10 @@ import {
   type CashAnalysisResponse,
   type CreateSnapshotResponse,
   type ListCashSnapshotsResponse,
+  type EnforcementErrorResponse,
 } from "@widia/shared";
 
-import { apiFetch } from "@/lib/apiFetch";
+import { apiFetch, EnforcementBlockedError } from "@/lib/apiFetch";
 
 // CRUD Properties
 
@@ -226,11 +227,21 @@ export async function createCashSnapshotAction(propertyId: string) {
     revalidatePath(`/app/properties/${propertyId}/timeline`);
     return { data: result };
   } catch (e) {
+    // M12 - Handle enforcement errors
+    if (e instanceof EnforcementBlockedError) {
+      return { enforcement: e.response };
+    }
     const message =
       e instanceof Error ? e.message : "Erro ao salvar snapshot";
     return { error: message };
   }
 }
+
+// Type for snapshot action result with enforcement support
+export type SnapshotActionResult =
+  | { data: CreateSnapshotResponse }
+  | { error: string }
+  | { enforcement: EnforcementErrorResponse };
 
 export async function listCashSnapshotsAction(propertyId: string) {
   try {

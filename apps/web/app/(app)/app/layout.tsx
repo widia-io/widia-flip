@@ -6,6 +6,7 @@ import { ListWorkspacesResponseSchema } from "@widia/shared";
 
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
+import { PaywallProvider } from "@/components/PaywallModal";
 import { SidebarProvider } from "@/lib/hooks/useSidebar";
 import { getServerSession } from "@/lib/serverAuth";
 import { apiFetch } from "@/lib/apiFetch";
@@ -48,19 +49,21 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen">
-        <Sidebar activeWorkspaceId={activeWorkspaceId ?? undefined} />
+    <PaywallProvider>
+      <SidebarProvider>
+        <div className="flex min-h-screen">
+          <Sidebar activeWorkspaceId={activeWorkspaceId ?? undefined} />
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <Header
-            userEmail={session.user.email}
-            workspaces={workspaces.items}
-            activeWorkspaceId={activeWorkspaceId}
-          />
-          <main className="flex-1 px-4 py-4 sm:py-6">{children}</main>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <Header
+              userEmail={session.user.email}
+              workspaces={workspaces.items}
+              activeWorkspaceId={activeWorkspaceId}
+            />
+            <main className="flex-1 px-4 py-4 sm:py-6">{children}</main>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </PaywallProvider>
   );
 }

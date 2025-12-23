@@ -347,6 +347,12 @@ func (a *api) handleCreateProspect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// M12 - Enforce prospect creation limit
+	requestID := r.Header.Get("X-Request-ID")
+	if !a.enforceProspectCreation(w, r, userID, req.WorkspaceID, requestID) {
+		return
+	}
+
 	// Validations
 	if req.AreaUsable != nil && *req.AreaUsable <= 0 {
 		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "area_usable must be greater than 0"})

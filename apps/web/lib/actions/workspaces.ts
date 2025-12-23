@@ -3,27 +3,47 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { CreateWorkspaceRequestSchema, UpdateWorkspaceRequestSchema } from "@widia/shared";
+import {
+  CreateWorkspaceRequestSchema,
+  UpdateWorkspaceRequestSchema,
+  type EnforcementErrorResponse,
+} from "@widia/shared";
 
-import { apiFetch } from "@/lib/apiFetch";
+import { apiFetch, EnforcementBlockedError } from "@/lib/apiFetch";
 
-export async function createWorkspaceAction(formData: FormData) {
-  const name = String(formData.get("name") ?? "");
+export async function createWorkspaceAction(name: string) {
   const parsed = CreateWorkspaceRequestSchema.safeParse({ name });
   if (!parsed.success) {
-    redirect("/app/workspaces?error=invalid_workspace_name");
+    return {
+      error: parsed.error.errors[0]?.message ?? "Nome inválido",
+    };
   }
 
-  await apiFetch("/api/v1/workspaces", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(parsed.data),
-  });
+  try {
+    await apiFetch("/api/v1/workspaces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(parsed.data),
+    });
 
-  revalidatePath("/app");
-  revalidatePath("/app/workspaces");
-  redirect("/app/workspaces");
+    revalidatePath("/app");
+    revalidatePath("/app/workspaces");
+    return { success: true };
+  } catch (e) {
+    // M12 - Handle enforcement errors
+    if (e instanceof EnforcementBlockedError) {
+      return { enforcement: e.response };
+    }
+    const message = e instanceof Error ? e.message : "Erro ao criar projeto";
+    return { error: message };
+  }
 }
+
+// Type for workspace action result with enforcement support
+export type CreateWorkspaceActionResult =
+  | { success: true }
+  | { error: string }
+  | { enforcement: EnforcementErrorResponse };
 
 export async function updateWorkspaceAction(workspaceId: string, formData: FormData) {
   const name = String(formData.get("name") ?? "");

@@ -1,3 +1,4 @@
+import { getPropertyAction } from "@/lib/actions/properties";
 import { getFinancingAction, listFinancingSnapshotsAction } from "@/lib/actions/financing";
 import { FinancingForm } from "@/components/FinancingForm";
 import { FinancingSnapshotHistory } from "@/components/FinancingSnapshotHistory";
@@ -9,10 +10,19 @@ export default async function PropertyFinancingPage({
 }) {
   const { id } = await params;
 
-  const [financingResult, snapshotsResult] = await Promise.all([
+  const [propertyResult, financingResult, snapshotsResult] = await Promise.all([
+    getPropertyAction(id),
     getFinancingAction(id),
     listFinancingSnapshotsAction(id),
   ]);
+
+  if (propertyResult.error) {
+    return (
+      <div className="rounded-lg border border-red-900/60 bg-red-950/50 p-4 text-sm text-red-200">
+        {propertyResult.error}
+      </div>
+    );
+  }
 
   if (financingResult.error) {
     return (
@@ -22,6 +32,7 @@ export default async function PropertyFinancingPage({
     );
   }
 
+  const property = propertyResult.data!;
   const financing = financingResult.data;
   const snapshots = snapshotsResult.data?.items ?? [];
 
@@ -29,6 +40,7 @@ export default async function PropertyFinancingPage({
     <div className="space-y-6">
       <FinancingForm
         propertyId={id}
+        workspaceId={property.workspace_id}
         planId={financing?.plan_id}
         initialInputs={financing?.inputs}
         initialPayments={financing?.payments}

@@ -50,9 +50,9 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-12 — Usage Tracking v1 + avisos (sem bloqueio)`
-* **Milestone em andamento:** `M11 — Usage Tracking (CONCLUÍDO)`
-* **Próximo milestone (planejado):** `M12 — Paywall + Enforcement (Hard Limits)`
+* **Current Checkpoint:** `CP-13 — Paywall + Enforcement ativo`
+* **Milestone em andamento:** `M12 — Paywall + Enforcement (CONCLUÍDO)`
+* **Próximo milestone (planejado):** TBD (backlog)
 * **Última atualização:** `2025-12-23`
 
 ## 1.2 Milestones (visão macro)
@@ -69,7 +69,7 @@
 * ✅ `M9 — Flip Score v1 (Economics + ARV) + Responsive Refactor`
 * ✅ `M10 — Billing Foundation (Stripe) + Entitlements (soft)`
 * ✅ `M11 — Usage Tracking (v1) + Soft Limits`
-* ⬜ `M12 — Paywall + Enforcement (Hard Limits)`
+* ✅ `M12 — Paywall + Enforcement (Hard Limits)`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
 
@@ -360,12 +360,12 @@ Deve existir:
 
 ### M12 — Paywall + Enforcement (Hard Limits)
 
-* ⬜ T12.1 Definir regra de enforcement por ação (criar workspace, prospect, snapshot, upload docs)
-* ⬜ T12.2 Go API: middleware/guards de entitlements por endpoint (retorna `PAYWALL_REQUIRED` / `LIMIT_EXCEEDED`)
-* ⬜ T12.3 Web: tratamento de erro (modal paywall + CTA upgrade) sem quebrar fluxo
-* ⬜ T12.4 Stripe Customer Portal (self-serve: trocar cartão/cancelar/downgrade)
-* ⬜ T12.5 Estados de cobrança: `past_due/unpaid` → read-only mode (não criar novos itens, mas visualizar)
-  **Checkpoint alvo:** `CP-13 — Paywall + Enforcement ativo`
+* ✅ T12.1 Definir regra de enforcement por ação (criar workspace, prospect, snapshot, upload docs)
+* ✅ T12.2 Go API: middleware/guards de entitlements por endpoint (retorna `PAYWALL_REQUIRED` / `LIMIT_EXCEEDED`)
+* ✅ T12.3 Web: tratamento de erro (modal paywall + CTA upgrade) sem quebrar fluxo
+* ✅ T12.4 Stripe Customer Portal (self-serve: trocar cartão/cancelar/downgrade)
+* ✅ T12.5 Estados de cobrança: `past_due/unpaid` → read-only mode (não criar novos itens, mas visualizar)
+  **Checkpoint alvo:** `CP-13 — Paywall + Enforcement ativo` ✅
 
 # 2) API & Data Model (para guiar implementação)
 
@@ -971,6 +971,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-10` — 2025-12-23 — PRD: limites workspaces por tier ajustados (Starter 1 / Pro 5 / Growth 20).
 * `CP-11` — 2025-12-23 — M10 entregue: DB migration `user_billing` (tiers, status, Stripe IDs), Go API endpoints (GET /billing/me, POST internal sync/override), Next.js BFF (checkout, webhook, portal route handlers), billing page + components (BillingStatusCard, UpgradeCTA, TierLimitsCard), server actions. Stripe SDK 20.1.0 integration. 14-day free trial default.
 * `CP-12` — 2025-12-23 — M11 entregue: Usage tracking v1 (prospects/snapshots/docs por workspace por período), Go API endpoint GET /workspaces/:id/usage (derivação de período Stripe/calendário, contagem via queries agregadas, flags 80%/100%), Web UI UsageCard com barras de progresso e avisos de limite, Zod schemas (WorkspaceUsageResponse, UsageMetric), structured logs `usage_exceeded_soft`. Sem enforcement (soft limits only).
+* `CP-13` — 2025-12-23 — M12 entregue: Enforcement hard limits (Go handlers_enforcement.go c/ guards por endpoint), HTTP 402 + error codes PAYWALL_REQUIRED/LIMIT_EXCEEDED, PaywallModal + usePaywall hook (React Context), integração paywall em: prospect creation, cash/financing snapshots, document upload, workspace creation. Stripe Customer Portal existente. Estados past_due/unpaid bloqueiam criação.
 
 ---
 
@@ -983,72 +984,80 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 
 ---
 
-# 10) Tiers comerciais (interno) + limites iniciais (sem enforcement técnico)
+# 10) Tiers comerciais (interno) + limites (enforcement ativo desde M12)
 
-> **Objetivo:** validar internamente o posicionamento comercial sem travar produto com enforcement técnico.
-> **Nota:** limites são metas iniciais, **não** aplicadas via código neste momento.
+> **Preços e limites atualizados em 2025-12-23.**
+> **Enforcement via código ativo desde M12 (CP-13).**
 
-## 10.1 Tiers propostos
+## 10.1 Tiers e preços
 
-> **Importante:** hoje o produto já tem features “de tiers superiores”. Esta seção define **como vamos vender** e, depois, **como vamos aplicar gating** (M12). Até lá, é só referência interna.
+> **Modelo comercial:** assinatura **por usuário** (Stripe subscription). Cada tier define workspaces máximos + limites de uso.
 
-> **Modelo comercial (decisão):** assinatura é **por usuário**. Cada tier define também o **número máximo de workspaces ativos** do usuário.
+| Tier | Preço | Workspaces | Prospects/mês | Snapshots/mês | Docs/mês |
+|------|-------|------------|---------------|---------------|----------|
+| **Starter** | R$ 29/mês | 1 | 50 | 30 | 10 |
+| **Pro** | R$ 97/mês | 3 | 300 | 200 | 100 |
+| **Growth** | R$ 297/mês | 10 | Ilimitado* | Ilimitado* | 500 |
 
-* **Starter (Ativo)**
+*Ilimitado = 999999 no código (sem limite prático)
+
+## 10.2 Features por tier
+
+* **Starter (R$ 29/mês)**
   * Prospecção + Quick Add
-  * Flip Score v0
+  * Flip Score básico (v0)
   * Property Hub
   * Viabilidade cash
   * Snapshots manuais
 
-* **Pro (Em breve)**
+* **Pro (R$ 97/mês)**
   * Tudo do Starter
-  * Financiamento
-  * Custos
-  * Docs
+  * **Flip Score v1** (economics + ARV)
+  * Financiamento completo
+  * Custos e documentos
   * Timeline
 
-* **Growth (Em breve)**
+* **Growth (R$ 297/mês)**
   * Tudo do Pro
-  * Flip Score v1 (economics + ARV)
-  * SEO Calculator com gating avançado
+  * Import via URL
+  * Suporte prioritário
 
-## 10.2 Limites de uso iniciais (sem enforcement técnico)
+## 10.3 Limites de uso (enforcement ativo)
 
-> **Unidade (decisão):**
+> **Unidade:**
 >
 > * Assinatura é **por usuário** (Stripe subscription no user).
 > * Limites de **uso** são por **workspace** por **período de cobrança** (billing cycle do Stripe).
-> * Limite de **workspaces** é por **usuário** (contagem absoluta de workspaces ativos, não por período).
+> * Limite de **workspaces** é por **usuário** (contagem absoluta de workspaces ativos).
 
 * **Workspaces ativos por usuário**
   * Starter: até **1**
-  * Pro: até **5**
-  * Growth: até **20**
+  * Pro: até **3**
+  * Growth: até **10**
 
 * **Prospects por mês**
-  * Starter: até **150**
-  * Pro: até **500**
-  * Growth: até **1500**
+  * Starter: até **50**
+  * Pro: até **300**
+  * Growth: **ilimitado** (999999)
 
 * **Snapshots por mês** (cash + financing somados)
-  * Starter: até **120**
-  * Pro: até **400**
-  * Growth: até **1200**
+  * Starter: até **30**
+  * Pro: até **200**
+  * Growth: **ilimitado** (999999)
 
 * **Uploads de documentos por mês**
-  * Starter: até **30**
-  * Pro: até **120**
-  * Growth: até **400**
+  * Starter: até **10**
+  * Pro: até **100**
+  * Growth: até **500**
 
-## 10.3 Métricas (definição objetiva)
+## 10.4 Métricas (definição objetiva)
 
 * **Workspaces ativos:** contagem de `workspaces` ativos (sem `deleted_at`) onde `created_by_user_id = user_id` (MVP: single-user).
 * **Prospects:** contagem de `prospecting_properties` criados no período.
 * **Snapshots:** contagem de snapshots criados (`analysis_cash_snapshots` + `analysis_financing_snapshots`) no período.
 * **Uploads de docs:** contagem de `documents` criados no período (1 registro = 1 upload finalizado).
 
-## 10.4 Plano para “controle real” via Stripe (marcos)
+## 10.5 Implementação Stripe (marcos)
 
 > **Princípios:**
 >

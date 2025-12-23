@@ -10,9 +10,10 @@ import {
   type GetUploadUrlRequest,
   type GetUploadUrlResponse,
   type RegisterDocumentRequest,
+  type EnforcementErrorResponse,
 } from "@widia/shared";
 
-import { apiFetch } from "@/lib/apiFetch";
+import { apiFetch, EnforcementBlockedError } from "@/lib/apiFetch";
 
 export async function getUploadUrlAction(data: GetUploadUrlRequest) {
   const parsed = GetUploadUrlRequestSchema.safeParse(data);
@@ -62,10 +63,20 @@ export async function registerDocumentAction(
     }
     return { data: result };
   } catch (e) {
+    // M12 - Handle enforcement errors
+    if (e instanceof EnforcementBlockedError) {
+      return { enforcement: e.response };
+    }
     const message = e instanceof Error ? e.message : "Erro ao registrar documento";
     return { error: message };
   }
 }
+
+// Type for document action result with enforcement support
+export type RegisterDocumentActionResult =
+  | { data: Document }
+  | { error: string }
+  | { enforcement: EnforcementErrorResponse };
 
 export async function listDocumentsAction(propertyId: string) {
   try {
