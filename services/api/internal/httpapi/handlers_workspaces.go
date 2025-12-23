@@ -85,6 +85,12 @@ func (a *api) handleWorkspacesSubroutes(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	// M11 - Usage tracking
+	if len(parts) == 2 && parts[1] == "usage" {
+		a.handleGetWorkspaceUsage(w, r, workspaceID)
+		return
+	}
+
 	w.WriteHeader(http.StatusNotFound)
 }
 

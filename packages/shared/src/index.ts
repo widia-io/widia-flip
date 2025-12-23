@@ -812,3 +812,34 @@ export const OverrideBillingRequestSchema = z.object({
   tier: BillingTierEnum,
 });
 export type OverrideBillingRequest = z.infer<typeof OverrideBillingRequestSchema>;
+
+// M11 - Usage Tracking
+
+export const UsageMetricSchema = z.object({
+  metric: z.string(),
+  usage: z.number(),
+  limit: z.number(),
+  at_80_percent: z.boolean(),
+  at_or_over_100: z.boolean(),
+});
+export type UsageMetric = z.infer<typeof UsageMetricSchema>;
+
+export const UsageMetricsSchema = z.object({
+  prospects: UsageMetricSchema,
+  snapshots: UsageMetricSchema,
+  documents: UsageMetricSchema,
+});
+export type UsageMetrics = z.infer<typeof UsageMetricsSchema>;
+
+export const PeriodTypeEnum = z.enum(["stripe_cycle", "calendar_month"]);
+export type PeriodType = z.infer<typeof PeriodTypeEnum>;
+
+export const WorkspaceUsageResponseSchema = z.object({
+  workspace_id: z.string(),
+  period_start: z.string(),
+  period_end: z.string(),
+  period_type: PeriodTypeEnum,
+  tier: BillingTierEnum,
+  metrics: UsageMetricsSchema,
+});
+export type WorkspaceUsageResponse = z.infer<typeof WorkspaceUsageResponseSchema>;

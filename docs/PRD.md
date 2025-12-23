@@ -50,9 +50,9 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-11 — Billing Foundation (Stripe) + Tier ativo (soft)`
-* **Milestone em andamento:** `M10 — Billing Foundation (CONCLUÍDO)`
-* **Próximo milestone (planejado):** `M11 — Usage Tracking (v1) + Soft Limits`
+* **Current Checkpoint:** `CP-12 — Usage Tracking v1 + avisos (sem bloqueio)`
+* **Milestone em andamento:** `M11 — Usage Tracking (CONCLUÍDO)`
+* **Próximo milestone (planejado):** `M12 — Paywall + Enforcement (Hard Limits)`
 * **Última atualização:** `2025-12-23`
 
 ## 1.2 Milestones (visão macro)
@@ -68,7 +68,7 @@
 * ✅ `M8 — Flip Score (Prospecção)`
 * ✅ `M9 — Flip Score v1 (Economics + ARV) + Responsive Refactor`
 * ✅ `M10 — Billing Foundation (Stripe) + Entitlements (soft)`
-* ⬜ `M11 — Usage Tracking (v1) + Soft Limits`
+* ✅ `M11 — Usage Tracking (v1) + Soft Limits`
 * ⬜ `M12 — Paywall + Enforcement (Hard Limits)`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
@@ -352,11 +352,11 @@ Deve existir:
 
 ### M11 — Usage Tracking (v1) + Soft Limits
 
-* ⬜ T11.1 Definir métricas e período de cobrança (billing cycle do Stripe; fallback calendário)
-* ⬜ T11.2 Implementar contadores (incrementais) por workspace: prospects criados, snapshots criados, docs enviados
-* ⬜ T11.3 UI: exibir uso/limite (barras simples) na página Billing + avisos (80%/100%)
-* ⬜ T11.4 Logs estruturados: eventos `usage_exceeded_soft` (sem bloquear)
-  **Checkpoint alvo:** `CP-12 — Usage Tracking v1 + avisos (sem bloqueio)`
+* ✅ T11.1 Definir métricas e período de cobrança (billing cycle do Stripe; fallback calendário)
+* ✅ T11.2 Implementar contadores (incrementais) por workspace: prospects criados, snapshots criados, docs enviados
+* ✅ T11.3 UI: exibir uso/limite (barras simples) na página Billing + avisos (80%/100%)
+* ✅ T11.4 Logs estruturados: eventos `usage_exceeded_soft` (sem bloquear)
+  **Checkpoint alvo:** `CP-12 — Usage Tracking v1 + avisos (sem bloqueio)` ✅
 
 ### M12 — Paywall + Enforcement (Hard Limits)
 
@@ -970,6 +970,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-10` — 2025-12-23 — PRD: billing por usuário + limite de workspaces por tier (ciclo de cobrança Stripe).
 * `CP-10` — 2025-12-23 — PRD: limites workspaces por tier ajustados (Starter 1 / Pro 5 / Growth 20).
 * `CP-11` — 2025-12-23 — M10 entregue: DB migration `user_billing` (tiers, status, Stripe IDs), Go API endpoints (GET /billing/me, POST internal sync/override), Next.js BFF (checkout, webhook, portal route handlers), billing page + components (BillingStatusCard, UpgradeCTA, TierLimitsCard), server actions. Stripe SDK 20.1.0 integration. 14-day free trial default.
+* `CP-12` — 2025-12-23 — M11 entregue: Usage tracking v1 (prospects/snapshots/docs por workspace por período), Go API endpoint GET /workspaces/:id/usage (derivação de período Stripe/calendário, contagem via queries agregadas, flags 80%/100%), Web UI UsageCard com barras de progresso e avisos de limite, Zod schemas (WorkspaceUsageResponse, UsageMetric), structured logs `usage_exceeded_soft`. Sem enforcement (soft limits only).
 
 ---
 

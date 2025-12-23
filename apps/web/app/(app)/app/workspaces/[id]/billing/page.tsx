@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import {
   WorkspaceSchema,
   UserEntitlementsSchema,
+  WorkspaceUsageResponseSchema,
   type Workspace,
   type UserEntitlements,
+  type WorkspaceUsageResponse,
 } from "@widia/shared";
 
 import { apiFetch } from "@/lib/apiFetch";
@@ -14,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BillingStatusCard } from "./BillingStatusCard";
 import { UpgradeCTA } from "./UpgradeCTA";
 import { TierLimitsCard } from "./TierLimitsCard";
+import { UsageCard } from "./UsageCard";
 
 async function getWorkspace(id: string): Promise<Workspace | null> {
   try {
@@ -33,6 +36,15 @@ async function getEntitlements(): Promise<UserEntitlements | null> {
   }
 }
 
+async function getUsage(workspaceId: string): Promise<WorkspaceUsageResponse | null> {
+  try {
+    const data = await apiFetch<WorkspaceUsageResponse>(`/api/v1/workspaces/${workspaceId}/usage`);
+    return WorkspaceUsageResponseSchema.parse(data);
+  } catch {
+    return null;
+  }
+}
+
 export default async function WorkspaceBillingPage(props: {
   params: Promise<{ id: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -42,9 +54,10 @@ export default async function WorkspaceBillingPage(props: {
   const success = typeof searchParams.success === "string" ? searchParams.success : "";
   const error = typeof searchParams.error === "string" ? searchParams.error : "";
 
-  const [workspace, entitlements] = await Promise.all([
+  const [workspace, entitlements, usage] = await Promise.all([
     getWorkspace(params.id),
     getEntitlements(),
+    getUsage(params.id),
   ]);
 
   if (!workspace) {
@@ -106,6 +119,19 @@ export default async function WorkspaceBillingPage(props: {
             entitlements={entitlements}
             workspaceId={params.id}
           />
+        </CardContent>
+      </Card>
+
+      {/* Usage This Period */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Uso neste Ciclo</CardTitle>
+          <CardDescription>
+            Consumo de recursos neste projeto
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <UsageCard usage={usage} />
         </CardContent>
       </Card>
 
