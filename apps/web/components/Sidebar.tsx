@@ -2,19 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Building2, FolderKanban } from "lucide-react";
+import { Home, Search, Building2, FolderKanban, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useSidebar } from "@/lib/hooks/useSidebar";
 
-const navItems = [
+const staticNavItems = [
   { href: "/app", label: "Dashboard", icon: Home },
   { href: "/app/prospects", label: "Prospecção", icon: Search },
   { href: "/app/properties", label: "Imóveis", icon: Building2 },
   { href: "/app/workspaces", label: "Projetos", icon: FolderKanban },
 ];
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarContent({ onNavigate, activeWorkspaceId }: { onNavigate?: () => void; activeWorkspaceId?: string }) {
   const pathname = usePathname();
 
   return (
@@ -29,7 +29,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
+        {staticNavItems.map((item) => {
           const isActive = pathname === item.href ||
             (item.href !== "/app" && pathname.startsWith(item.href));
           const Icon = item.icon;
@@ -51,12 +51,33 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             </Link>
           );
         })}
+
+        {/* Billing link - only show if workspace is selected */}
+        {activeWorkspaceId && (
+          <Link
+            href={`/app/workspaces/${activeWorkspaceId}/billing`}
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              pathname.includes("/billing")
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            )}
+          >
+            <CreditCard className="h-4 w-4" />
+            Faturamento
+          </Link>
+        )}
       </nav>
     </div>
   );
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  activeWorkspaceId?: string;
+}
+
+export function Sidebar({ activeWorkspaceId }: SidebarProps) {
   const { isOpen, close } = useSidebar();
 
   return (
@@ -64,13 +85,13 @@ export function Sidebar() {
       {/* Mobile drawer */}
       <Sheet open={isOpen} onOpenChange={(open) => !open && close()}>
         <SheetContent side="left" className="w-64 p-0">
-          <SidebarContent onNavigate={close} />
+          <SidebarContent onNavigate={close} activeWorkspaceId={activeWorkspaceId} />
         </SheetContent>
       </Sheet>
 
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex h-full w-64 flex-col border-r border-border bg-background">
-        <SidebarContent />
+        <SidebarContent activeWorkspaceId={activeWorkspaceId} />
       </aside>
     </>
   );

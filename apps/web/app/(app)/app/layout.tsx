@@ -50,7 +50,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen">
-        <Sidebar />
+        <Sidebar activeWorkspaceId={activeWorkspaceId ?? undefined} />
 
         <div className="flex min-w-0 flex-1 flex-col">
           <Header

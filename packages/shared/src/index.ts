@@ -699,3 +699,116 @@ export const RecomputeFlipScoreResponseSchema = z.object({
   }),
 });
 export type RecomputeFlipScoreResponse = z.infer<typeof RecomputeFlipScoreResponseSchema>;
+
+// M10 - Billing & Entitlements
+
+export const BillingTierEnum = z.enum(["starter", "pro", "growth"]);
+export type BillingTier = z.infer<typeof BillingTierEnum>;
+
+export const BillingStatusEnum = z.enum([
+  "active",
+  "trialing",
+  "canceled",
+  "past_due",
+  "unpaid",
+  "incomplete",
+  "incomplete_expired",
+]);
+export type BillingStatus = z.infer<typeof BillingStatusEnum>;
+
+export const TierLimitsSchema = z.object({
+  max_workspaces: z.number(),
+  max_prospects_per_month: z.number(),
+  max_snapshots_per_month: z.number(),
+  max_docs_per_month: z.number(),
+});
+export type TierLimits = z.infer<typeof TierLimitsSchema>;
+
+export const TIER_LIMITS: Record<BillingTier, TierLimits> = {
+  starter: {
+    max_workspaces: 1,
+    max_prospects_per_month: 150,
+    max_snapshots_per_month: 120,
+    max_docs_per_month: 30,
+  },
+  pro: {
+    max_workspaces: 5,
+    max_prospects_per_month: 500,
+    max_snapshots_per_month: 400,
+    max_docs_per_month: 120,
+  },
+  growth: {
+    max_workspaces: 20,
+    max_prospects_per_month: 1500,
+    max_snapshots_per_month: 1200,
+    max_docs_per_month: 400,
+  },
+};
+
+export const UserBillingSchema = z.object({
+  user_id: z.string(),
+  tier: BillingTierEnum,
+  status: BillingStatusEnum,
+  stripe_customer_id: z.string().nullable(),
+  stripe_subscription_id: z.string().nullable(),
+  stripe_price_id: z.string().nullable(),
+  current_period_start: z.string().nullable(),
+  current_period_end: z.string().nullable(),
+  trial_end: z.string().nullable(),
+  cancel_at_period_end: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type UserBilling = z.infer<typeof UserBillingSchema>;
+
+export const UserEntitlementsSchema = z.object({
+  billing: UserBillingSchema,
+  limits: TierLimitsSchema,
+  is_subscribed: z.boolean(),
+  can_access_financing: z.boolean(),
+  can_access_flip_score_v1: z.boolean(),
+});
+export type UserEntitlements = z.infer<typeof UserEntitlementsSchema>;
+
+export const CreateCheckoutRequestSchema = z.object({
+  tier: BillingTierEnum,
+  success_url: z.string().url(),
+  cancel_url: z.string().url(),
+});
+export type CreateCheckoutRequest = z.infer<typeof CreateCheckoutRequestSchema>;
+
+export const CreateCheckoutResponseSchema = z.object({
+  checkout_url: z.string(),
+  session_id: z.string(),
+});
+export type CreateCheckoutResponse = z.infer<typeof CreateCheckoutResponseSchema>;
+
+export const CreatePortalRequestSchema = z.object({
+  return_url: z.string().url(),
+});
+export type CreatePortalRequest = z.infer<typeof CreatePortalRequestSchema>;
+
+export const CreatePortalResponseSchema = z.object({
+  portal_url: z.string(),
+});
+export type CreatePortalResponse = z.infer<typeof CreatePortalResponseSchema>;
+
+export const SyncBillingRequestSchema = z.object({
+  user_id: z.string(),
+  tier: BillingTierEnum,
+  status: BillingStatusEnum,
+  stripe_customer_id: z.string(),
+  stripe_subscription_id: z.string(),
+  stripe_price_id: z.string(),
+  current_period_start: z.string().nullable(),
+  current_period_end: z.string().nullable(),
+  trial_end: z.string().nullable(),
+  cancel_at_period_end: z.boolean(),
+});
+export type SyncBillingRequest = z.infer<typeof SyncBillingRequestSchema>;
+
+export const OverrideBillingRequestSchema = z.object({
+  user_id: z.string(),
+  tier: BillingTierEnum,
+});
+export type OverrideBillingRequest = z.infer<typeof OverrideBillingRequestSchema>;

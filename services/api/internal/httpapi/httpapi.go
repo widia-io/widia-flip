@@ -54,14 +54,24 @@ func NewHandler(deps Deps) http.Handler {
 	protectedMux.HandleFunc("/api/v1/documents", api.handleDocumentsCollection)
 	protectedMux.HandleFunc("/api/v1/documents/", api.handleDocumentsSubroutes)
 
+	// M10 - Billing (protected - requires user auth)
+	protectedMux.HandleFunc("/api/v1/billing/", api.handleBillingSubroutes)
+
 	// Apply auth middleware only to protected routes
 	var protectedHandler http.Handler = protectedMux
 	protectedHandler = authMiddleware(api.tokenVerifier, protectedHandler)
 
-	// Combine public and protected routes
+	// Internal routes (protected by X-Internal-Secret, no JWT auth)
+	internalMux := http.NewServeMux()
+	internalMux.HandleFunc("/api/v1/internal/billing/", api.handleInternalBillingSubroutes)
+	var internalHandler http.Handler = internalMux
+	internalHandler = internalSecretMiddleware(internalHandler)
+
+	// Combine public, protected, and internal routes
 	mainMux := http.NewServeMux()
 	mainMux.Handle("/api/v1/health", publicMux)
 	mainMux.Handle("/api/v1/public/", publicMux)
+	mainMux.Handle("/api/v1/internal/", internalHandler)
 	mainMux.Handle("/", protectedHandler)
 
 	var h http.Handler = mainMux

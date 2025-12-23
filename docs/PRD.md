@@ -50,9 +50,9 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-10 — Flip Score v1 (Economics + ARV)`
-* **Milestone em andamento:** `M9 — Flip Score v1 (CONCLUÍDO)`
-* **Próximo milestone (planejado):** `M10 — Mobile Polish + Optimizations` (a definir)
+* **Current Checkpoint:** `CP-11 — Billing Foundation (Stripe) + Tier ativo (soft)`
+* **Milestone em andamento:** `M10 — Billing Foundation (CONCLUÍDO)`
+* **Próximo milestone (planejado):** `M11 — Usage Tracking (v1) + Soft Limits`
 * **Última atualização:** `2025-12-23`
 
 ## 1.2 Milestones (visão macro)
@@ -67,7 +67,9 @@
 * ✅ `M7 — UI/UX Polish + Extended Features`
 * ✅ `M8 — Flip Score (Prospecção)`
 * ✅ `M9 — Flip Score v1 (Economics + ARV) + Responsive Refactor`
-* ⬜ `M10 — (a definir)`
+* ✅ `M10 — Billing Foundation (Stripe) + Entitlements (soft)`
+* ⬜ `M11 — Usage Tracking (v1) + Soft Limits`
+* ⬜ `M12 — Paywall + Enforcement (Hard Limits)`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
 
@@ -201,6 +203,31 @@ Deve existir:
   * Cards exibem `v0` e `v1` (ou toggle), com breakdown leve.
   * “Atualizar score v1” deve funcionar sem converter para property.
 
+### CP-11 — Billing Foundation (Stripe) + Tier ativo (soft)
+
+Deve existir:
+
+* Stripe Checkout funcional (criar sessão server-side no Next e completar assinatura).
+* Webhook Stripe validado (assinatura) atualizando estado do workspace (tier/status).
+* `user_billing` persistido e retornado pela Go API (entitlements v0).
+* UI simples de billing por workspace (`/app/workspaces/:id/billing`) mostrando plano atual.
+
+### CP-12 — Usage Tracking v1 + avisos (sem bloqueio)
+
+Deve existir:
+
+* Uso medido por período por workspace para: prospects, snapshots, uploads de docs.
+* UI exibindo uso vs limite + avisos (80%/100%), sem bloquear ações.
+* Logs estruturados para excedência de limite (soft) para ajuste de pricing.
+
+### CP-13 — Paywall + Enforcement ativo
+
+Deve existir:
+
+* Enforcement server-side nos endpoints de criação (prospect/snapshot/doc) com erro padronizado.
+* UX de paywall (modal/CTA upgrade) sem quebrar navegação.
+* Estados `past_due/unpaid` tratados (read-only mode).
+
 ---
 
 ## 1.4 Task Board (MVP)
@@ -307,6 +334,38 @@ Deve existir:
   **Checkpoint alvo:** `CP-10 (Flip Score v1) — ALCANÇADO`
 
 ---
+
+## 1.5 Task Board (Pós-MVP: Billing/Tiers)
+
+> Status: ⬜ todo | 🟦 doing | ✅ done | 🟥 blocked
+
+### M10 — Billing Foundation (Stripe) + Entitlements (soft)
+
+* ✅ T10.1 Definir tiers finais + mapping de features/limites (ver seção 10)
+* ✅ T10.2 Modelagem DB: `user_billing` (tier atual + status) + ids Stripe (customer/subscription/price)
+* ✅ T10.3 Web (Next): página `/app/workspaces/:id/billing` (plano atual + CTA upgrade)
+* ✅ T10.4 Web (Next): criar Checkout Session (Stripe) via Route Handler (BFF) e redirect
+* ✅ T10.5 Webhook Stripe (Route Handler): validar assinatura e persistir status do subscription (por user) no Go API
+* ✅ T10.6 Go API: endpoint interno para upsert billing (user_id) + leitura de entitlements
+* ✅ T10.7 Admin override (dev only): endpoint/script para setar tier manualmente em user (para testes)
+  **Checkpoint alvo:** `CP-11 — Billing Foundation (Stripe) + Tier ativo (soft)` ✅
+
+### M11 — Usage Tracking (v1) + Soft Limits
+
+* ⬜ T11.1 Definir métricas e período de cobrança (billing cycle do Stripe; fallback calendário)
+* ⬜ T11.2 Implementar contadores (incrementais) por workspace: prospects criados, snapshots criados, docs enviados
+* ⬜ T11.3 UI: exibir uso/limite (barras simples) na página Billing + avisos (80%/100%)
+* ⬜ T11.4 Logs estruturados: eventos `usage_exceeded_soft` (sem bloquear)
+  **Checkpoint alvo:** `CP-12 — Usage Tracking v1 + avisos (sem bloqueio)`
+
+### M12 — Paywall + Enforcement (Hard Limits)
+
+* ⬜ T12.1 Definir regra de enforcement por ação (criar workspace, prospect, snapshot, upload docs)
+* ⬜ T12.2 Go API: middleware/guards de entitlements por endpoint (retorna `PAYWALL_REQUIRED` / `LIMIT_EXCEEDED`)
+* ⬜ T12.3 Web: tratamento de erro (modal paywall + CTA upgrade) sem quebrar fluxo
+* ⬜ T12.4 Stripe Customer Portal (self-serve: trocar cartão/cancelar/downgrade)
+* ⬜ T12.5 Estados de cobrança: `past_due/unpaid` → read-only mode (não criar novos itens, mas visualizar)
+  **Checkpoint alvo:** `CP-13 — Paywall + Enforcement ativo`
 
 # 2) API & Data Model (para guiar implementação)
 
@@ -907,6 +966,10 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-09` — 2025-12-22 — UI polish prospecção: soft delete c/ undo (migration 0008, restore endpoint), toast feedback (sonner), ordenação client-side (score/recente/preço/R$m²), skeleton loading (Suspense boundary), filtros avançados (chips/limpar/×), microcopy padronizado, FlipScoreBadge c/ label, a11y (aria-labels).
 * `CP-10` — 2025-12-22 — M9 UI: "Análise de Investimento" refactor - new components (MetricDisplay, PremiseCard, PaymentMethodToggle, InvestmentPremisesView), 3-card layout (Objetivo/Tributos/Pagamento), view mode with tooltips, edit mode reorganized with subheadings, static BR tax rates, disabled financing toggle. Visual polish: compacted padding, mobile-first grid (1→2→3 cols), renamed from "Premissas".
 * `CP-10` — 2025-12-23 — M9 entregue: Flip Score v1 economics-based (migration 0009 v1 inputs), Go API viability calc para prospects, score v1 formula (S_econ peso 60%), endpoint recompute?v=1, Web inputs v1 no modal, breakdown ROI/lucro/break-even, guardrails inputs mínimos. Responsive refactor: mobile-first grids, compacted padding, breakpoints otimizados desktop/mobile.
+* `CP-10` — 2025-12-23 — PRD: seção 10 (tiers comerciais) expandida + roadmap M10–M12 (Stripe billing, usage tracking e enforcement).
+* `CP-10` — 2025-12-23 — PRD: billing por usuário + limite de workspaces por tier (ciclo de cobrança Stripe).
+* `CP-10` — 2025-12-23 — PRD: limites workspaces por tier ajustados (Starter 1 / Pro 5 / Growth 20).
+* `CP-11` — 2025-12-23 — M10 entregue: DB migration `user_billing` (tiers, status, Stripe IDs), Go API endpoints (GET /billing/me, POST internal sync/override), Next.js BFF (checkout, webhook, portal route handlers), billing page + components (BillingStatusCard, UpgradeCTA, TierLimitsCard), server actions. Stripe SDK 20.1.0 integration. 14-day free trial default.
 
 ---
 
@@ -916,3 +979,108 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 
 * ⬜ T-FUTURE.1 Job de limpeza: hard delete de prospects com `deleted_at` > 30 dias
 * ⬜ T-FUTURE.2 Ordenação server-side: `GET /prospects?sort=flip_score:desc|created_at:desc|asking_price:asc|price_per_sqm:asc`
+
+---
+
+# 10) Tiers comerciais (interno) + limites iniciais (sem enforcement técnico)
+
+> **Objetivo:** validar internamente o posicionamento comercial sem travar produto com enforcement técnico.
+> **Nota:** limites são metas iniciais, **não** aplicadas via código neste momento.
+
+## 10.1 Tiers propostos
+
+> **Importante:** hoje o produto já tem features “de tiers superiores”. Esta seção define **como vamos vender** e, depois, **como vamos aplicar gating** (M12). Até lá, é só referência interna.
+
+> **Modelo comercial (decisão):** assinatura é **por usuário**. Cada tier define também o **número máximo de workspaces ativos** do usuário.
+
+* **Starter (Ativo)**
+  * Prospecção + Quick Add
+  * Flip Score v0
+  * Property Hub
+  * Viabilidade cash
+  * Snapshots manuais
+
+* **Pro (Em breve)**
+  * Tudo do Starter
+  * Financiamento
+  * Custos
+  * Docs
+  * Timeline
+
+* **Growth (Em breve)**
+  * Tudo do Pro
+  * Flip Score v1 (economics + ARV)
+  * SEO Calculator com gating avançado
+
+## 10.2 Limites de uso iniciais (sem enforcement técnico)
+
+> **Unidade (decisão):**
+>
+> * Assinatura é **por usuário** (Stripe subscription no user).
+> * Limites de **uso** são por **workspace** por **período de cobrança** (billing cycle do Stripe).
+> * Limite de **workspaces** é por **usuário** (contagem absoluta de workspaces ativos, não por período).
+
+* **Workspaces ativos por usuário**
+  * Starter: até **1**
+  * Pro: até **5**
+  * Growth: até **20**
+
+* **Prospects por mês**
+  * Starter: até **150**
+  * Pro: até **500**
+  * Growth: até **1500**
+
+* **Snapshots por mês** (cash + financing somados)
+  * Starter: até **120**
+  * Pro: até **400**
+  * Growth: até **1200**
+
+* **Uploads de documentos por mês**
+  * Starter: até **30**
+  * Pro: até **120**
+  * Growth: até **400**
+
+## 10.3 Métricas (definição objetiva)
+
+* **Workspaces ativos:** contagem de `workspaces` ativos (sem `deleted_at`) onde `created_by_user_id = user_id` (MVP: single-user).
+* **Prospects:** contagem de `prospecting_properties` criados no período.
+* **Snapshots:** contagem de snapshots criados (`analysis_cash_snapshots` + `analysis_financing_snapshots`) no período.
+* **Uploads de docs:** contagem de `documents` criados no período (1 registro = 1 upload finalizado).
+
+## 10.4 Plano para “controle real” via Stripe (marcos)
+
+> **Princípios:**
+>
+> * **BFF permanece obrigatório:** browser nunca fala com a Go API direto.
+> * Go API é a **fonte da verdade** para entitlements (tier + limites) e para enforcement futuro.
+> * Integrações Stripe ficam no **server-side** (Next Route Handlers + webhook).
+> * Assinatura é **por usuário**; workspaces herdam entitlements do owner (MVP: `created_by_user_id`).
+
+### M10 — Billing Foundation (Stripe) + Entitlements (soft)
+
+* Stripe: criar **Products/Prices** para `starter/pro/growth` (mensal) e registrar `price_id` no app.
+* Fluxos:
+  * `/app/workspaces/:id/billing` → “Assinar / trocar plano”
+  * Checkout (Stripe Checkout Session) criado por Route Handler no Next
+  * Webhook Stripe atualiza `workspace_billing` (customer/subscription/status/tier)
+* Entitlements v0:
+  * API retorna `tier` + limites configurados (sem bloquear nada ainda)
+  * UI exibe “Plano atual” (sem paywall)
+
+### M11 — Usage Tracking (v1) + Soft Limits
+
+* Medição de uso por workspace + período:
+  * implementar contadores e/ou queries otimizadas (sem custo alto)
+  * UI mostra **uso vs limite** e avisos de 80%/100% (somente informativo)
+* Observabilidade:
+  * logs/eventos quando exceder limite (para guiar pricing e tuning)
+
+### M12 — Paywall + Enforcement (Hard Limits)
+
+* Enforcement no Go API (server-side):
+  * bloquear apenas ações de criação (workspace/prospect/snapshot/doc) ao exceder limite
+  * leitura continua liberada (view-only) para evitar “app quebrado”
+* Web UX:
+  * modal paywall com CTA “Fazer upgrade” + link para Billing
+* Billing states:
+  * `past_due/unpaid` → modo leitura (e-mail/aviso + self-serve via Stripe Portal)

@@ -9,6 +9,7 @@ type Config struct {
 	Port              string
 	DatabaseURL       string
 	BetterAuthJWKSURL string
+	InternalAPISecret string
 	S3                S3Config
 	LLM               LLMConfig
 }
@@ -32,6 +33,7 @@ func Load() (Config, error) {
 		Port:              getenv("API_PORT", "8080"),
 		DatabaseURL:       os.Getenv("DATABASE_URL"),
 		BetterAuthJWKSURL: getenv("BETTER_AUTH_JWKS_URL", "http://localhost:3000/api/auth/jwks"),
+		InternalAPISecret: os.Getenv("INTERNAL_API_SECRET"),
 		S3: S3Config{
 			Endpoint:       getenv("S3_ENDPOINT", "http://localhost:9000"),
 			AccessKey:      getenv("S3_ACCESS_KEY", "minioadmin"),
