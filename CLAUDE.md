@@ -12,6 +12,25 @@ Technical reference for Claude Code when developing in this repository. For proj
 
 Isso mantém o PRD como source of truth do projeto.
 
+## Branch + PR Workflow (OBRIGATÓRIO)
+
+**Ao iniciar qualquer feature/fix/chore:**
+
+1. Criar branch seguindo o padrão:
+   - `feat/descricao-curta` — nova funcionalidade
+   - `fix/descricao-curta` — correção de bug
+   - `chore/descricao-curta` — manutenção, docs, refactor
+
+2. Fazer commits na branch normalmente
+
+3. **Quando o usuário sinalizar "pronto" ou "finalizado":**
+   ```bash
+   git push -u origin <branch-name>
+   gh pr create --title "..." --body "..."
+   ```
+
+Retornar a URL do PR para o usuário.
+
 ## Quick Start
 
 ```bash
