@@ -23,6 +23,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { MeuFlipLogo } from "@/components/MeuFlipLogo";
+import { AnimatedCounter } from "@/components/landing/AnimatedCounter";
+import { HeroAnimation } from "@/components/landing/HeroAnimation";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { ConceptsSection } from "@/components/landing/ConceptsSection";
 
 export default async function HomePage() {
   const session = await getServerSession();
@@ -34,12 +39,8 @@ export default async function HomePage() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <span className="text-base font-bold text-primary-foreground">
-                W
-              </span>
-            </div>
-            <span className="text-lg font-semibold">Widia Flip</span>
+            <MeuFlipLogo size={36} />
+            <span className="text-lg font-bold">Meu Flip</span>
           </Link>
 
           <nav className="flex items-center gap-3">
@@ -63,7 +64,7 @@ export default async function HomePage() {
                   <Link href="/login">Entrar</Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/login?tab=signup">Testar 7 dias grátis</Link>
+                  <Link href="/login?tab=signup">Testar grátis</Link>
                 </Button>
               </>
             )}
@@ -74,34 +75,42 @@ export default async function HomePage() {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(45%_40%_at_50%_60%,hsl(var(--primary)/0.12),transparent)]" />
-        <div className="mx-auto max-w-6xl px-4 py-20 text-center lg:py-28">
-          <div className="mx-auto max-w-3xl">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-              Pare de perder dinheiro em{" "}
-              <span className="text-primary">flips mal calculados</span>
-            </h1>
-            <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
-              Analise viabilidade, calcule ROI real e gerencie suas operações
-              imobiliárias em um só lugar. Usado por +500 investidores.
-            </p>
-            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Button size="lg" asChild className="w-full sm:w-auto">
-                <Link href={isLoggedIn ? "/app" : "/login?tab=signup"}>
-                  Testar 7 dias grátis
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                asChild
-                className="w-full sm:w-auto"
-              >
-                <a href="#features">
-                  Ver como funciona
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
+        <div className="mx-auto max-w-6xl px-4 py-16 lg:py-24">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+            {/* Texto */}
+            <div className="text-center lg:text-left">
+              <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+                Analise flips em 30 segundos.{" "}
+                <span className="text-primary">Lucre com mais certeza.</span>
+              </h1>
+              <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
+                De prospect a venda: Flip Score, viabilidade cash/financiada,
+                custos e documentos. Tudo num só sistema.
+              </p>
+              <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
+                <Button size="lg" asChild className="w-full sm:w-auto">
+                  <Link href={isLoggedIn ? "/app" : "/login?tab=signup"}>
+                    Testar 7 dias grátis
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  asChild
+                  className="w-full sm:w-auto"
+                >
+                  <a href="#how-it-works">
+                    Ver como funciona
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
+            </div>
+
+            {/* Animação */}
+            <div className="hidden lg:block">
+              <HeroAnimation />
             </div>
           </div>
         </div>
@@ -113,13 +122,17 @@ export default async function HomePage() {
           <div className="flex flex-col items-center justify-center gap-8 sm:flex-row sm:gap-16">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
-              <span className="text-lg font-semibold">+500</span>
-              <span className="text-muted-foreground">flippers ativos</span>
+              <span className="text-lg font-semibold">
+                <AnimatedCounter end={500} prefix="+" />
+              </span>
+              <span className="text-muted-foreground">investidores</span>
             </div>
             <div className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-primary" />
-              <span className="text-lg font-semibold">R$120M+</span>
-              <span className="text-muted-foreground">em imóveis analisados</span>
+              <span className="text-lg font-semibold">
+                <AnimatedCounter end={120} prefix="R$" suffix="M+" />
+              </span>
+              <span className="text-muted-foreground">analisados</span>
             </div>
             <div className="flex items-center gap-2">
               <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
@@ -129,6 +142,14 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* How It Works */}
+      <section id="how-it-works" className="scroll-mt-16">
+        <HowItWorks />
+      </section>
+
+      {/* Concepts */}
+      <ConceptsSection />
 
       {/* Features */}
       <section id="features" className="scroll-mt-16">
@@ -143,81 +164,79 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <Card>
+            <Card className="group hover:shadow-lg transition-all duration-300">
               <CardHeader>
-                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                   <Target className="h-5 w-5 text-primary" />
                 </div>
-                <CardTitle className="text-lg">Flip Score Inteligente</CardTitle>
+                <CardTitle className="text-lg">Nota de Potencial</CardTitle>
                 <CardDescription>
-                  Nota de 0-100 que indica o potencial do negócio. Identifique
-                  oportunidades de alto retorno em segundos.
+                  Saiba em segundos se vale a pena. Score de 0-100 que identifica
+                  oportunidades de alto retorno automaticamente.
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="group hover:shadow-lg transition-all duration-300">
               <CardHeader>
-                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                   <TrendingUp className="h-5 w-5 text-primary" />
                 </div>
-                <CardTitle className="text-lg">Viabilidade em Segundos</CardTitle>
+                <CardTitle className="text-lg">Calculadora Completa</CardTitle>
                 <CardDescription>
-                  ROI, lucro líquido e break-even calculados automaticamente.
-                  Inclui ITBI, registro, corretagem e impostos.
+                  ROI, lucro líquido e break-even com 1 clique. Inclui ITBI,
+                  registro, corretagem e impostos.
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="group hover:shadow-lg transition-all duration-300">
               <CardHeader>
-                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                   <PiggyBank className="h-5 w-5 text-primary" />
                 </div>
-                <CardTitle className="text-lg">
-                  Simulador de Financiamento
-                </CardTitle>
+                <CardTitle className="text-lg">Compare Cenários</CardTitle>
                 <CardDescription>
-                  Compare cenários à vista vs financiado. Simule entrada,
-                  prestações e saldo devedor com precisão.
+                  À vista vs financiado lado a lado. Simule entrada, prestações
+                  e saldo devedor com precisão.
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="group hover:shadow-lg transition-all duration-300">
               <CardHeader>
-                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                   <Calculator className="h-5 w-5 text-primary" />
                 </div>
-                <CardTitle className="text-lg">Gestão de Prospecção</CardTitle>
+                <CardTitle className="text-lg">Pipeline de Leads</CardTitle>
                 <CardDescription>
-                  Organize seus leads com status e filtros inteligentes. Nunca
-                  perca uma oportunidade por falta de organização.
+                  Nunca perca uma oportunidade. Organize seus leads com status e
+                  filtros inteligentes.
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="group hover:shadow-lg transition-all duration-300">
               <CardHeader>
-                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                   <History className="h-5 w-5 text-primary" />
                 </div>
-                <CardTitle className="text-lg">Histórico de Análises</CardTitle>
+                <CardTitle className="text-lg">Histórico Completo</CardTitle>
                 <CardDescription>
-                  Snapshots versionados para acompanhar a evolução de cada
-                  negócio ao longo do tempo.
+                  Snapshots marcam a evolução do negócio. Acompanhe cada análise
+                  ao longo do tempo.
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="group hover:shadow-lg transition-all duration-300">
               <CardHeader>
-                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                   <FileText className="h-5 w-5 text-primary" />
                 </div>
-                <CardTitle className="text-lg">Documentos Centralizados</CardTitle>
+                <CardTitle className="text-lg">Docs Organizados</CardTitle>
                 <CardDescription>
-                  Anexe contratos, fotos e laudos por imóvel. Tudo organizado e
+                  Contratos, fotos e laudos por imóvel. Tudo organizado e
                   acessível em um só lugar.
                 </CardDescription>
               </CardHeader>
@@ -389,6 +408,35 @@ export default async function HomePage() {
 
           <div className="mt-12 space-y-6">
             <div className="rounded-lg border p-6">
+              <h3 className="font-medium">O que é o Flip Score?</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                É uma nota de 0 a 100 que indica o potencial do negócio. O Score v0
+                usa critérios como preço/m², custos de carregamento e liquidez para
+                triagem rápida. O Score v1 adiciona análise econômica completa: ROI,
+                lucro líquido e margem de segurança.
+              </p>
+            </div>
+
+            <div className="rounded-lg border p-6">
+              <h3 className="font-medium">O que é um Snapshot?</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                É uma &ldquo;foto&rdquo; da sua análise em um momento específico. Quando você
+                clica em &ldquo;Salvar análise&rdquo;, criamos um snapshot versionado que fica
+                no histórico. Assim você acompanha como o negócio evoluiu ao longo
+                do tempo.
+              </p>
+            </div>
+
+            <div className="rounded-lg border p-6">
+              <h3 className="font-medium">Posso ter mais de um projeto?</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Sim! Cada projeto (workspace) é independente, com suas próprias
+                configurações de taxas, prospects e histórico. O plano Starter
+                permite 1 projeto, Pro permite 3 e Growth permite até 10.
+              </p>
+            </div>
+
+            <div className="rounded-lg border p-6">
               <h3 className="font-medium">Como funciona o trial de 7 dias?</h3>
               <p className="mt-2 text-sm text-muted-foreground">
                 Você tem acesso completo ao plano escolhido por 7 dias sem
@@ -411,24 +459,6 @@ export default async function HomePage() {
                 Absolutamente. Utilizamos criptografia de ponta e seguimos as
                 melhores práticas de segurança. Seus dados nunca são
                 compartilhados com terceiros.
-              </p>
-            </div>
-
-            <div className="rounded-lg border p-6">
-              <h3 className="font-medium">O que acontece se eu cancelar?</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Você continua com acesso até o fim do período pago. Após isso,
-                sua conta permanece ativa mas com funcionalidades limitadas.
-                Seus dados são mantidos por 90 dias.
-              </p>
-            </div>
-
-            <div className="rounded-lg border p-6">
-              <h3 className="font-medium">Preciso de cartão para testar?</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Sim, pedimos um cartão para iniciar o trial, mas você não será
-                cobrado durante os 7 dias. Cancele a qualquer momento antes do
-                término sem custos.
               </p>
             </div>
           </div>
@@ -460,12 +490,8 @@ export default async function HomePage() {
         <div className="mx-auto max-w-6xl px-4 py-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-                <span className="text-xs font-bold text-primary-foreground">
-                  W
-                </span>
-              </div>
-              <span className="text-sm font-medium">Widia Flip</span>
+              <MeuFlipLogo size={28} />
+              <span className="text-sm font-medium">Meu Flip</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <Link href="/calculator" className="hover:text-foreground">
@@ -479,7 +505,7 @@ export default async function HomePage() {
               </a>
             </div>
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} Widia Flip
+              &copy; {new Date().getFullYear()} Meu Flip
             </p>
           </div>
         </div>

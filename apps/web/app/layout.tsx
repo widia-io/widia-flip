@@ -5,8 +5,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata = {
-  title: "Widia Flip",
-  description: "Gestão inteligente de flips imobiliários",
+  title: "Meu Flip - Analise flips em 30 segundos",
+  description: "Flip Score, viabilidade cash/financiada, custos e documentos. O sistema completo para investidores imobiliários.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
