@@ -140,7 +140,7 @@ export function BillingStatusCard({ entitlements, workspaceId }: BillingStatusCa
 
       {!billing.stripe_customer_id && billing.status === "trialing" && (
         <p className="text-sm text-muted-foreground">
-          Você está no período de teste gratuito de 14 dias.
+          Você está no período de teste gratuito de 7 dias.
         </p>
       )}
     </div>

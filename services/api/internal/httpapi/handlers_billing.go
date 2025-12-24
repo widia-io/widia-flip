@@ -91,7 +91,7 @@ func (a *api) handleGetBillingMe(w http.ResponseWriter, r *http.Request) {
 	billing, err := a.getUserBilling(r.Context(), userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			// Auto-create billing record with 14-day trial
+			// Auto-create billing record with 7-day trial
 			billing, err = a.createDefaultBilling(r.Context(), userID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to create billing record"})
@@ -173,7 +173,7 @@ func (a *api) createDefaultBilling(ctx context.Context, userID string) (userBill
 	err := a.db.QueryRowContext(
 		ctx,
 		`INSERT INTO user_billing (user_id, tier, status, trial_end)
-		 VALUES ($1, 'starter', 'trialing', NOW() + INTERVAL '14 days')
+		 VALUES ($1, 'starter', 'trialing', NOW() + INTERVAL '7 days')
 		 ON CONFLICT (user_id) DO UPDATE SET user_id = EXCLUDED.user_id
 		 RETURNING user_id, tier, status, stripe_customer_id, stripe_subscription_id, stripe_price_id,
 		           current_period_start, current_period_end, trial_end, cancel_at_period_end,

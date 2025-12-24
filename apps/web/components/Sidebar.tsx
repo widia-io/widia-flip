@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Search, Building2, FolderKanban, CreditCard } from "lucide-react";
+import { MeuFlipLogo } from "@/components/MeuFlipLogo";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useSidebar } from "@/lib/hooks/useSidebar";
@@ -21,10 +22,8 @@ function SidebarContent({ onNavigate, activeWorkspaceId }: { onNavigate?: () => 
     <div className="flex h-full flex-col">
       <div className="border-b border-border px-4 py-4">
         <Link href="/app" className="flex items-center gap-2" onClick={onNavigate}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">W</span>
-          </div>
-          <span className="text-lg font-semibold tracking-tight">Widia Flip</span>
+          <MeuFlipLogo size={32} />
+          <span className="text-lg font-semibold tracking-tight">Meu Flip</span>
         </Link>
       </div>
 

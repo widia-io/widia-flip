@@ -5,9 +5,10 @@ import { ArrowRight } from "lucide-react";
 import { getServerSession } from "@/lib/serverAuth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { MeuFlipLogo } from "@/components/MeuFlipLogo";
 
 export const metadata = {
-  title: "Calculadora de Viabilidade | Widia Flip",
+  title: "Calculadora de Viabilidade | Meu Flip",
   description:
     "Calcule a viabilidade do seu flip imobiliário. Descubra lucro, ROI e investimento total em segundos.",
 };
@@ -26,10 +27,8 @@ export default async function CalculatorLayout({
       <header className="border-b border-border">
         <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">W</span>
-            </div>
-            <span className="text-lg font-semibold">Widia Flip</span>
+            <MeuFlipLogo size={32} />
+            <span className="text-lg font-semibold">Meu Flip</span>
           </Link>
           <nav className="flex items-center gap-3">
             <ThemeToggle />
@@ -60,7 +59,7 @@ export default async function CalculatorLayout({
       {/* Footer */}
       <footer className="border-t border-border py-6">
         <div className="mx-auto max-w-5xl px-4 text-center text-sm text-muted-foreground">
-          Widia Flip &copy; {new Date().getFullYear()} — Calculadora de
+          Meu Flip &copy; {new Date().getFullYear()} — Calculadora de
           viabilidade para flips imobiliários
         </div>
       </footer>

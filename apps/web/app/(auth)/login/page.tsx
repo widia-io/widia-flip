@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { signInEmailAction, signUpEmailAction } from "@/lib/actions/auth";
 import { getServerSession } from "@/lib/serverAuth";
+import { MeuFlipLogo } from "@/components/MeuFlipLogo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,10 +27,8 @@ export default async function LoginPage(props: {
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
       {/* Logo */}
       <Link href="/" className="mb-8 flex items-center gap-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-          <span className="text-lg font-bold text-primary-foreground">W</span>
-        </div>
-        <span className="text-xl font-semibold">Widia Flip</span>
+        <MeuFlipLogo size={40} />
+        <span className="text-xl font-semibold">Meu Flip</span>
       </Link>
 
       <Card className="w-full max-w-md">
