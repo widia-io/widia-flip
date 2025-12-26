@@ -26,6 +26,7 @@ type S3Config struct {
 	Bucket         string
 	Region         string
 	ForcePathStyle bool
+	Provider       string // "minio" or "supabase"
 }
 
 func Load() (Config, error) {
@@ -35,12 +36,13 @@ func Load() (Config, error) {
 		BetterAuthJWKSURL: getenv("BETTER_AUTH_JWKS_URL", "http://localhost:3000/api/auth/jwks"),
 		InternalAPISecret: os.Getenv("INTERNAL_API_SECRET"),
 		S3: S3Config{
-			Endpoint:       getenv("S3_ENDPOINT", "http://localhost:9000"),
-			AccessKey:      getenv("S3_ACCESS_KEY", "minioadmin"),
-			SecretKey:      getenv("S3_SECRET_KEY", "minioadmin"),
-			Bucket:         getenv("S3_BUCKET", "widia-flip-dev"),
-			Region:         getenv("S3_REGION", "us-east-1"),
+			Endpoint:       getenv("S3_ENDPOINT", "http://localhost:8000/storage/v1/s3"),
+			AccessKey:      os.Getenv("S3_ACCESS_KEY"),
+			SecretKey:      os.Getenv("S3_SECRET_KEY"),
+			Bucket:         getenv("S3_BUCKET", "documents"),
+			Region:         getenv("S3_REGION", "local"),
 			ForcePathStyle: getenv("S3_FORCE_PATH_STYLE", "true") == "true",
+			Provider:       getenv("STORAGE_PROVIDER", "supabase"),
 		},
 		LLM: LLMConfig{
 			OpenRouterAPIKey: os.Getenv("OPENROUTER_API_KEY"),

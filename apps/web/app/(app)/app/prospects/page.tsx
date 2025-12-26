@@ -46,9 +46,12 @@ export default async function ProspectsPage(props: {
     );
   }
 
-  // Use active workspace or fallback to first
-  const workspaceId = activeWorkspaceId ?? workspaces.items[0].id;
-  const workspace = workspaces.items.find((ws) => ws.id === workspaceId) ?? workspaces.items[0];
+  // Use active workspace if it exists, otherwise fallback to first
+  const validActiveWorkspace = activeWorkspaceId && workspaces.items.some(ws => ws.id === activeWorkspaceId);
+  const workspace = validActiveWorkspace
+    ? workspaces.items.find(ws => ws.id === activeWorkspaceId)!
+    : workspaces.items[0];
+  const workspaceId = workspace.id;
   const workspaceName = workspace.name;
 
   const prospectsResult = await listProspectsAction(workspaceId, {

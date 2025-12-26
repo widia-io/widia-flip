@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -36,6 +37,34 @@ var allowedContentTypes = map[string]bool{
 }
 
 const maxFileSizeBytes = 50 * 1024 * 1024 // 50MB
+
+// transliterateToASCII converts accented characters to ASCII equivalents
+func transliterateToASCII(s string) string {
+	replacements := map[rune]string{
+		'á': "a", 'à': "a", 'ã': "a", 'â': "a", 'ä': "a",
+		'Á': "A", 'À': "A", 'Ã': "A", 'Â': "A", 'Ä': "A",
+		'é': "e", 'è': "e", 'ê': "e", 'ë': "e",
+		'É': "E", 'È': "E", 'Ê': "E", 'Ë': "E",
+		'í': "i", 'ì': "i", 'î': "i", 'ï': "i",
+		'Í': "I", 'Ì': "I", 'Î': "I", 'Ï': "I",
+		'ó': "o", 'ò': "o", 'õ': "o", 'ô': "o", 'ö': "o",
+		'Ó': "O", 'Ò': "O", 'Õ': "O", 'Ô': "O", 'Ö': "O",
+		'ú': "u", 'ù': "u", 'û': "u", 'ü': "u",
+		'Ú': "U", 'Ù': "U", 'Û': "U", 'Ü': "U",
+		'ç': "c", 'Ç': "C",
+		'ñ': "n", 'Ñ': "N",
+		'ý': "y", 'ÿ': "y", 'Ý': "Y",
+	}
+	var result strings.Builder
+	for _, r := range s {
+		if rep, ok := replacements[r]; ok {
+			result.WriteString(rep)
+		} else {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
+}
 
 type document struct {
 	ID              string    `json:"id"`
@@ -216,9 +245,28 @@ func (a *api) handleGetUploadURL(w http.ResponseWriter, r *http.Request) {
 		propertyPart = *req.PropertyID
 	}
 	fileUUID := uuid.New().String()
-	// Sanitize filename
-	safeFilename := strings.ReplaceAll(req.Filename, "/", "_")
+	// Sanitize filename - remove/replace problematic characters
+	safeFilename := req.Filename
+	// Transliterate Portuguese/accented characters to ASCII
+	safeFilename = transliterateToASCII(safeFilename)
+	// Replace path separators
+	safeFilename = strings.ReplaceAll(safeFilename, "/", "_")
 	safeFilename = strings.ReplaceAll(safeFilename, "\\", "_")
+	// Replace URL-problematic characters
+	safeFilename = strings.ReplaceAll(safeFilename, "#", "_")
+	safeFilename = strings.ReplaceAll(safeFilename, "?", "_")
+	safeFilename = strings.ReplaceAll(safeFilename, "&", "_")
+	// Replace multiple spaces/underscores with single
+	spaceRegex := regexp.MustCompile(`[\s_]+`)
+	safeFilename = spaceRegex.ReplaceAllString(safeFilename, "_")
+	// Remove any remaining non-ASCII characters
+	asciiRegex := regexp.MustCompile(`[^\x00-\x7F]+`)
+	safeFilename = asciiRegex.ReplaceAllString(safeFilename, "")
+	// Trim leading/trailing underscores
+	safeFilename = strings.Trim(safeFilename, "_")
+	if safeFilename == "" {
+		safeFilename = "document"
+	}
 	storageKey := fmt.Sprintf("workspaces/%s/properties/%s/docs/%s-%s", req.WorkspaceID, propertyPart, fileUUID, safeFilename)
 
 	// Generate presigned URL
@@ -352,9 +400,9 @@ func (a *api) handleRegisterDocument(w http.ResponseWriter, r *http.Request) {
 	err = a.db.QueryRowContext(
 		r.Context(),
 		`INSERT INTO documents (workspace_id, property_id, cost_item_id, storage_key, storage_provider, filename, content_type, size_bytes, tags)
-		 VALUES ($1, $2, $3, $4, 'minio', $5, $6, $7, $8)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		 RETURNING id, workspace_id, property_id, cost_item_id, storage_key, storage_provider, filename, content_type, size_bytes, tags, created_at`,
-		req.WorkspaceID, req.PropertyID, req.CostItemID, req.StorageKey, req.Filename, req.ContentType, req.SizeBytes, pq.Array(tags),
+		req.WorkspaceID, req.PropertyID, req.CostItemID, req.StorageKey, a.storageProvider, req.Filename, req.ContentType, req.SizeBytes, pq.Array(tags),
 	).Scan(&doc.ID, &doc.WorkspaceID, &doc.PropertyID, &doc.CostItemID, &doc.StorageKey, &doc.StorageProvider, &doc.Filename, &doc.ContentType, &doc.SizeBytes, &tagsArr, &doc.CreatedAt)
 	doc.Tags = tagsArr
 	if err != nil {

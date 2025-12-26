@@ -36,9 +36,9 @@ Retornar a URL do PR para o usuário.
 ```bash
 # 1. Environment
 cp env.example .env
-export $(cat .env | xargs)
+# Edit .env with POSTGRES_PASSWORD from supabase/.env
 
-# 2. Database + migrations
+# 2. Start Supabase (PostgreSQL + Storage + Studio)
 npm run db:up
 npm run db:migrate
 
@@ -47,14 +47,15 @@ npm run dev:api   # Terminal 1: Go API (port 8080)
 npm run dev:web   # Terminal 2: Next.js (port 3000)
 ```
 
-**Postgres:** localhost:5432 (widia/widia)
-**MinIO Console:** http://localhost:9001 (minioadmin/minioadmin)
+**Database:** localhost:54322 (postgres/[password from supabase/.env])
+**Supabase Studio:** http://localhost:3001 (admin/[DASHBOARD_PASSWORD])
+**Kong API Gateway:** http://localhost:8100
 
 ## Stack
 
 - **Frontend:** Next.js 15 (App Router) + React 19 + Tailwind + Better Auth
 - **Backend:** Go 1.22+ REST API
-- **Database:** PostgreSQL 16 + MinIO (S3-compatible)
+- **Database:** Supabase Self-Hosted (PostgreSQL 15 + Supabase Storage)
 - **Shared:** TypeScript + Zod schemas
 
 ## Architecture
@@ -133,12 +134,13 @@ packages/shared/src/index.ts  # Zod schemas (API contracts, validation)
 
 ## Development Commands
 
-### Database
+### Database (Supabase Self-Hosted)
 
 ```bash
-npm run db:up          # Start Postgres + MinIO (compose up)
+npm run db:up          # Start Supabase stack (compose up)
 npm run db:migrate     # Apply migrations (migrate/migrate image)
-npm run db:down        # Stop + remove volumes
+npm run db:down        # Stop containers
+npm run db:legacy:up   # [Legacy] Start old Postgres + MinIO stack
 ```
 
 ### Development
@@ -167,18 +169,20 @@ npm run fmt:api        # gofmt -w
 cd services/api && go test ./...    # No tests exist currently
 ```
 
-## Database
+## Database (Supabase Self-Hosted)
 
 **Migrations location:** `migrations/` directory
 
 **Pattern:** `NNNN_name.{up,down}.sql` (lexicographic order)
 
-**Current state:** 0005_costs_docs_m4 applied
+**Current state:** 0011_better_auth applied
+
+**Supabase config:** `supabase/` directory (docker-compose.yml, .env)
 
 **Workflow:**
-1. Create `migrations/0006_name.up.sql` + `migrations/0006_name.down.sql`
+1. Create `migrations/00NN_name.up.sql` + `migrations/00NN_name.down.sql`
 2. `npm run db:migrate` applies all pending
-3. Verify: `docker exec -it <container> psql -U widia -d widia_flip`
+3. Verify via Supabase Studio: http://localhost:3001
 
 **Down migrations:** Manual via docker if needed (migrate/migrate CLI)
 
@@ -338,28 +342,22 @@ export async function createWorkspace(name: string) {
 
 2. Run: `npm run db:migrate`
 
-3. Verify schema: `docker exec -it widia_flip_db_1 psql -U widia -d widia_flip -c "\d table_name"`
+3. Verify via Supabase Studio (http://localhost:3001) or: `docker exec -it supabase-db psql -U postgres -d postgres -c "\d table_name"`
 
 ## Environment Variables
 
-**Required:**
+**Root `.env`:**
 ```bash
 BETTER_AUTH_SECRET="<32+ chars>"
-DATABASE_URL="postgres://widia:widia@localhost:5432/widia_flip?sslmode=disable"
+DATABASE_URL="postgres://postgres:<POSTGRES_PASSWORD>@localhost:54322/postgres?sslmode=disable"
+S3_ENDPOINT=http://localhost:8100/storage/v1/s3
+S3_ACCESS_KEY=<SERVICE_ROLE_KEY from supabase/.env>
+S3_SECRET_KEY=<SERVICE_ROLE_KEY from supabase/.env>
+S3_BUCKET=documents
+STORAGE_PROVIDER=supabase
 ```
 
-**Optional (dev defaults):**
-```bash
-API_PORT=8080
-GO_API_BASE_URL=http://localhost:8080
-BETTER_AUTH_JWKS_URL=http://localhost:3000/api/auth/jwks
-S3_ENDPOINT=http://localhost:9000
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadmin
-S3_BUCKET=widia-flip-dev
-S3_REGION=us-east-1
-S3_FORCE_PATH_STYLE=true
-```
+**Supabase config:** `supabase/.env` (generated via `utils/generate-keys.sh`)
 
 See `env.example` for Firecrawl/OpenRouter keys.
 
@@ -373,11 +371,11 @@ ExperimentalWarning: The Ed25519 Web Crypto API algorithm...
 
 Expected and harmless. Better Auth uses Ed25519. `dev:api` script suppresses via `NODE_OPTIONS`.
 
-### MinIO Bucket Not Created
+### Supabase Storage Bucket
 
-MinIO auto-creates bucket via compose service `setup-minio` on `db:up`. If missing, manually:
-```bash
-docker exec widia_flip_minio_1 mc mb myminio/widia-flip-dev
+Create bucket via Supabase Studio (http://localhost:3001) or SQL:
+```sql
+INSERT INTO storage.buckets (id, name, public) VALUES ('documents', 'documents', false);
 ```
 
 ### Workspace Isolation
@@ -420,7 +418,10 @@ All responses include `X-Request-ID` header. Use in logs for tracing.
 ### Database Inspection
 
 ```bash
-docker exec -it widia_flip_db_1 psql -U widia -d widia_flip
+# Via Supabase Studio (recommended): http://localhost:3001
+
+# Or via psql
+docker exec -it supabase-db psql -U postgres -d postgres
 \d                              # List tables
 SELECT * FROM workspaces LIMIT 5;
 ```
