@@ -121,6 +121,8 @@ export function DocumentsList({
 
       const { upload_url, storage_key } = urlResult.data!;
 
+      // Use proxy route to avoid CORS issues with direct storage access
+      const proxyUrl = `/api/storage/upload?url=${encodeURIComponent(upload_url)}`;
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.upload.addEventListener("progress", (event) => {
@@ -137,7 +139,7 @@ export function DocumentsList({
           }
         });
         xhr.addEventListener("error", () => reject(new Error("Upload failed")));
-        xhr.open("PUT", upload_url);
+        xhr.open("PUT", proxyUrl);
         xhr.setRequestHeader("Content-Type", file.type);
         xhr.send(file);
       });
