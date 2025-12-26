@@ -14,14 +14,16 @@ type Deps struct {
 	BetterAuthJWKSURL string
 	S3Client          *storage.S3Client
 	LLMClient         *llm.Client
+	StorageProvider   string // "minio" or "supabase"
 }
 
 func NewHandler(deps Deps) http.Handler {
 	api := &api{
-		db:            deps.DB,
-		tokenVerifier: auth.NewJWKSVerifier(deps.BetterAuthJWKSURL),
-		s3Client:      deps.S3Client,
-		llmClient:     deps.LLMClient,
+		db:              deps.DB,
+		tokenVerifier:   auth.NewJWKSVerifier(deps.BetterAuthJWKSURL),
+		s3Client:        deps.S3Client,
+		llmClient:       deps.LLMClient,
+		storageProvider: deps.StorageProvider,
 	}
 
 	// Public routes (no auth required)
@@ -81,8 +83,9 @@ func NewHandler(deps Deps) http.Handler {
 }
 
 type api struct {
-	db            *sql.DB
-	tokenVerifier *auth.JWKSVerifier
-	s3Client      *storage.S3Client
-	llmClient     *llm.Client
+	db              *sql.DB
+	tokenVerifier   *auth.JWKSVerifier
+	s3Client        *storage.S3Client
+	llmClient       *llm.Client
+	storageProvider string
 }

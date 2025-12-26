@@ -352,9 +352,9 @@ func (a *api) handleRegisterDocument(w http.ResponseWriter, r *http.Request) {
 	err = a.db.QueryRowContext(
 		r.Context(),
 		`INSERT INTO documents (workspace_id, property_id, cost_item_id, storage_key, storage_provider, filename, content_type, size_bytes, tags)
-		 VALUES ($1, $2, $3, $4, 'minio', $5, $6, $7, $8)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		 RETURNING id, workspace_id, property_id, cost_item_id, storage_key, storage_provider, filename, content_type, size_bytes, tags, created_at`,
-		req.WorkspaceID, req.PropertyID, req.CostItemID, req.StorageKey, req.Filename, req.ContentType, req.SizeBytes, pq.Array(tags),
+		req.WorkspaceID, req.PropertyID, req.CostItemID, req.StorageKey, a.storageProvider, req.Filename, req.ContentType, req.SizeBytes, pq.Array(tags),
 	).Scan(&doc.ID, &doc.WorkspaceID, &doc.PropertyID, &doc.CostItemID, &doc.StorageKey, &doc.StorageProvider, &doc.Filename, &doc.ContentType, &doc.SizeBytes, &tagsArr, &doc.CreatedAt)
 	doc.Tags = tagsArr
 	if err != nil {

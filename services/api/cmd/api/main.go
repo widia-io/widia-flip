@@ -64,6 +64,7 @@ func main() {
 		BetterAuthJWKSURL: cfg.BetterAuthJWKSURL,
 		S3Client:          s3Client,
 		LLMClient:         llmClient,
+		StorageProvider:   cfg.S3.Provider,
 	})
 
 	srv := &http.Server{

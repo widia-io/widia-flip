@@ -1,0 +1,5 @@
+# Development override - expose DB directly (bypasses pooler)
+services:
+  db:
+    ports:
+      - "54322:5432"
