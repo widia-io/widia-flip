@@ -7,13 +7,9 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Missing upload URL" }, { status: 400 });
   }
 
-  console.log("Proxy upload URL:", uploadUrl);
-
   try {
     const contentType = request.headers.get("content-type") || "application/octet-stream";
     const body = await request.arrayBuffer();
-
-    console.log("Proxy fetching with content-type:", contentType, "body size:", body.byteLength);
 
     const response = await fetch(uploadUrl, {
       method: "PUT",
@@ -26,9 +22,8 @@ export async function PUT(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Storage upload error:", response.status, errorText);
-      console.error("Failed URL was:", uploadUrl);
       return NextResponse.json(
-        { error: `Upload failed: ${response.status}`, details: errorText },
+        { error: `Upload failed: ${response.status}` },
         { status: response.status }
       );
     }

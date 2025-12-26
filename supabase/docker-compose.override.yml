@@ -9,5 +9,3 @@ services:
     environment:
       S3_PROTOCOL_ACCESS_KEY_ID: ${S3_PROTOCOL_ACCESS_KEY_ID:-f8ab3547c377cfed705a10789c17f164}
       S3_PROTOCOL_ACCESS_KEY_SECRET: ${S3_PROTOCOL_ACCESS_KEY_SECRET:-d6c0ce341199666fd13365bb1989e31bba6de2c7edc76d13034b48bdcf401609}
-      # Disable x-forwarded headers for S3 signature validation
-      REQUEST_ALLOW_X_FORWARDED_PATH: "false"
