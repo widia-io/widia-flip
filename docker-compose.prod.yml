@@ -1,0 +1,50 @@
+name: meuflip
+
+services:
+  web:
+    image: ghcr.io/widia-io/meuflip-web:${TAG:-latest}
+    container_name: meuflip-web
+    restart: unless-stopped
+    env_file: .env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.meuflip.rule=Host(`meuflip.com`) || Host(`www.meuflip.com`)"
+      - "traefik.http.routers.meuflip.entrypoints=websecure"
+      - "traefik.http.routers.meuflip.tls.certresolver=letsencrypt"
+      - "traefik.http.services.meuflip.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.meuflip-www.redirectregex.regex=^https://www\\.meuflip\\.com/(.*)"
+      - "traefik.http.middlewares.meuflip-www.redirectregex.replacement=https://meuflip.com/$${1}"
+      - "traefik.http.middlewares.meuflip-www.redirectregex.permanent=true"
+      - "traefik.http.routers.meuflip.middlewares=meuflip-www"
+    networks:
+      - proxy
+      - meuflip
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  api:
+    image: ghcr.io/widia-io/meuflip-api:${TAG:-latest}
+    container_name: meuflip-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - BETTER_AUTH_JWKS_URL=http://web:3000/api/auth/jwks
+    networks:
+      - meuflip
+      - supabase_default
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  proxy:
+    external: true
+  meuflip:
+    driver: bridge
+  supabase_default:
+    external: true
