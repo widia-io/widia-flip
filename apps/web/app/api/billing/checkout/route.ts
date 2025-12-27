@@ -3,13 +3,11 @@ import Stripe from "stripe";
 import { getServerSession } from "@/lib/serverAuth";
 import { CreateCheckoutRequestSchema } from "@widia/shared";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-const PRICE_IDS: Record<string, string | undefined> = {
-  starter: process.env.STRIPE_PRICE_ID_STARTER,
-  pro: process.env.STRIPE_PRICE_ID_PRO,
-  growth: process.env.STRIPE_PRICE_ID_GROWTH,
-};
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY not configured");
+  return new Stripe(key);
+}
 
 export async function POST(request: Request) {
   try {
@@ -36,6 +34,12 @@ export async function POST(request: Request) {
       );
     }
 
+    const PRICE_IDS: Record<string, string | undefined> = {
+      starter: process.env.STRIPE_PRICE_ID_STARTER,
+      pro: process.env.STRIPE_PRICE_ID_PRO,
+      growth: process.env.STRIPE_PRICE_ID_GROWTH,
+    };
+
     const priceId = PRICE_IDS[parsed.data.tier];
     if (!priceId) {
       return NextResponse.json(
@@ -44,6 +48,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const stripe = getStripe();
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],

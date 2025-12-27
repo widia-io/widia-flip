@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY not configured");
+  return new Stripe(key);
+}
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 const GO_API_BASE_URL = process.env.GO_API_BASE_URL ?? "http://localhost:8080";
-const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET!;
 
 // Map price IDs to tier names
 const PRICE_TO_TIER: Record<string, string> = {};
@@ -25,7 +27,11 @@ function getTierFromPriceId(priceId: string): string {
   return PRICE_TO_TIER[priceId] ?? "starter";
 }
 
-async function syncSubscriptionToGoAPI(subscription: Stripe.Subscription) {
+async function syncSubscriptionToGoAPI(
+  subscription: Stripe.Subscription,
+  stripe: Stripe,
+  internalSecret: string
+) {
   const customerId = typeof subscription.customer === "string"
     ? subscription.customer
     : subscription.customer.id;
@@ -34,14 +40,11 @@ async function syncSubscriptionToGoAPI(subscription: Stripe.Subscription) {
   const priceId = subscriptionItem?.price.id ?? "";
   const tier = getTierFromPriceId(priceId);
 
-  // Get period from subscription item (newer Stripe API)
   const currentPeriodStart = subscriptionItem?.current_period_start ?? 0;
   const currentPeriodEnd = subscriptionItem?.current_period_end ?? 0;
 
-  // Get user_id from subscription metadata
   let userId = subscription.metadata?.user_id;
 
-  // If not in subscription metadata, try to get from customer
   if (!userId) {
     try {
       const customer = await stripe.customers.retrieve(customerId);
@@ -85,7 +88,7 @@ async function syncSubscriptionToGoAPI(subscription: Stripe.Subscription) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Internal-Secret": INTERNAL_API_SECRET,
+      "X-Internal-Secret": internalSecret,
     },
     body: JSON.stringify(syncPayload),
   });
@@ -99,6 +102,15 @@ async function syncSubscriptionToGoAPI(subscription: Stripe.Subscription) {
 }
 
 export async function POST(request: Request) {
+  const stripe = getStripe();
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
+
+  if (!webhookSecret || !INTERNAL_API_SECRET) {
+    console.error("[stripe/webhook] Missing required env vars");
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
+
   try {
     const body = await request.text();
     const sig = request.headers.get("stripe-signature");
@@ -124,7 +136,7 @@ export async function POST(request: Request) {
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
-        await syncSubscriptionToGoAPI(subscription);
+        await syncSubscriptionToGoAPI(subscription, stripe, INTERNAL_API_SECRET);
         break;
       }
 

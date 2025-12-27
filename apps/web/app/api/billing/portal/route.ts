@@ -4,7 +4,11 @@ import { getServerSession } from "@/lib/serverAuth";
 import { apiFetch } from "@/lib/apiFetch";
 import { CreatePortalRequestSchema, type UserEntitlements } from "@widia/shared";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY not configured");
+  return new Stripe(key);
+}
 
 export async function POST(request: Request) {
   try {
@@ -31,7 +35,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get user's billing info to get stripe_customer_id
     const entitlements = await apiFetch<UserEntitlements>("/api/v1/billing/me");
 
     if (!entitlements?.billing?.stripe_customer_id) {
@@ -41,6 +44,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const stripe = getStripe();
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: entitlements.billing.stripe_customer_id,
       return_url: parsed.data.return_url,
