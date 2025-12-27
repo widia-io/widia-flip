@@ -59,6 +59,19 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /opt/stacks/meuflip
+            git pull
+
+            # Run migrations
+            source .env
+            docker run --rm \
+              -v "$(pwd)/migrations:/migrations" \
+              --network supabase_default \
+              migrate/migrate:v4.17.1 \
+              -path=/migrations \
+              -database="$DATABASE_URL" \
+              up
+
+            # Deploy
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f
