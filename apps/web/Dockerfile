@@ -11,7 +11,7 @@ COPY apps/web ./apps/web
 
 WORKDIR /app/apps/web
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN rm -f .env.local && touch .env.local && npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
