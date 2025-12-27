@@ -61,6 +61,9 @@ jobs:
             cd /opt/stacks/meuflip
             git pull
 
+            # Login to GHCR
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+
             # Run migrations
             source .env
             docker run --rm \
