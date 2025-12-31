@@ -12,6 +12,8 @@ const pool = new Pool({
 export const auth = betterAuth({
   // Better Auth enforces >= 32 chars.
   secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: process.env.BETTER_AUTH_URL || "https://meuflip.com",
+  trustedOrigins: ["https://meuflip.com", "https://www.meuflip.com"],
   database: pool,
   emailAndPassword: { enabled: true },
   plugins: [
