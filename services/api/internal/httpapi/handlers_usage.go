@@ -67,6 +67,7 @@ func (a *api) getBillingPeriod(ctx context.Context, userID string) (start, end t
 }
 
 // countProspectsInPeriod counts prospects created within the period for a workspace
+// Excludes soft-deleted prospects (deleted_at IS NULL)
 func (a *api) countProspectsInPeriod(ctx context.Context, workspaceID string, periodStart, periodEnd time.Time) (int, error) {
 	var count int
 	err := a.db.QueryRowContext(
@@ -75,7 +76,8 @@ func (a *api) countProspectsInPeriod(ctx context.Context, workspaceID string, pe
 		 FROM prospecting_properties
 		 WHERE workspace_id = $1
 		   AND created_at >= $2
-		   AND created_at < $3`,
+		   AND created_at < $3
+		   AND deleted_at IS NULL`,
 		workspaceID, periodStart, periodEnd,
 	).Scan(&count)
 	return count, err
