@@ -22,9 +22,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SnapshotAnnotations } from "@/components/snapshots/SnapshotAnnotations";
+import { exportSnapshotToPDF } from "@/lib/export";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   prospecting: { label: "Prospecção", variant: "outline" },
@@ -222,10 +223,20 @@ export function SnapshotDetailModal({
         </div>
 
         <DialogFooter className="mt-6 flex-row justify-between sm:justify-between">
-          <SnapshotAnnotations
-            snapshotId={snapshot.id}
-            snapshotType={type}
-          />
+          <div className="flex items-center gap-2">
+            <SnapshotAnnotations
+              snapshotId={snapshot.id}
+              snapshotType={type}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportSnapshotToPDF(snapshot, type)}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exportar PDF
+            </Button>
+          </div>
           {onDelete && (
             <Button
               variant="destructive"

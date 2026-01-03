@@ -9,7 +9,8 @@ import { SnapshotsInfoCard } from "./SnapshotsInfoCard";
 import { SnapshotCompareModal } from "./SnapshotCompareModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { GitCompare } from "lucide-react";
+import { GitCompare, FileDown } from "lucide-react";
+import { exportSnapshotsToCSV } from "@/lib/export";
 
 interface SnapshotsPageClientProps {
   snapshots: UnifiedSnapshot[];
@@ -87,6 +88,16 @@ export function SnapshotsPageClient({
                 >
                   <GitCompare className="h-4 w-4 mr-1" />
                   Comparar
+                </Button>
+              )}
+              {snapshots.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => exportSnapshotsToCSV(snapshots)}
+                >
+                  <FileDown className="h-4 w-4 mr-1" />
+                  CSV
                 </Button>
               )}
             </div>
