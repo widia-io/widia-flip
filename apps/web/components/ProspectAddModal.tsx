@@ -308,7 +308,7 @@ export function ProspectAddModal({ workspaceId, canAccessFlipScoreV1 = false }: 
                 </p>
               )}
               {scrapeSuccess && !scrapeError && (
-                <p className="text-sm text-green-600">
+                <p className="text-sm" style={{ color: "hsl(var(--success))" }}>
                   Dados importados! Revise e complete as informações abaixo.
                 </p>
               )}
