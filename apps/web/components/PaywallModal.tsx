@@ -23,6 +23,7 @@ interface PaywallModalProps {
   onClose: () => void;
   enforcementError: EnforcementErrorResponse | null;
   workspaceId?: string;
+  onFallback?: () => void;
 }
 
 const TIER_LABELS: Record<BillingTier, string> = {
@@ -36,6 +37,7 @@ const METRIC_LABELS: Record<string, string> = {
   prospects: "Prospects",
   snapshots: "Análises Salvas",
   documents: "Documentos",
+  flip_score_v1: "Flip Score v1",
 };
 
 function formatDate(dateString: string): string {
@@ -52,6 +54,7 @@ export function PaywallModal({
   onClose,
   enforcementError,
   workspaceId,
+  onFallback,
 }: PaywallModalProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -113,6 +116,9 @@ export function PaywallModal({
   const nextTier = getNextTier(details.tier as BillingTier);
   const nextTierLimits = nextTier ? TIER_LIMITS[nextTier] : null;
 
+  // Special case: Feature access (flip_score_v1)
+  const isFeatureAccess = details.metric === "flip_score_v1";
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-md">
@@ -121,7 +127,7 @@ export function PaywallModal({
             <AlertTriangle className="h-6 w-6 text-amber-500" />
           </div>
           <DialogTitle className="text-center text-xl">
-            {isPaywallRequired ? "Pagamento Necessário" : "Limite Atingido"}
+            {isFeatureAccess ? "Recurso Premium" : isPaywallRequired ? "Pagamento Necessário" : "Limite Atingido"}
           </DialogTitle>
           <DialogDescription className="text-center">
             {message}
@@ -129,14 +135,31 @@ export function PaywallModal({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Current Status */}
-          <div className="rounded-lg border bg-muted/50 p-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Plano atual</span>
-              <span className="font-medium">{tierLabel}</span>
-            </div>
+          {/* Feature Access Case (flip_score_v1) */}
+          {isFeatureAccess && nextTier && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-center">
+                <p className="text-lg font-semibold text-primary">
+                  Plano {TIER_LABELS[nextTier]}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Desbloqueie o Score v1 com análise de ROI e métricas avançadas
+                </p>
+              </div>
 
-            {isPaywallRequired && details.billing_status && (
+              <div className="text-center text-xs text-muted-foreground">
+                Plano atual: <span className="font-medium">{tierLabel}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Billing Issue Case */}
+          {!isFeatureAccess && isPaywallRequired && details.billing_status && (
+            <div className="rounded-lg border bg-muted/50 p-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Plano atual</span>
+                <span className="font-medium">{tierLabel}</span>
+              </div>
               <div className="mt-2 flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Status</span>
                 <span className="font-medium text-destructive">
@@ -147,10 +170,17 @@ export function PaywallModal({
                       : details.billing_status}
                 </span>
               </div>
-            )}
+            </div>
+          )}
 
-            {isLimitExceeded && details.metric && (
-              <>
+          {/* Limit Exceeded Case */}
+          {isLimitExceeded && details.metric && (
+            <>
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Plano atual</span>
+                  <span className="font-medium">{tierLabel}</span>
+                </div>
                 <div className="mt-2 flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">{metricLabel}</span>
                   <span className="font-medium">
@@ -161,7 +191,6 @@ export function PaywallModal({
                         : "-"}
                   </span>
                 </div>
-
                 {details.period_start && details.period_end && (
                   <div className="mt-2 flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Ciclo</span>
@@ -170,31 +199,30 @@ export function PaywallModal({
                     </span>
                   </div>
                 )}
-              </>
-            )}
-          </div>
+              </div>
 
-          {/* Upgrade Suggestion */}
-          {isLimitExceeded && nextTier && nextTierLimits && (
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-              <p className="text-sm font-medium text-primary">
-                Faça upgrade para {TIER_LABELS[nextTier]}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {details.metric === "workspaces" && (
-                  <>Até {nextTierLimits.max_workspaces} projetos</>
-                )}
-                {details.metric === "prospects" && (
-                  <>Até {nextTierLimits.max_prospects_per_month} prospects/mês</>
-                )}
-                {details.metric === "snapshots" && (
-                  <>Até {nextTierLimits.max_snapshots_per_month} análises/mês</>
-                )}
-                {details.metric === "documents" && (
-                  <>Até {nextTierLimits.max_docs_per_month} documentos/mês</>
-                )}
-              </p>
-            </div>
+              {nextTier && nextTierLimits && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                  <p className="text-sm font-medium text-primary">
+                    Faça upgrade para {TIER_LABELS[nextTier]}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {details.metric === "workspaces" && (
+                      <>Até {nextTierLimits.max_workspaces} projetos</>
+                    )}
+                    {details.metric === "prospects" && (
+                      <>Até {nextTierLimits.max_prospects_per_month} prospects/mês</>
+                    )}
+                    {details.metric === "snapshots" && (
+                      <>Até {nextTierLimits.max_snapshots_per_month} análises/mês</>
+                    )}
+                    {details.metric === "documents" && (
+                      <>Até {nextTierLimits.max_docs_per_month} documentos/mês</>
+                    )}
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           {/* Portal Error */}
@@ -206,27 +234,67 @@ export function PaywallModal({
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button variant="outline" onClick={onClose} disabled={isPending}>
-            Fechar
-          </Button>
-
-          {isPaywallRequired && (
-            <Button onClick={handleOpenPortal} disabled={isPending}>
-              {isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <CreditCard className="mr-2 h-4 w-4" />
+        <div className="flex flex-col gap-3">
+          {/* Feature Access Actions */}
+          {isFeatureAccess && (
+            <>
+              {workspaceId && (
+                <Button onClick={handleUpgrade} disabled={isPending} className="w-full">
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Fazer Upgrade
+                </Button>
               )}
-              Gerenciar Pagamento
-            </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={onClose} disabled={isPending} className="flex-1">
+                  Cancelar
+                </Button>
+                {onFallback && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      onFallback();
+                      onClose();
+                    }}
+                    disabled={isPending}
+                    className="flex-1"
+                  >
+                    Usar Score v0
+                  </Button>
+                )}
+              </div>
+            </>
           )}
 
-          {isLimitExceeded && workspaceId && (
-            <Button onClick={handleUpgrade} disabled={isPending}>
-              <ArrowRight className="mr-2 h-4 w-4" />
-              Fazer Upgrade
-            </Button>
+          {/* Billing Issue Actions */}
+          {!isFeatureAccess && isPaywallRequired && details.billing_status && (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose} disabled={isPending} className="flex-1">
+                Fechar
+              </Button>
+              <Button onClick={handleOpenPortal} disabled={isPending} className="flex-1">
+                {isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CreditCard className="mr-2 h-4 w-4" />
+                )}
+                Gerenciar Pagamento
+              </Button>
+            </div>
+          )}
+
+          {/* Limit Exceeded Actions */}
+          {isLimitExceeded && (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose} disabled={isPending} className="flex-1">
+                Fechar
+              </Button>
+              {workspaceId && (
+                <Button onClick={handleUpgrade} disabled={isPending} className="flex-1">
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Fazer Upgrade
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </DialogContent>
@@ -236,7 +304,7 @@ export function PaywallModal({
 
 // Context for global paywall state
 interface PaywallContextValue {
-  showPaywall: (error: EnforcementErrorResponse, workspaceId?: string) => void;
+  showPaywall: (error: EnforcementErrorResponse, workspaceId?: string, onFallback?: () => void) => void;
   hidePaywall: () => void;
 }
 
@@ -258,19 +326,22 @@ export function PaywallProvider({ children }: PaywallProviderProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<EnforcementErrorResponse | null>(null);
   const [workspaceId, setWorkspaceId] = useState<string | undefined>(undefined);
+  const [fallbackCallback, setFallbackCallback] = useState<(() => void) | undefined>(undefined);
 
-  const showPaywall = useCallback((err: EnforcementErrorResponse, wsId?: string) => {
+  const showPaywall = useCallback((err: EnforcementErrorResponse, wsId?: string, onFallback?: () => void) => {
     setError(err);
     setWorkspaceId(wsId);
+    setFallbackCallback(() => onFallback);
     setOpen(true);
   }, []);
 
   const hidePaywall = useCallback(() => {
     setOpen(false);
-    // Delay clearing error to allow animation
+    // Delay clearing state to allow animation
     setTimeout(() => {
       setError(null);
       setWorkspaceId(undefined);
+      setFallbackCallback(undefined);
     }, 200);
   }, []);
 
@@ -282,6 +353,7 @@ export function PaywallProvider({ children }: PaywallProviderProps) {
         onClose={hidePaywall}
         enforcementError={error}
         workspaceId={workspaceId}
+        onFallback={fallbackCallback}
       />
     </PaywallContext.Provider>
   );

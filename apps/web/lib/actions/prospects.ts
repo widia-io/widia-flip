@@ -209,7 +209,7 @@ export async function updateProspectAction(
 
     // Auto-recalculate flip score when expected_sale_price is set (enables v1 scoring)
     if (data.expected_sale_price != null) {
-      recomputeFlipScoreAction(prospectId, false).catch(() => {
+      recomputeFlipScoreAction(prospectId).catch(() => {
         // Silent fail - score recalc is best-effort
       });
     }

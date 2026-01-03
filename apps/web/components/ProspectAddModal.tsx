@@ -7,6 +7,7 @@ import { Plus, Loader2, MapPin, Home, Building2, DollarSign, User, MessageSquare
 import { type ScrapePropertyResponse } from "@widia/shared";
 import { createProspectAction } from "@/lib/actions/prospects";
 import { usePaywall } from "@/components/PaywallModal";
+import { InvestmentAnalysisFieldset } from "@/components/prospect/InvestmentAnalysisFieldset";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,9 +24,10 @@ import {
 
 interface ProspectAddModalProps {
   workspaceId: string;
+  canAccessFlipScoreV1?: boolean;
 }
 
-export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
+export function ProspectAddModal({ workspaceId, canAccessFlipScoreV1 = false }: ProspectAddModalProps) {
   const router = useRouter();
   const { showPaywall } = usePaywall();
   const [isPending, startTransition] = useTransition();
@@ -59,6 +61,12 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
     broker_name: "",
     broker_phone: "",
     comments: "",
+    // Investment analysis fields (M9 - Flip Score v1)
+    offer_price: "",
+    expected_sale_price: "",
+    renovation_cost_estimate: "",
+    hold_months: "",
+    other_costs_estimate: "",
   });
 
   const resetForm = () => {
@@ -82,6 +90,11 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
       broker_name: "",
       broker_phone: "",
       comments: "",
+      offer_price: "",
+      expected_sale_price: "",
+      renovation_cost_estimate: "",
+      hold_months: "",
+      other_costs_estimate: "",
     });
     setError(null);
     setUrlToScrape("");
@@ -188,6 +201,14 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
     if (formData.broker_name) fd.set("broker_name", formData.broker_name);
     if (formData.broker_phone) fd.set("broker_phone", formData.broker_phone);
     if (formData.comments) fd.set("comments", formData.comments);
+    // Investment analysis fields (only if user has access)
+    if (canAccessFlipScoreV1) {
+      if (formData.offer_price) fd.set("offer_price", formData.offer_price);
+      if (formData.expected_sale_price) fd.set("expected_sale_price", formData.expected_sale_price);
+      if (formData.renovation_cost_estimate) fd.set("renovation_cost_estimate", formData.renovation_cost_estimate);
+      if (formData.hold_months) fd.set("hold_months", formData.hold_months);
+      if (formData.other_costs_estimate) fd.set("other_costs_estimate", formData.other_costs_estimate);
+    }
 
     // Validate at least one field is filled
     const hasValue = Object.entries(formData).some(([key, val]) => {
@@ -512,6 +533,22 @@ export function ProspectAddModal({ workspaceId }: ProspectAddModalProps) {
               </div>
             </div>
           </fieldset>
+
+          {/* Investment Analysis Section (M9 - Flip Score v1) */}
+          <InvestmentAnalysisFieldset
+            canAccess={canAccessFlipScoreV1}
+            formData={{
+              offer_price: formData.offer_price,
+              expected_sale_price: formData.expected_sale_price,
+              renovation_cost_estimate: formData.renovation_cost_estimate,
+              hold_months: formData.hold_months,
+              other_costs_estimate: formData.other_costs_estimate,
+            }}
+            onChange={(field, value) => handleChange(field, value)}
+            disabled={isPending}
+            workspaceId={workspaceId}
+            idPrefix="add-"
+          />
 
           {/* Contact Section */}
           <fieldset className="space-y-4 rounded-lg border p-4">

@@ -35,6 +35,7 @@ interface ProspectGridProps {
   workspaceId: string;
   statusFilter?: string;
   searchQuery?: string;
+  canAccessFlipScoreV1?: boolean;
 }
 
 type SortOption = "score" | "recent" | "price" | "price_per_sqm";
@@ -57,6 +58,7 @@ export function ProspectGrid({
   workspaceId,
   statusFilter,
   searchQuery,
+  canAccessFlipScoreV1 = false,
 }: ProspectGridProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -298,7 +300,7 @@ export function ProspectGrid({
               </Badge>
             )}
           </Button>
-          <ProspectAddModal workspaceId={workspaceId} />
+          <ProspectAddModal workspaceId={workspaceId} canAccessFlipScoreV1={canAccessFlipScoreV1} />
         </div>
 
         {/* Desktop: Full filters bar */}
@@ -339,7 +341,7 @@ export function ProspectGrid({
             )}
           </div>
 
-          <ProspectAddModal workspaceId={workspaceId} />
+          <ProspectAddModal workspaceId={workspaceId} canAccessFlipScoreV1={canAccessFlipScoreV1} />
         </div>
       </div>
 
@@ -403,14 +405,14 @@ export function ProspectGrid({
           </p>
           {!searchQuery && !statusFilter && (
             <div className="mt-6">
-              <ProspectAddModal workspaceId={workspaceId} />
+              <ProspectAddModal workspaceId={workspaceId} canAccessFlipScoreV1={canAccessFlipScoreV1} />
             </div>
           )}
         </div>
       ) : (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
           {sortedProspects.map((prospect) => (
-            <ProspectCard key={prospect.id} prospect={prospect} />
+            <ProspectCard key={prospect.id} prospect={prospect} canAccessFlipScoreV1={canAccessFlipScoreV1} />
           ))}
         </div>
       )}

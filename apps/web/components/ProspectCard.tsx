@@ -38,6 +38,7 @@ import { FlipScoreBadge } from "@/components/FlipScoreBadge";
 
 interface ProspectCardProps {
   prospect: Prospect;
+  canAccessFlipScoreV1?: boolean;
 }
 
 const statusConfig: Record<
@@ -49,7 +50,7 @@ const statusConfig: Record<
   converted: { label: "Convertido", variant: "outline", tooltip: "Já convertido para Imóvel para análise." },
 };
 
-export function ProspectCard({ prospect }: ProspectCardProps) {
+export function ProspectCard({ prospect, canAccessFlipScoreV1 = false }: ProspectCardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showConfirmConvert, setShowConfirmConvert] = useState(false);
@@ -425,6 +426,7 @@ export function ProspectCard({ prospect }: ProspectCardProps) {
         prospect={prospect}
         open={showViewModal}
         onOpenChange={setShowViewModal}
+        canAccessFlipScoreV1={canAccessFlipScoreV1}
       />
     </TooltipProvider>
   );

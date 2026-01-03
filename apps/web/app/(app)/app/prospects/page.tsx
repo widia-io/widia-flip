@@ -4,6 +4,7 @@ import { ListWorkspacesResponseSchema } from "@widia/shared";
 import { ProspectGrid } from "@/components/ProspectGrid";
 import { apiFetch } from "@/lib/apiFetch";
 import { listProspectsAction } from "@/lib/actions/prospects";
+import { getUserEntitlements } from "@/lib/actions/billing";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getActiveWorkspaceId } from "@/lib/workspace";
@@ -54,13 +55,18 @@ export default async function ProspectsPage(props: {
   const workspaceId = workspace.id;
   const workspaceName = workspace.name;
 
-  const prospectsResult = await listProspectsAction(workspaceId, {
-    status: statusFilter,
-    q: searchQuery,
-  });
+  // Fetch prospects and entitlements in parallel
+  const [prospectsResult, entitlements] = await Promise.all([
+    listProspectsAction(workspaceId, {
+      status: statusFilter,
+      q: searchQuery,
+    }),
+    getUserEntitlements(),
+  ]);
 
   const prospects = prospectsResult.data?.items ?? [];
   const error = prospectsResult.error;
+  const canAccessFlipScoreV1 = entitlements?.can_access_flip_score_v1 ?? false;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 sm:px-6 lg:px-8">
@@ -87,6 +93,7 @@ export default async function ProspectsPage(props: {
         workspaceId={workspaceId}
         statusFilter={statusFilter}
         searchQuery={searchQuery}
+        canAccessFlipScoreV1={canAccessFlipScoreV1}
       />
     </div>
   );
