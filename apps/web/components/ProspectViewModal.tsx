@@ -25,7 +25,9 @@ import type { Prospect } from "@widia/shared";
 import { updateProspectAction } from "@/lib/actions/prospects";
 import { recomputeFlipScoreAction } from "@/lib/actions/flip-score";
 import { FlipScoreBadge } from "@/components/FlipScoreBadge";
+import { usePaywall } from "@/components/PaywallModal";
 import { InvestmentPremisesView } from "@/components/prospect/InvestmentPremisesView";
+import { InvestmentAnalysisFieldset } from "@/components/prospect/InvestmentAnalysisFieldset";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +45,7 @@ interface ProspectViewModalProps {
   prospect: Prospect;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  canAccessFlipScoreV1?: boolean;
 }
 
 const statusConfig: Record<
@@ -58,6 +61,7 @@ export function ProspectViewModal({
   prospect,
   open,
   onOpenChange,
+  canAccessFlipScoreV1 = false,
 }: ProspectViewModalProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -65,13 +69,20 @@ export function ProspectViewModal({
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scoreError, setScoreError] = useState<string | null>(null);
+  const { showPaywall } = usePaywall();
 
-  const handleRecomputeScore = async (force: boolean = false) => {
+  const handleRecomputeScore = async (options: { force?: boolean; version?: "v0" | "v1" } = {}) => {
     setScoreError(null);
     setIsScoreRecomputing(true);
     try {
-      const result = await recomputeFlipScoreAction(prospect.id, force);
-      if ("error" in result) {
+      const result = await recomputeFlipScoreAction(prospect.id, options);
+      if ("enforcement" in result && result.enforcement) {
+        // Provide fallback to v0 calculation
+        const handleFallback = () => {
+          handleRecomputeScore({ version: "v0" });
+        };
+        showPaywall(result.enforcement, prospect.workspace_id, handleFallback);
+      } else if ("error" in result) {
         setScoreError(result.error);
       } else {
         router.refresh();
@@ -502,105 +513,20 @@ export function ProspectViewModal({
             </fieldset>
 
             {/* Investment Analysis (M9 - Flip Score v1) */}
-            <fieldset className="space-y-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
-              <legend className="flex items-center gap-2 px-2 text-sm font-medium">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                Análise de Investimento
-                <span className="ml-1 rounded-full bg-primary/20 px-2 py-0.5 text-[10px] text-primary">Score v1</span>
-              </legend>
-              <p className="text-xs text-muted-foreground">
-                Preencha para calcular o Flip Score v1 baseado em ROI.
-              </p>
-
-              {/* Objetivo do Investimento */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-medium text-muted-foreground">Objetivo do Investimento</h4>
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-expected_sale_price">Preço de Venda Esperado (R$)</Label>
-                    <Input
-                      id="edit-expected_sale_price"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={formData.expected_sale_price}
-                      onChange={(e) => handleChange("expected_sale_price", e.target.value)}
-                      placeholder="ARV - After Repair Value"
-                      disabled={isPending}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-renovation_cost_estimate">Custo de Reforma (R$)</Label>
-                    <Input
-                      id="edit-renovation_cost_estimate"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={formData.renovation_cost_estimate}
-                      onChange={(e) => handleChange("renovation_cost_estimate", e.target.value)}
-                      disabled={isPending}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-hold_months">Prazo (meses)</Label>
-                    <Input
-                      id="edit-hold_months"
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={formData.hold_months}
-                      onChange={(e) => handleChange("hold_months", e.target.value)}
-                      placeholder="6"
-                      disabled={isPending}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Tributos e Custos (info only) */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-medium text-muted-foreground">Tributos e Custos</h4>
-                <p className="text-xs text-muted-foreground/70">
-                  Taxas padrão BR: ITBI 3%, Escritura 1%, Corretagem 6%, IR 15%
-                </p>
-              </div>
-
-              {/* Estratégia de Compra */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-medium text-muted-foreground">Estratégia de Compra</h4>
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-offer_price">Valor da Proposta (R$)</Label>
-                    <Input
-                      id="edit-offer_price"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={formData.offer_price}
-                      onChange={(e) => handleChange("offer_price", e.target.value)}
-                      placeholder="Deixe vazio para usar preço pedido"
-                      disabled={isPending}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-other_costs_estimate">Outros Custos (R$)</Label>
-                    <Input
-                      id="edit-other_costs_estimate"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={formData.other_costs_estimate}
-                      onChange={(e) => handleChange("other_costs_estimate", e.target.value)}
-                      placeholder="Taxas, despesas, etc."
-                      disabled={isPending}
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Badge variant="secondary" className="mb-2">À Vista</Badge>
-                  </div>
-                </div>
-              </div>
-            </fieldset>
+            <InvestmentAnalysisFieldset
+              canAccess={canAccessFlipScoreV1}
+              formData={{
+                offer_price: formData.offer_price,
+                expected_sale_price: formData.expected_sale_price,
+                renovation_cost_estimate: formData.renovation_cost_estimate,
+                hold_months: formData.hold_months,
+                other_costs_estimate: formData.other_costs_estimate,
+              }}
+              onChange={(field, value) => handleChange(field, value)}
+              disabled={isPending}
+              workspaceId={prospect.workspace_id}
+              idPrefix="edit-"
+            />
 
             {/* Contact Section */}
             <fieldset className="space-y-4 rounded-lg border p-4">
@@ -755,7 +681,7 @@ export function ProspectViewModal({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleRecomputeScore(false)}
+                  onClick={() => handleRecomputeScore()}
                   disabled={isScoreRecomputing}
                   className="gap-1.5"
                 >
@@ -815,7 +741,7 @@ export function ProspectViewModal({
                       <Button
                         variant="link"
                         size="sm"
-                        onClick={() => handleRecomputeScore(true)}
+                        onClick={() => handleRecomputeScore({ force: true })}
                         disabled={isScoreRecomputing}
                         className="h-auto p-0 text-yellow-700 dark:text-yellow-400"
                       >

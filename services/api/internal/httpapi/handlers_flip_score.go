@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -37,10 +38,11 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 
-	// Parse force param
+	// Parse query params
 	force := r.URL.Query().Get("force") == "true"
+	forceVersion := r.URL.Query().Get("version") // "v0" to force v0 calculation
 
-	log.Printf("flip_score_recompute_start request_id=%s prospect_id=%s user_id=%s force=%v", reqID, prospectID, userID, force)
+	log.Printf("flip_score_recompute_start request_id=%s prospect_id=%s user_id=%s force=%v version=%s", reqID, prospectID, userID, force, forceVersion)
 
 	// Fetch prospect with access check
 	prospect, err := a.getProspectWithFlipScore(r.Context(), prospectID, userID)
@@ -117,7 +119,49 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 		OtherCostsEstimate:     prospect.OtherCostsEstimate,
 	}
 
+	// Check tier restriction for v1 (M12 enforcement)
+	// Skip if user explicitly requested v0
+	if forceVersion != "v0" && flipscore.CanCalculateV1(inputsV1) {
+		var ownerUserID string
+		err := a.db.QueryRowContext(r.Context(),
+			`SELECT created_by_user_id FROM workspaces WHERE id = $1`,
+			prospect.WorkspaceID,
+		).Scan(&ownerUserID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to get workspace owner"})
+			return
+		}
+
+		billing, err := a.getUserBilling(r.Context(), ownerUserID)
+		tier := "starter"
+		if err == nil {
+			tier = billing.Tier
+		} else if err != sql.ErrNoRows {
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check billing"})
+			return
+		}
+
+		if !canAccessFlipScoreV1(tier) {
+			slog.Warn("enforcement_blocked",
+				slog.String("request_id", reqID),
+				slog.String("user_id", userID),
+				slog.String("prospect_id", prospectID),
+				slog.String("action", "flip_score_v1"),
+				slog.String("reason", "tier_restriction"),
+				slog.String("tier", tier),
+			)
+			writeEnforcementError(w, ErrCodePaywallRequired,
+				"Flip Score v1 disponível apenas para planos Pro e Growth.",
+				enforcementDetails{
+					Tier:   tier,
+					Metric: "flip_score_v1",
+				})
+			return
+		}
+	}
+
 	// Auto-detect version: use v1 if inputs are sufficient, else v0
+	// Respect forceVersion param to allow users to explicitly request v0
 	var (
 		finalScore      int
 		scoreVersion    string
@@ -126,7 +170,7 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 		breakdownBytes  []byte
 	)
 
-	if flipscore.CanCalculateV1(inputsV1) {
+	if forceVersion != "v0" && flipscore.CanCalculateV1(inputsV1) {
 		// Get workspace settings for v1 calculation
 		settings, err := a.getWorkspaceCashSettings(r.Context(), prospect.WorkspaceID)
 		if err != nil {
