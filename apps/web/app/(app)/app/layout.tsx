@@ -66,26 +66,24 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const shouldAutoStartTour = preferences && !preferences.feature_tour_completed;
 
   return (
-    <div className="dark">
-      <PaywallProvider>
-        <SidebarProvider>
-          <div className="flex min-h-screen bg-background text-foreground">
-            <Sidebar activeWorkspaceId={activeWorkspaceId ?? undefined} />
+    <PaywallProvider>
+      <SidebarProvider>
+        <div className="flex min-h-screen bg-background text-foreground">
+          <Sidebar activeWorkspaceId={activeWorkspaceId ?? undefined} />
 
-            <div className="flex min-w-0 flex-1 flex-col">
-              <Header
-                userEmail={session.user.email}
-                workspaces={workspaces.items}
-                activeWorkspaceId={activeWorkspaceId}
-              />
-              <main className="flex-1 px-4 py-4 sm:py-6">{children}</main>
-            </div>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <Header
+              userEmail={session.user.email}
+              workspaces={workspaces.items}
+              activeWorkspaceId={activeWorkspaceId}
+            />
+            <main className="flex-1 px-4 py-4 sm:py-6">{children}</main>
           </div>
+        </div>
 
-          {/* Feature Tour */}
-          <FeatureTourWrapper autoStart={shouldAutoStartTour ?? false} />
-        </SidebarProvider>
-      </PaywallProvider>
-    </div>
+        {/* Feature Tour */}
+        <FeatureTourWrapper autoStart={shouldAutoStartTour ?? false} />
+      </SidebarProvider>
+    </PaywallProvider>
   );
 }
