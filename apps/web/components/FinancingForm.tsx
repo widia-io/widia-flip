@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Save, Info } from "lucide-react";
 
-import type { FinancingInputs, FinancingOutputs, FinancingPayment } from "@widia/shared";
+import type { FinancingInputs, FinancingOutputs, FinancingPayment, FinancingAnalysisResponse } from "@widia/shared";
 import {
   updateFinancingAction,
   createFinancingSnapshotAction,
@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
+type EffectiveRates = FinancingAnalysisResponse["effective_rates"];
+
 interface FinancingFormProps {
   propertyId: string;
   workspaceId: string;
@@ -24,6 +26,7 @@ interface FinancingFormProps {
   initialInputs?: FinancingInputs;
   initialPayments?: FinancingPayment[];
   initialOutputs?: FinancingOutputs;
+  initialRates?: EffectiveRates;
 }
 
 export function FinancingForm({
@@ -33,6 +36,7 @@ export function FinancingForm({
   initialInputs,
   initialPayments,
   initialOutputs,
+  initialRates,
 }: FinancingFormProps) {
   const router = useRouter();
   const { showPaywall } = usePaywall();
@@ -58,6 +62,8 @@ export function FinancingForm({
   const [outputs, setOutputs] = useState<FinancingOutputs | null>(
     initialOutputs ?? null,
   );
+
+  const [rates, setRates] = useState<EffectiveRates | undefined>(initialRates);
 
   // Debounced save
   const [debouncedInputs, setDebouncedInputs] = useState(inputs);
@@ -114,6 +120,7 @@ export function FinancingForm({
       } else if (result.data) {
         setError(null);
         setOutputs(result.data.outputs);
+        setRates(result.data.effective_rates);
         if (result.data.plan_id) {
           setPlanId(result.data.plan_id);
         }
@@ -377,7 +384,7 @@ export function FinancingForm({
       />
 
       {/* Outputs */}
-      {outputs && <FinancingOutputsDisplay outputs={outputs} />}
+      {outputs && <FinancingOutputsDisplay outputs={outputs} rates={rates} />}
 
       {/* Save Snapshot Button */}
       <div className="flex justify-end">

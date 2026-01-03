@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { CashSnapshot } from "@widia/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,13 +12,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SnapshotDetailModal } from "@/components/SnapshotDetailModal";
+import { deleteCashSnapshotAction } from "@/lib/actions/properties";
 import { cn } from "@/lib/utils";
 
 interface CashSnapshotHistoryProps {
   snapshots: CashSnapshot[];
+  propertyId: string;
 }
 
-export function CashSnapshotHistory({ snapshots }: CashSnapshotHistoryProps) {
+export function CashSnapshotHistory({ snapshots, propertyId }: CashSnapshotHistoryProps) {
+  const router = useRouter();
+  const [selectedSnapshot, setSelectedSnapshot] = useState<CashSnapshot | null>(null);
+
+  const handleDelete = async () => {
+    if (!selectedSnapshot) return;
+    const result = await deleteCashSnapshotAction(propertyId, selectedSnapshot.id);
+    if (result.success) {
+      setSelectedSnapshot(null);
+      router.refresh();
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -75,7 +92,11 @@ export function CashSnapshotHistory({ snapshots }: CashSnapshotHistoryProps) {
               const isNegative = outputs.net_profit < 0;
 
               return (
-                <TableRow key={snapshot.id}>
+                <TableRow
+                  key={snapshot.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setSelectedSnapshot(snapshot)}
+                >
                   <TableCell className="text-muted-foreground">
                     {formatDate(snapshot.created_at)}
                   </TableCell>
@@ -113,6 +134,14 @@ export function CashSnapshotHistory({ snapshots }: CashSnapshotHistoryProps) {
           </TableBody>
         </Table>
       </CardContent>
+
+      <SnapshotDetailModal
+        snapshot={selectedSnapshot}
+        open={selectedSnapshot !== null}
+        onOpenChange={(open) => !open && setSelectedSnapshot(null)}
+        type="cash"
+        onDelete={handleDelete}
+      />
     </Card>
   );
 }

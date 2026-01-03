@@ -255,3 +255,19 @@ export async function listCashSnapshotsAction(propertyId: string) {
     return { error: message };
   }
 }
+
+export async function deleteCashSnapshotAction(propertyId: string, snapshotId: string) {
+  try {
+    await apiFetch(
+      `/api/v1/properties/${propertyId}/analysis/cash/snapshots/${snapshotId}`,
+      { method: "DELETE" },
+    );
+
+    revalidatePath(`/app/properties/${propertyId}/viability`);
+    return { success: true };
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : "Erro ao excluir snapshot";
+    return { error: message };
+  }
+}

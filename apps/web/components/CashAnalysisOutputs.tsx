@@ -1,15 +1,18 @@
 "use client";
 
-import type { CashOutputs } from "@widia/shared";
+import type { CashOutputs, CashAnalysisResponse } from "@widia/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+type EffectiveRates = CashAnalysisResponse["effective_rates"];
+
 interface CashAnalysisOutputsProps {
   outputs: CashOutputs;
+  rates?: EffectiveRates;
 }
 
-export function CashAnalysisOutputs({ outputs }: CashAnalysisOutputsProps) {
+export function CashAnalysisOutputs({ outputs, rates }: CashAnalysisOutputsProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -20,6 +23,11 @@ export function CashAnalysisOutputs({ outputs }: CashAnalysisOutputsProps) {
 
   const formatPercent = (value: number) => {
     return `${value.toFixed(2)}%`;
+  };
+
+  const formatRateLabel = (label: string, rate?: number) => {
+    if (rate === undefined) return label;
+    return `${label} (${(rate * 100).toFixed(1)}%)`;
   };
 
   return (
@@ -33,9 +41,9 @@ export function CashAnalysisOutputs({ outputs }: CashAnalysisOutputsProps) {
 
       <CardContent>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <OutputItem label="ITBI" value={formatCurrency(outputs.itbi_value)} />
+          <OutputItem label={formatRateLabel("ITBI", rates?.itbi_rate)} value={formatCurrency(outputs.itbi_value)} />
           <OutputItem
-            label="Registro"
+            label={formatRateLabel("Registro", rates?.registry_rate)}
             value={formatCurrency(outputs.registry_value)}
           />
           <OutputItem
@@ -48,7 +56,7 @@ export function CashAnalysisOutputs({ outputs }: CashAnalysisOutputsProps) {
             highlight
           />
           <OutputItem
-            label="Corretagem"
+            label={formatRateLabel("Corretagem", rates?.broker_rate)}
             value={formatCurrency(outputs.broker_fee)}
           />
           <OutputItem
@@ -57,7 +65,7 @@ export function CashAnalysisOutputs({ outputs }: CashAnalysisOutputsProps) {
             variant={outputs.gross_profit > 0 ? "positive" : outputs.gross_profit < 0 ? "negative" : "default"}
           />
           <OutputItem
-            label="Imposto PJ"
+            label={formatRateLabel("Imposto PJ", rates?.pj_tax_rate)}
             value={formatCurrency(outputs.pj_tax_value)}
           />
           <OutputItem

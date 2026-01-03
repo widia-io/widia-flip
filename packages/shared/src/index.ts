@@ -245,9 +245,18 @@ export const CashOutputsSchema = z.object({
 });
 export type CashOutputs = z.infer<typeof CashOutputsSchema>;
 
+export const EffectiveRatesSchema = z.object({
+  itbi_rate: z.number(),
+  registry_rate: z.number(),
+  broker_rate: z.number(),
+  pj_tax_rate: z.number(),
+});
+export type EffectiveRates = z.infer<typeof EffectiveRatesSchema>;
+
 export const CashAnalysisResponseSchema = z.object({
   inputs: CashInputsSchema,
   outputs: CashOutputsSchema,
+  effective_rates: EffectiveRatesSchema,
 });
 export type CashAnalysisResponse = z.infer<typeof CashAnalysisResponseSchema>;
 
@@ -263,6 +272,7 @@ export const CashSnapshotSchema = z.object({
   id: z.string(),
   inputs: CashInputsSchema,
   outputs: CashOutputsSchema,
+  effective_rates: EffectiveRatesSchema.optional(),
   created_at: z.string(),
 });
 export type CashSnapshot = z.infer<typeof CashSnapshotSchema>;
@@ -329,6 +339,7 @@ export const FinancingAnalysisResponseSchema = z.object({
   inputs: FinancingInputsSchema,
   payments: z.array(FinancingPaymentSchema),
   outputs: FinancingOutputsSchema,
+  effective_rates: EffectiveRatesSchema,
 });
 export type FinancingAnalysisResponse = z.infer<typeof FinancingAnalysisResponseSchema>;
 
@@ -364,6 +375,7 @@ export const FinancingSnapshotSchema = z.object({
   inputs: FinancingInputsSchema,
   payments: z.array(FinancingPaymentSchema),
   outputs: FinancingOutputsSchema,
+  effective_rates: EffectiveRatesSchema.optional(),
   created_at: z.string(),
 });
 export type FinancingSnapshot = z.infer<typeof FinancingSnapshotSchema>;
@@ -937,14 +949,6 @@ export const PropertyRatesSchema = z.object({
   pj_tax_rate: z.number().min(0).max(1).nullable(),
 });
 export type PropertyRates = z.infer<typeof PropertyRatesSchema>;
-
-export const EffectiveRatesSchema = z.object({
-  itbi_rate: z.number(),
-  registry_rate: z.number(),
-  broker_rate: z.number(),
-  pj_tax_rate: z.number(),
-});
-export type EffectiveRates = z.infer<typeof EffectiveRatesSchema>;
 
 export const PropertyRatesResponseSchema = z.object({
   custom: PropertyRatesSchema,

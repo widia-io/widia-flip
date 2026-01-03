@@ -42,9 +42,10 @@ export default async function PropertyViabilityPage({
         workspaceId={property.workspace_id}
         initialInputs={analysis?.inputs}
         initialOutputs={analysis?.outputs}
+        initialRates={analysis?.effective_rates}
       />
 
-      <CashSnapshotHistory snapshots={snapshots} />
+      <CashSnapshotHistory snapshots={snapshots} propertyId={id} />
     </div>
   );
 }

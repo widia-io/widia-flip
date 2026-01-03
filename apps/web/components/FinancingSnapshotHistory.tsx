@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { FinancingSnapshot } from "@widia/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,13 +12,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SnapshotDetailModal } from "@/components/SnapshotDetailModal";
+import { deleteFinancingSnapshotAction } from "@/lib/actions/financing";
 import { cn } from "@/lib/utils";
 
 interface FinancingSnapshotHistoryProps {
   snapshots: FinancingSnapshot[];
+  propertyId: string;
 }
 
-export function FinancingSnapshotHistory({ snapshots }: FinancingSnapshotHistoryProps) {
+export function FinancingSnapshotHistory({ snapshots, propertyId }: FinancingSnapshotHistoryProps) {
+  const router = useRouter();
+  const [selectedSnapshot, setSelectedSnapshot] = useState<FinancingSnapshot | null>(null);
+
+  const handleDelete = async () => {
+    if (!selectedSnapshot) return;
+    const result = await deleteFinancingSnapshotAction(propertyId, selectedSnapshot.id);
+    if (result.success) {
+      setSelectedSnapshot(null);
+      router.refresh();
+    }
+  };
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -74,7 +90,11 @@ export function FinancingSnapshotHistory({ snapshots }: FinancingSnapshotHistory
               const isNegative = outputs.net_profit < 0;
 
               return (
-                <TableRow key={snapshot.id}>
+                <TableRow
+                  key={snapshot.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setSelectedSnapshot(snapshot)}
+                >
                   <TableCell className="text-muted-foreground">
                     {formatDate(snapshot.created_at)}
                   </TableCell>
@@ -108,6 +128,14 @@ export function FinancingSnapshotHistory({ snapshots }: FinancingSnapshotHistory
           </TableBody>
         </Table>
       </CardContent>
+
+      <SnapshotDetailModal
+        snapshot={selectedSnapshot}
+        open={selectedSnapshot !== null}
+        onOpenChange={(open) => !open && setSelectedSnapshot(null)}
+        type="financing"
+        onDelete={handleDelete}
+      />
     </Card>
   );
 }

@@ -238,6 +238,26 @@ func (a *api) handleUpdatePropertyRates(w http.ResponseWriter, r *http.Request, 
 	})
 }
 
+// settingsToRates converts CashSettings to effectiveRates for API response
+func settingsToRates(s viability.CashSettings) effectiveRates {
+	return effectiveRates{
+		ITBIRate:     s.ITBIRate,
+		RegistryRate: s.RegistryRate,
+		BrokerRate:   s.BrokerRate,
+		PJTaxRate:    s.PJTaxRate,
+	}
+}
+
+// financingSettingsToRates converts FinancingSettings to effectiveRates for API response
+func financingSettingsToRates(s viability.FinancingSettings) effectiveRates {
+	return effectiveRates{
+		ITBIRate:     s.ITBIRate,
+		RegistryRate: s.RegistryRate,
+		BrokerRate:   s.BrokerRate,
+		PJTaxRate:    s.PJTaxRate,
+	}
+}
+
 // getEffectivePropertySettings fetches workspace settings and merges with property-level overrides
 func (a *api) getEffectivePropertySettings(ctx context.Context, propertyID, workspaceID string) (viability.CashSettings, error) {
 	// Get workspace defaults

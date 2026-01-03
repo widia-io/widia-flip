@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
 
-import type { CashInputs, CashOutputs } from "@widia/shared";
+import type { CashInputs, CashOutputs, CashAnalysisResponse } from "@widia/shared";
 import { updateCashAnalysisAction, createCashSnapshotAction } from "@/lib/actions/properties";
 import { usePaywall } from "@/components/PaywallModal";
 import { CashAnalysisOutputs } from "@/components/CashAnalysisOutputs";
@@ -13,11 +13,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
+type EffectiveRates = CashAnalysisResponse["effective_rates"];
+
 interface CashAnalysisFormProps {
   propertyId: string;
   workspaceId: string;
   initialInputs?: CashInputs;
   initialOutputs?: CashOutputs;
+  initialRates?: EffectiveRates;
 }
 
 export function CashAnalysisForm({
@@ -25,6 +28,7 @@ export function CashAnalysisForm({
   workspaceId,
   initialInputs,
   initialOutputs,
+  initialRates,
 }: CashAnalysisFormProps) {
   const router = useRouter();
   const { showPaywall } = usePaywall();
@@ -43,6 +47,8 @@ export function CashAnalysisForm({
   const [outputs, setOutputs] = useState<CashOutputs | null>(
     initialOutputs ?? null,
   );
+
+  const [rates, setRates] = useState<EffectiveRates | undefined>(initialRates);
 
   // Debounced save
   const [debouncedInputs, setDebouncedInputs] = useState(inputs);
@@ -81,6 +87,7 @@ export function CashAnalysisForm({
       } else if (result.data) {
         setError(null);
         setOutputs(result.data.outputs);
+        setRates(result.data.effective_rates);
       }
     });
   }, [debouncedInputs, propertyId]);
@@ -188,7 +195,7 @@ export function CashAnalysisForm({
       </Card>
 
       {/* Outputs */}
-      {outputs && <CashAnalysisOutputs outputs={outputs} />}
+      {outputs && <CashAnalysisOutputs outputs={outputs} rates={rates} />}
 
       {/* Save Snapshot Button */}
       <div className="flex justify-end">

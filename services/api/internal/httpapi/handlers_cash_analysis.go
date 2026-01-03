@@ -32,15 +32,17 @@ type cashOutputs struct {
 }
 
 type cashAnalysisResponse struct {
-	Inputs  cashInputs  `json:"inputs"`
-	Outputs cashOutputs `json:"outputs"`
+	Inputs         cashInputs     `json:"inputs"`
+	Outputs        cashOutputs    `json:"outputs"`
+	EffectiveRates effectiveRates `json:"effective_rates"`
 }
 
 type cashSnapshot struct {
-	ID        string          `json:"id"`
-	Inputs    json.RawMessage `json:"inputs"`
-	Outputs   json.RawMessage `json:"outputs"`
-	CreatedAt time.Time       `json:"created_at"`
+	ID             string          `json:"id"`
+	Inputs         json.RawMessage `json:"inputs"`
+	Outputs        json.RawMessage `json:"outputs"`
+	EffectiveRates json.RawMessage `json:"effective_rates,omitempty"`
+	CreatedAt      time.Time       `json:"created_at"`
 }
 
 type listCashSnapshotsResponse struct {
@@ -86,6 +88,17 @@ func (a *api) handlePropertyCashAnalysis(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
+	// /api/v1/properties/:id/analysis/cash/snapshots/:snapshotId
+	if len(subparts) == 2 && subparts[0] == "snapshots" {
+		snapshotID := subparts[1]
+		if r.Method != http.MethodDelete {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		a.handleDeleteCashSnapshot(w, r, propertyID, snapshotID)
+		return
+	}
+
 	w.WriteHeader(http.StatusNotFound)
 }
 
@@ -115,6 +128,13 @@ func (a *api) handleGetCashAnalysis(w http.ResponseWriter, r *http.Request, prop
 		return
 	}
 
+	// Get effective settings (property-level overrides + workspace fallback)
+	settings, err := a.getEffectivePropertySettings(r.Context(), propertyID, workspaceID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch settings"})
+		return
+	}
+
 	// Get current inputs
 	var inputs cashInputs
 	err = a.db.QueryRowContext(
@@ -127,28 +147,25 @@ func (a *api) handleGetCashAnalysis(w http.ResponseWriter, r *http.Request, prop
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// Return empty inputs with partial outputs
-			resp := cashAnalysisResponse{
-				Inputs:  inputs,
-				Outputs: cashOutputs{IsPartial: true},
-			}
-			writeJSON(w, http.StatusOK, resp)
+			writeJSON(w, http.StatusOK, cashAnalysisResponse{
+				Inputs:         inputs,
+				Outputs:        cashOutputs{IsPartial: true},
+				EffectiveRates: settingsToRates(settings),
+			})
 			return
 		}
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch analysis"})
 		return
 	}
 
-	// Get effective settings (property-level overrides + workspace fallback)
-	settings, err := a.getEffectivePropertySettings(r.Context(), propertyID, workspaceID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch settings"})
-		return
-	}
-
 	// Calculate outputs
 	outputs := a.calculateCashOutputs(inputs, settings)
 
-	writeJSON(w, http.StatusOK, cashAnalysisResponse{Inputs: inputs, Outputs: outputs})
+	writeJSON(w, http.StatusOK, cashAnalysisResponse{
+		Inputs:         inputs,
+		Outputs:        outputs,
+		EffectiveRates: settingsToRates(settings),
+	})
 }
 
 func (a *api) handleUpdateCashAnalysis(w http.ResponseWriter, r *http.Request, propertyID string) {
@@ -234,7 +251,11 @@ func (a *api) handleUpdateCashAnalysis(w http.ResponseWriter, r *http.Request, p
 	// Calculate outputs
 	outputs := a.calculateCashOutputs(inputs, settings)
 
-	writeJSON(w, http.StatusOK, cashAnalysisResponse{Inputs: inputs, Outputs: outputs})
+	writeJSON(w, http.StatusOK, cashAnalysisResponse{
+		Inputs:         inputs,
+		Outputs:        outputs,
+		EffectiveRates: settingsToRates(settings),
+	})
 }
 
 func (a *api) handleCreateCashSnapshot(w http.ResponseWriter, r *http.Request, propertyID string) {
@@ -300,15 +321,16 @@ func (a *api) handleCreateCashSnapshot(w http.ResponseWriter, r *http.Request, p
 	// Create snapshot
 	inputsJSON, _ := json.Marshal(inputs)
 	outputsJSON, _ := json.Marshal(outputs)
+	ratesJSON, _ := json.Marshal(settingsToRates(settings))
 
 	var snapshotID string
 	var createdAt time.Time
 	err = a.db.QueryRowContext(
 		r.Context(),
-		`INSERT INTO analysis_cash_snapshots (property_id, workspace_id, inputs, outputs)
-		 VALUES ($1, $2, $3, $4)
+		`INSERT INTO analysis_cash_snapshots (property_id, workspace_id, inputs, outputs, effective_rates)
+		 VALUES ($1, $2, $3, $4, $5)
 		 RETURNING id, created_at`,
-		propertyID, workspaceID, inputsJSON, outputsJSON,
+		propertyID, workspaceID, inputsJSON, outputsJSON, ratesJSON,
 	).Scan(&snapshotID, &createdAt)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to create snapshot"})
@@ -353,7 +375,7 @@ func (a *api) handleListCashSnapshots(w http.ResponseWriter, r *http.Request, pr
 
 	rows, err := a.db.QueryContext(
 		r.Context(),
-		`SELECT id, inputs, outputs, created_at
+		`SELECT id, inputs, outputs, effective_rates, created_at
 		 FROM analysis_cash_snapshots
 		 WHERE property_id = $1
 		 ORDER BY created_at DESC
@@ -369,15 +391,66 @@ func (a *api) handleListCashSnapshots(w http.ResponseWriter, r *http.Request, pr
 	items := make([]cashSnapshot, 0)
 	for rows.Next() {
 		var s cashSnapshot
-		err := rows.Scan(&s.ID, &s.Inputs, &s.Outputs, &s.CreatedAt)
+		var rates sql.NullString
+		err := rows.Scan(&s.ID, &s.Inputs, &s.Outputs, &rates, &s.CreatedAt)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan snapshot"})
 			return
+		}
+		if rates.Valid {
+			s.EffectiveRates = json.RawMessage(rates.String)
 		}
 		items = append(items, s)
 	}
 
 	writeJSON(w, http.StatusOK, listCashSnapshotsResponse{Items: items})
+}
+
+func (a *api) handleDeleteCashSnapshot(w http.ResponseWriter, r *http.Request, propertyID, snapshotID string) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	// Check access
+	var workspaceID string
+	err := a.db.QueryRowContext(
+		r.Context(),
+		`SELECT p.workspace_id
+		 FROM properties p
+		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
+		 WHERE p.id = $1 AND m.user_id = $2`,
+		propertyID, userID,
+	).Scan(&workspaceID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "property not found"})
+			return
+		}
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check property"})
+		return
+	}
+
+	// Delete snapshot (only if it belongs to this property and workspace)
+	result, err := a.db.ExecContext(
+		r.Context(),
+		`DELETE FROM analysis_cash_snapshots
+		 WHERE id = $1 AND property_id = $2 AND workspace_id = $3`,
+		snapshotID, propertyID, workspaceID,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to delete snapshot"})
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "snapshot not found"})
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *api) getWorkspaceCashSettings(ctx context.Context, workspaceID string) (viability.CashSettings, error) {
