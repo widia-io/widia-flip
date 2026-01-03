@@ -7,6 +7,7 @@ import type {
   ListAnnotationsResponse,
   SnapshotAnnotation,
   SnapshotType,
+  CompareSnapshotsResponse,
 } from "@widia/shared";
 
 import { apiFetch } from "@/lib/apiFetch";
@@ -115,6 +116,21 @@ export async function deleteAnnotationAction(annotationId: string) {
     return { success: true };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Erro ao deletar anotação";
+    return { error: message };
+  }
+}
+
+export async function compareSnapshotsAction(
+  ids: [string, string],
+  types: [SnapshotType, SnapshotType],
+) {
+  try {
+    const result = await apiFetch<CompareSnapshotsResponse>(
+      `/api/v1/snapshots/compare?ids=${ids.join(",")}&types=${types.join(",")}`,
+    );
+    return { data: result };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Erro ao comparar análises";
     return { error: message };
   }
 }

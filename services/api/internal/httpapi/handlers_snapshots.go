@@ -57,6 +57,23 @@ type updateAnnotationRequest struct {
 	Note string `json:"note"`
 }
 
+// Full snapshot for comparison
+type fullSnapshot struct {
+	ID             string                 `json:"id"`
+	PropertyID     string                 `json:"property_id"`
+	PropertyName   *string                `json:"property_name"`
+	SnapshotType   string                 `json:"snapshot_type"`
+	StatusPipeline *string                `json:"status_pipeline,omitempty"`
+	Inputs         map[string]interface{} `json:"inputs"`
+	Outputs        map[string]interface{} `json:"outputs"`
+	Rates          map[string]interface{} `json:"rates,omitempty"`
+	CreatedAt      time.Time              `json:"created_at"`
+}
+
+type compareSnapshotsResponse struct {
+	Snapshots []fullSnapshot `json:"snapshots"`
+}
+
 func (a *api) handleSnapshotsCollection(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -69,6 +86,17 @@ func (a *api) handleSnapshotsCollection(w http.ResponseWriter, r *http.Request) 
 func (a *api) handleSnapshotsSubroutes(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/snapshots/")
 	parts := strings.Split(path, "/")
+
+	// /api/v1/snapshots/compare
+	if len(parts) == 1 && parts[0] == "compare" {
+		switch r.Method {
+		case http.MethodGet:
+			a.handleCompareSnapshots(w, r)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+		return
+	}
 
 	// /api/v1/snapshots/annotations
 	if len(parts) == 1 && parts[0] == "annotations" {
@@ -505,4 +533,111 @@ func (a *api) handleDeleteAnnotation(w http.ResponseWriter, r *http.Request, ann
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *api) handleCompareSnapshots(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	idsParam := r.URL.Query().Get("ids")
+	typesParam := r.URL.Query().Get("types")
+
+	if idsParam == "" || typesParam == "" {
+		writeError(w, http.StatusBadRequest, apiError{Code: "INVALID_PARAMS", Message: "ids and types query params required"})
+		return
+	}
+
+	ids := strings.Split(idsParam, ",")
+	types := strings.Split(typesParam, ",")
+
+	if len(ids) != 2 || len(types) != 2 {
+		writeError(w, http.StatusBadRequest, apiError{Code: "INVALID_PARAMS", Message: "exactly 2 ids and types required"})
+		return
+	}
+
+	snapshots := make([]fullSnapshot, 0, 2)
+
+	for i := 0; i < 2; i++ {
+		snapshotID := strings.TrimSpace(ids[i])
+		snapshotType := strings.TrimSpace(types[i])
+
+		if snapshotType != "cash" && snapshotType != "financing" {
+			writeError(w, http.StatusBadRequest, apiError{Code: "INVALID_PARAMS", Message: "type must be cash or financing"})
+			return
+		}
+
+		var snapshot fullSnapshot
+		var inputsJSON, outputsJSON, ratesJSON []byte
+		var workspaceID string
+
+		if snapshotType == "cash" {
+			err := a.db.QueryRowContext(r.Context(),
+				`SELECT s.id, s.property_id, COALESCE(p.address, p.neighborhood), s.workspace_id,
+				        s.status_pipeline, s.inputs, s.outputs, s.effective_rates, s.created_at
+				 FROM flip.analysis_cash_snapshots s
+				 JOIN flip.properties p ON p.id = s.property_id
+				 JOIN flip.workspace_memberships m ON m.workspace_id = s.workspace_id
+				 WHERE s.id = $1 AND m.user_id = $2`,
+				snapshotID, userID,
+			).Scan(&snapshot.ID, &snapshot.PropertyID, &snapshot.PropertyName, &workspaceID,
+				&snapshot.StatusPipeline, &inputsJSON, &outputsJSON, &ratesJSON, &snapshot.CreatedAt)
+
+			if err != nil {
+				if err == sql.ErrNoRows {
+					writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "snapshot not found: " + snapshotID})
+					return
+				}
+				log.Printf("ERROR: failed to fetch cash snapshot: %v (id=%s)", err, snapshotID)
+				writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch snapshot"})
+				return
+			}
+		} else {
+			err := a.db.QueryRowContext(r.Context(),
+				`SELECT s.id, s.property_id, COALESCE(p.address, p.neighborhood), s.workspace_id,
+				        s.status_pipeline, s.inputs_json, s.outputs_json, s.effective_rates, s.created_at
+				 FROM flip.analysis_financing_snapshots s
+				 JOIN flip.properties p ON p.id = s.property_id
+				 JOIN flip.workspace_memberships m ON m.workspace_id = s.workspace_id
+				 WHERE s.id = $1 AND m.user_id = $2`,
+				snapshotID, userID,
+			).Scan(&snapshot.ID, &snapshot.PropertyID, &snapshot.PropertyName, &workspaceID,
+				&snapshot.StatusPipeline, &inputsJSON, &outputsJSON, &ratesJSON, &snapshot.CreatedAt)
+
+			if err != nil {
+				if err == sql.ErrNoRows {
+					writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "snapshot not found: " + snapshotID})
+					return
+				}
+				log.Printf("ERROR: failed to fetch financing snapshot: %v (id=%s)", err, snapshotID)
+				writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch snapshot"})
+				return
+			}
+		}
+
+		snapshot.SnapshotType = snapshotType
+
+		// Parse JSON fields
+		if len(inputsJSON) > 0 {
+			if err := json.Unmarshal(inputsJSON, &snapshot.Inputs); err != nil {
+				snapshot.Inputs = make(map[string]interface{})
+			}
+		}
+		if len(outputsJSON) > 0 {
+			if err := json.Unmarshal(outputsJSON, &snapshot.Outputs); err != nil {
+				snapshot.Outputs = make(map[string]interface{})
+			}
+		}
+		if len(ratesJSON) > 0 {
+			if err := json.Unmarshal(ratesJSON, &snapshot.Rates); err != nil {
+				snapshot.Rates = make(map[string]interface{})
+			}
+		}
+
+		snapshots = append(snapshots, snapshot)
+	}
+
+	writeJSON(w, http.StatusOK, compareSnapshotsResponse{Snapshots: snapshots})
 }
