@@ -234,8 +234,8 @@ func (a *api) handleGetFinancing(w http.ResponseWriter, r *http.Request, propert
 		return
 	}
 
-	// Get workspace settings
-	settings, err := a.getWorkspaceFinancingSettings(r.Context(), workspaceID)
+	// Get effective settings (property-level overrides + workspace fallback)
+	settings, err := a.getEffectiveFinancingSettings(r.Context(), propertyID, workspaceID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch settings"})
 		return
@@ -373,8 +373,8 @@ func (a *api) handleUpdateFinancing(w http.ResponseWriter, r *http.Request, prop
 		return
 	}
 
-	// Get workspace settings
-	settings, err := a.getWorkspaceFinancingSettings(r.Context(), workspaceID)
+	// Get effective settings (property-level overrides + workspace fallback)
+	settings, err := a.getEffectiveFinancingSettings(r.Context(), propertyID, workspaceID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch settings"})
 		return
@@ -605,8 +605,8 @@ func (a *api) handleCreateFinancingSnapshot(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Get workspace settings
-	settings, err := a.getWorkspaceFinancingSettings(r.Context(), workspaceID)
+	// Get effective settings (property-level overrides + workspace fallback)
+	settings, err := a.getEffectiveFinancingSettings(r.Context(), propertyID, workspaceID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch settings"})
 		return

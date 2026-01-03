@@ -927,3 +927,60 @@ export const UpdateUserPreferencesRequestSchema = z.object({
   feature_tour_completed: z.boolean().optional(),
 });
 export type UpdateUserPreferencesRequest = z.infer<typeof UpdateUserPreferencesRequestSchema>;
+
+// Property Tax Rates (Custom per-property)
+
+export const PropertyRatesSchema = z.object({
+  itbi_rate: z.number().min(0).max(1).nullable(),
+  registry_rate: z.number().min(0).max(1).nullable(),
+  broker_rate: z.number().min(0).max(1).nullable(),
+  pj_tax_rate: z.number().min(0).max(1).nullable(),
+});
+export type PropertyRates = z.infer<typeof PropertyRatesSchema>;
+
+export const EffectiveRatesSchema = z.object({
+  itbi_rate: z.number(),
+  registry_rate: z.number(),
+  broker_rate: z.number(),
+  pj_tax_rate: z.number(),
+});
+export type EffectiveRates = z.infer<typeof EffectiveRatesSchema>;
+
+export const PropertyRatesResponseSchema = z.object({
+  custom: PropertyRatesSchema,
+  effective: EffectiveRatesSchema,
+  workspace_rates: EffectiveRatesSchema,
+  updated_at: z.string().nullable().optional(),
+});
+export type PropertyRatesResponse = z.infer<typeof PropertyRatesResponseSchema>;
+
+export const UpdatePropertyRatesRequestSchema = z.object({
+  itbi_rate: z.number().min(0).max(1).nullable().optional(),
+  registry_rate: z.number().min(0).max(1).nullable().optional(),
+  broker_rate: z.number().min(0).max(1).nullable().optional(),
+  pj_tax_rate: z.number().min(0).max(1).nullable().optional(),
+});
+export type UpdatePropertyRatesRequest = z.infer<typeof UpdatePropertyRatesRequestSchema>;
+
+// Tax Rate Presets (common regional rates)
+export const TAX_RATE_PRESETS = {
+  sp_capital: {
+    label: "SP Capital",
+    itbi_rate: 0.03,
+    registry_rate: 0.01,
+    broker_rate: 0.06,
+  },
+  sp_interior: {
+    label: "SP Interior",
+    itbi_rate: 0.02,
+    registry_rate: 0.01,
+    broker_rate: 0.06,
+  },
+  rj: {
+    label: "RJ",
+    itbi_rate: 0.02,
+    registry_rate: 0.01,
+    broker_rate: 0.06,
+  },
+} as const;
+export type TaxRatePresetKey = keyof typeof TAX_RATE_PRESETS;

@@ -138,8 +138,8 @@ func (a *api) handleGetCashAnalysis(w http.ResponseWriter, r *http.Request, prop
 		return
 	}
 
-	// Get workspace settings
-	settings, err := a.getWorkspaceCashSettings(r.Context(), workspaceID)
+	// Get effective settings (property-level overrides + workspace fallback)
+	settings, err := a.getEffectivePropertySettings(r.Context(), propertyID, workspaceID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch settings"})
 		return
@@ -224,8 +224,8 @@ func (a *api) handleUpdateCashAnalysis(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 
-	// Get workspace settings
-	settings, err := a.getWorkspaceCashSettings(r.Context(), workspaceID)
+	// Get effective settings (property-level overrides + workspace fallback)
+	settings, err := a.getEffectivePropertySettings(r.Context(), propertyID, workspaceID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch settings"})
 		return
@@ -287,8 +287,8 @@ func (a *api) handleCreateCashSnapshot(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 
-	// Get workspace settings
-	settings, err := a.getWorkspaceCashSettings(r.Context(), workspaceID)
+	// Get effective settings (property-level overrides + workspace fallback)
+	settings, err := a.getEffectivePropertySettings(r.Context(), propertyID, workspaceID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch settings"})
 		return
