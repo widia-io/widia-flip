@@ -21,8 +21,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+  prospecting: { label: "Prospecção", variant: "outline" },
+  analyzing: { label: "Analisando", variant: "secondary" },
+  bought: { label: "Comprado", variant: "default" },
+  renovation: { label: "Reforma", variant: "secondary" },
+  for_sale: { label: "À Venda", variant: "outline" },
+  sold: { label: "Vendido", variant: "default" },
+  archived: { label: "Arquivado", variant: "secondary" },
+};
 
 interface SnapshotDetailModalProps {
   snapshot: CashSnapshot | FinancingSnapshot | null;
@@ -82,12 +93,20 @@ export function SnapshotDetailModal({
 
   const isCash = type === "cash";
   const title = isCash ? "Detalhes da Analise a Vista" : "Detalhes da Analise Financiada";
+  const statusConfig = snapshot.status_pipeline
+    ? STATUS_CONFIG[snapshot.status_pipeline]
+    : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <div className="flex items-center gap-2">
+            <DialogTitle>{title}</DialogTitle>
+            {statusConfig && (
+              <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
+            )}
+          </div>
           <DialogDescription>
             Salvo em {formatDate(snapshot.created_at)}
           </DialogDescription>

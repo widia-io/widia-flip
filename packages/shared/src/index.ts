@@ -273,6 +273,7 @@ export const CashSnapshotSchema = z.object({
   inputs: CashInputsSchema,
   outputs: CashOutputsSchema,
   effective_rates: EffectiveRatesSchema.optional(),
+  status_pipeline: PropertyStatusEnum.optional(),
   created_at: z.string(),
 });
 export type CashSnapshot = z.infer<typeof CashSnapshotSchema>;
@@ -376,6 +377,7 @@ export const FinancingSnapshotSchema = z.object({
   payments: z.array(FinancingPaymentSchema),
   outputs: FinancingOutputsSchema,
   effective_rates: EffectiveRatesSchema.optional(),
+  status_pipeline: PropertyStatusEnum.optional(),
   created_at: z.string(),
 });
 export type FinancingSnapshot = z.infer<typeof FinancingSnapshotSchema>;

@@ -72,6 +72,7 @@ type financingSnapshot struct {
 	PaymentsJSON   json.RawMessage `json:"payments"`
 	OutputsJSON    json.RawMessage `json:"outputs"`
 	EffectiveRates json.RawMessage `json:"effective_rates,omitempty"`
+	StatusPipeline *string         `json:"status_pipeline,omitempty"`
 	CreatedAt      time.Time       `json:"created_at"`
 }
 
@@ -565,16 +566,16 @@ func (a *api) handleCreateFinancingSnapshot(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Check access and get workspace_id
-	var workspaceID string
+	// Check access and get workspace_id + status_pipeline
+	var workspaceID, statusPipeline string
 	err := a.db.QueryRowContext(
 		r.Context(),
-		`SELECT p.workspace_id
+		`SELECT p.workspace_id, p.status_pipeline
 		 FROM properties p
 		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
 		 WHERE p.id = $1 AND m.user_id = $2`,
 		propertyID, userID,
-	).Scan(&workspaceID)
+	).Scan(&workspaceID, &statusPipeline)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "property not found"})
@@ -640,10 +641,10 @@ func (a *api) handleCreateFinancingSnapshot(w http.ResponseWriter, r *http.Reque
 	var createdAt time.Time
 	err = a.db.QueryRowContext(
 		r.Context(),
-		`INSERT INTO analysis_financing_snapshots (property_id, workspace_id, inputs_json, payments_json, outputs_json, effective_rates)
-		 VALUES ($1, $2, $3, $4, $5, $6)
+		`INSERT INTO analysis_financing_snapshots (property_id, workspace_id, inputs_json, payments_json, outputs_json, effective_rates, status_pipeline)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
 		 RETURNING id, created_at`,
-		propertyID, workspaceID, inputsJSON, paymentsJSON, outputsJSON, ratesJSON,
+		propertyID, workspaceID, inputsJSON, paymentsJSON, outputsJSON, ratesJSON, statusPipeline,
 	).Scan(&snapshotID, &createdAt)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to create snapshot"})
@@ -688,7 +689,7 @@ func (a *api) handleListFinancingSnapshots(w http.ResponseWriter, r *http.Reques
 
 	rows, err := a.db.QueryContext(
 		r.Context(),
-		`SELECT id, inputs_json, payments_json, outputs_json, effective_rates, created_at
+		`SELECT id, inputs_json, payments_json, outputs_json, effective_rates, status_pipeline, created_at
 		 FROM analysis_financing_snapshots
 		 WHERE property_id = $1
 		 ORDER BY created_at DESC
@@ -704,14 +705,17 @@ func (a *api) handleListFinancingSnapshots(w http.ResponseWriter, r *http.Reques
 	items := make([]financingSnapshot, 0)
 	for rows.Next() {
 		var s financingSnapshot
-		var rates sql.NullString
-		err := rows.Scan(&s.ID, &s.InputsJSON, &s.PaymentsJSON, &s.OutputsJSON, &rates, &s.CreatedAt)
+		var rates, status sql.NullString
+		err := rows.Scan(&s.ID, &s.InputsJSON, &s.PaymentsJSON, &s.OutputsJSON, &rates, &status, &s.CreatedAt)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan snapshot"})
 			return
 		}
 		if rates.Valid {
 			s.EffectiveRates = json.RawMessage(rates.String)
+		}
+		if status.Valid {
+			s.StatusPipeline = &status.String
 		}
 		items = append(items, s)
 	}

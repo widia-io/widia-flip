@@ -42,6 +42,7 @@ type cashSnapshot struct {
 	Inputs         json.RawMessage `json:"inputs"`
 	Outputs        json.RawMessage `json:"outputs"`
 	EffectiveRates json.RawMessage `json:"effective_rates,omitempty"`
+	StatusPipeline *string         `json:"status_pipeline,omitempty"`
 	CreatedAt      time.Time       `json:"created_at"`
 }
 
@@ -265,16 +266,16 @@ func (a *api) handleCreateCashSnapshot(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 
-	// Check access and get workspace_id
-	var workspaceID string
+	// Check access and get workspace_id + status_pipeline
+	var workspaceID, statusPipeline string
 	err := a.db.QueryRowContext(
 		r.Context(),
-		`SELECT p.workspace_id
+		`SELECT p.workspace_id, p.status_pipeline
 		 FROM properties p
 		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
 		 WHERE p.id = $1 AND m.user_id = $2`,
 		propertyID, userID,
-	).Scan(&workspaceID)
+	).Scan(&workspaceID, &statusPipeline)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "property not found"})
@@ -327,10 +328,10 @@ func (a *api) handleCreateCashSnapshot(w http.ResponseWriter, r *http.Request, p
 	var createdAt time.Time
 	err = a.db.QueryRowContext(
 		r.Context(),
-		`INSERT INTO analysis_cash_snapshots (property_id, workspace_id, inputs, outputs, effective_rates)
-		 VALUES ($1, $2, $3, $4, $5)
+		`INSERT INTO analysis_cash_snapshots (property_id, workspace_id, inputs, outputs, effective_rates, status_pipeline)
+		 VALUES ($1, $2, $3, $4, $5, $6)
 		 RETURNING id, created_at`,
-		propertyID, workspaceID, inputsJSON, outputsJSON, ratesJSON,
+		propertyID, workspaceID, inputsJSON, outputsJSON, ratesJSON, statusPipeline,
 	).Scan(&snapshotID, &createdAt)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to create snapshot"})
@@ -375,7 +376,7 @@ func (a *api) handleListCashSnapshots(w http.ResponseWriter, r *http.Request, pr
 
 	rows, err := a.db.QueryContext(
 		r.Context(),
-		`SELECT id, inputs, outputs, effective_rates, created_at
+		`SELECT id, inputs, outputs, effective_rates, status_pipeline, created_at
 		 FROM analysis_cash_snapshots
 		 WHERE property_id = $1
 		 ORDER BY created_at DESC
@@ -391,14 +392,17 @@ func (a *api) handleListCashSnapshots(w http.ResponseWriter, r *http.Request, pr
 	items := make([]cashSnapshot, 0)
 	for rows.Next() {
 		var s cashSnapshot
-		var rates sql.NullString
-		err := rows.Scan(&s.ID, &s.Inputs, &s.Outputs, &rates, &s.CreatedAt)
+		var rates, status sql.NullString
+		err := rows.Scan(&s.ID, &s.Inputs, &s.Outputs, &rates, &status, &s.CreatedAt)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan snapshot"})
 			return
 		}
 		if rates.Valid {
 			s.EffectiveRates = json.RawMessage(rates.String)
+		}
+		if status.Valid {
+			s.StatusPipeline = &status.String
 		}
 		items = append(items, s)
 	}

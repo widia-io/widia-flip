@@ -14,7 +14,18 @@ import {
 } from "@/components/ui/table";
 import { SnapshotDetailModal } from "@/components/SnapshotDetailModal";
 import { deleteCashSnapshotAction } from "@/lib/actions/properties";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+
+const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+  prospecting: { label: "Prospecção", variant: "outline" },
+  analyzing: { label: "Analisando", variant: "secondary" },
+  bought: { label: "Comprado", variant: "default" },
+  renovation: { label: "Reforma", variant: "secondary" },
+  for_sale: { label: "À Venda", variant: "outline" },
+  sold: { label: "Vendido", variant: "default" },
+  archived: { label: "Arquivado", variant: "secondary" },
+};
 
 interface CashSnapshotHistoryProps {
   snapshots: CashSnapshot[];
@@ -78,6 +89,7 @@ export function CashSnapshotHistory({ snapshots, propertyId }: CashSnapshotHisto
           <TableHeader>
             <TableRow>
               <TableHead>Data</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Compra</TableHead>
               <TableHead className="text-right">Venda</TableHead>
               <TableHead className="text-right">Lucro</TableHead>
@@ -90,6 +102,9 @@ export function CashSnapshotHistory({ snapshots, propertyId }: CashSnapshotHisto
               const outputs = snapshot.outputs;
               const isPositive = outputs.net_profit > 0;
               const isNegative = outputs.net_profit < 0;
+              const statusConfig = snapshot.status_pipeline
+                ? STATUS_CONFIG[snapshot.status_pipeline]
+                : null;
 
               return (
                 <TableRow
@@ -99,6 +114,13 @@ export function CashSnapshotHistory({ snapshots, propertyId }: CashSnapshotHisto
                 >
                   <TableCell className="text-muted-foreground">
                     {formatDate(snapshot.created_at)}
+                  </TableCell>
+                  <TableCell>
+                    {statusConfig ? (
+                      <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     {inputs.purchase_price
