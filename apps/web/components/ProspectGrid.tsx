@@ -1,14 +1,16 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition, useMemo } from "react";
-import { Loader2, Search, Filter, X, ArrowUpDown, HelpCircle, ChevronDown, ChevronUp, SlidersHorizontal, Lightbulb } from "lucide-react";
+import { useState, useTransition, useMemo, useEffect } from "react";
+import { Loader2, Search, Filter, X, ArrowUpDown, HelpCircle, ChevronDown, ChevronUp, SlidersHorizontal, Lightbulb, LayoutGrid, TableIcon } from "lucide-react";
 
 import type { Prospect } from "@widia/shared";
 
 import { ProspectCard } from "@/components/ProspectCard";
+import { ProspectTable } from "@/components/ProspectTable";
 import { ProspectAddModal } from "@/components/ProspectAddModal";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -46,13 +48,6 @@ const statusLabels: Record<string, string> = {
   converted: "Convertidos",
 };
 
-const sortLabels: Record<SortOption, string> = {
-  score: "Maior Score",
-  recent: "Mais recente",
-  price: "Menor preço",
-  price_per_sqm: "Menor R$/m²",
-};
-
 export function ProspectGrid({
   prospects,
   workspaceId,
@@ -68,6 +63,20 @@ export function ProspectGrid({
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [guideOpen, setGuideOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [view, setView] = useState<"board" | "table">("board");
+
+  // Load view preference from localStorage on mount
+  useEffect(() => {
+    const savedView = localStorage.getItem("prospect-view");
+    if (savedView === "board" || savedView === "table") {
+      setView(savedView);
+    }
+  }, []);
+
+  // Persist view preference
+  useEffect(() => {
+    localStorage.setItem("prospect-view", view);
+  }, [view]);
 
   const hasFilters = statusFilter || searchQuery;
   const activeFiltersCount = (statusFilter && statusFilter !== "all" ? 1 : 0) + (searchQuery ? 1 : 0);
@@ -264,6 +273,22 @@ export function ProspectGrid({
         </Collapsible>
       </div>
 
+      {/* View Switcher Tabs (Desktop only) */}
+      <div className="hidden lg:block">
+        <Tabs value={view} onValueChange={(v) => setView(v as "board" | "table")}>
+          <TabsList>
+            <TabsTrigger value="board" className="gap-1.5">
+              <LayoutGrid className="h-4 w-4" />
+              Cards
+            </TabsTrigger>
+            <TabsTrigger value="table" className="gap-1.5">
+              <TableIcon className="h-4 w-4" />
+              Tabela
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       {/* Mobile Filters Sheet */}
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
         <SheetContent side="right" className="w-80 sm:w-96">
@@ -389,7 +414,7 @@ export function ProspectGrid({
         </div>
       )}
 
-      {/* Grid */}
+      {/* Content */}
       {sortedProspects.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/25 py-12 sm:py-16 text-center px-4">
           <div className="rounded-full bg-muted p-4">
@@ -418,11 +443,32 @@ export function ProspectGrid({
           )}
         </div>
       ) : (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-          {sortedProspects.map((prospect) => (
-            <ProspectCard key={prospect.id} prospect={prospect} canAccessFlipScoreV1={canAccessFlipScoreV1} />
-          ))}
-        </div>
+        <>
+          {/* Mobile: Always show cards */}
+          <div className="lg:hidden grid gap-4 grid-cols-1 sm:grid-cols-2">
+            {sortedProspects.map((prospect) => (
+              <ProspectCard key={prospect.id} prospect={prospect} canAccessFlipScoreV1={canAccessFlipScoreV1} />
+            ))}
+          </div>
+
+          {/* Desktop: Show based on selected view */}
+          <div className="hidden lg:block">
+            {view === "board" ? (
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+                {sortedProspects.map((prospect) => (
+                  <ProspectCard key={prospect.id} prospect={prospect} canAccessFlipScoreV1={canAccessFlipScoreV1} />
+                ))}
+              </div>
+            ) : (
+              <ProspectTable
+                prospects={sortedProspects}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                canAccessFlipScoreV1={canAccessFlipScoreV1}
+              />
+            )}
+          </div>
+        </>
       )}
     </div>
   );
