@@ -12,8 +12,14 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, HelpCircle } from "lucide-react";
 
 const STATUS_CONFIG: Record<
   string,
@@ -62,19 +68,44 @@ export function SnapshotsTable({
     `${snapshot.snapshot_type}-${snapshot.id}`;
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          {onSelectionChange && <TableHead className="w-10"></TableHead>}
-          <TableHead>Imóvel</TableHead>
-          <TableHead>Tipo</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Data</TableHead>
-          <TableHead className="text-right">Lucro</TableHead>
-          <TableHead className="text-right">ROI</TableHead>
-          <TableHead className="w-10"></TableHead>
-        </TableRow>
-      </TableHeader>
+    <TooltipProvider delayDuration={300}>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {onSelectionChange && <TableHead className="w-10"></TableHead>}
+            <TableHead>Imóvel</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Data</TableHead>
+            <TableHead className="text-right">
+              <div className="flex items-center justify-end gap-1">
+                Lucro
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 text-muted-foreground/50 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[200px] text-center">
+                    Lucro líquido após todos os custos e impostos
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TableHead>
+            <TableHead className="text-right">
+              <div className="flex items-center justify-end gap-1">
+                ROI
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 text-muted-foreground/50 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[220px] text-center">
+                    Retorno sobre Investimento: lucro líquido dividido pelo investimento total
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TableHead>
+            <TableHead className="w-10"></TableHead>
+          </TableRow>
+        </TableHeader>
       <TableBody>
         {snapshots.map((snapshot) => {
           const isPositive = snapshot.net_profit > 0;
@@ -159,7 +190,8 @@ export function SnapshotsTable({
             </TableRow>
           );
         })}
-      </TableBody>
-    </Table>
+        </TableBody>
+      </Table>
+    </TooltipProvider>
   );
 }

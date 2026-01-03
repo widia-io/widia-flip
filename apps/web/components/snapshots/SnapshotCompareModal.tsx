@@ -1,11 +1,17 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { X, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { X, ArrowUp, ArrowDown, Minus, HelpCircle } from "lucide-react";
 
 import type { FullSnapshot, SnapshotType, UnifiedSnapshot } from "@widia/shared";
 import { compareSnapshotsAction } from "@/lib/actions/snapshots";
 import { formatCurrency } from "@/lib/format";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SnapshotCompareModalProps {
   snapshots: [UnifiedSnapshot, UnifiedSnapshot];
@@ -48,6 +54,44 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 const HIDDEN_FIELDS = ["is_partial"];
+
+const FIELD_DESCRIPTIONS: Record<string, string> = {
+  // Inputs
+  purchase_price: "Valor de aquisição do imóvel no ato da compra",
+  renovation_cost: "Custo estimado ou realizado de reforma/melhorias no imóvel",
+  other_costs: "Despesas adicionais como mudança, limpeza, pequenos reparos",
+  sale_price: "Valor esperado ou realizado na venda do imóvel",
+  // Outputs
+  itbi: "Imposto de Transmissão de Bens Imóveis - pago na compra",
+  itbi_value: "Imposto de Transmissão de Bens Imóveis - pago na compra",
+  registration: "Custos de registro do imóvel em cartório",
+  registry_value: "Custos de registro do imóvel em cartório",
+  acquisition_cost: "Soma de: preço de compra + ITBI + registro",
+  total_investment: "Todo capital investido: aquisição + reforma + outros custos",
+  investment_total: "Todo capital investido: aquisição + reforma + outros custos",
+  brokerage: "Comissão paga ao corretor na venda (geralmente 6%)",
+  broker_fee: "Comissão paga ao corretor na venda (geralmente 6%)",
+  gross_profit: "Lucro antes dos impostos: preço de venda - investimento total - corretagem",
+  pj_tax: "Imposto sobre lucro para pessoa jurídica (lucro presumido)",
+  pj_tax_value: "Imposto sobre lucro para pessoa jurídica (lucro presumido)",
+  net_profit: "Lucro final após todos os custos e impostos",
+  roi: "Retorno sobre Investimento: lucro líquido / investimento total × 100",
+  // Rates
+  itbi_rate: "Percentual do ITBI sobre o preço de compra (varia por cidade)",
+  registration_rate: "Percentual do registro sobre o preço de compra",
+  registry_rate: "Percentual do registro sobre o preço de compra",
+  brokerage_rate: "Percentual da corretagem sobre o preço de venda",
+  broker_rate: "Percentual da corretagem sobre o preço de venda",
+  pj_tax_rate: "Percentual do imposto PJ sobre o lucro bruto",
+  // Financing
+  down_payment: "Valor pago como entrada no financiamento",
+  loan_amount: "Valor financiado pelo banco",
+  interest_rate: "Taxa de juros anual do financiamento",
+  loan_term: "Prazo total do financiamento em meses",
+  monthly_payment: "Valor da parcela mensal do financiamento",
+  total_interest: "Total de juros pagos ao longo do financiamento",
+  total_paid: "Soma de todas as parcelas pagas",
+};
 
 function formatValue(key: string, value: unknown): string {
   if (value === null || value === undefined) return "-";
@@ -115,14 +159,27 @@ function CompareSection({
       <div className="space-y-1">
         {allKeys.map((key) => {
           const label = FIELD_LABELS[key] || key.replace(/_/g, " ");
+          const description = FIELD_DESCRIPTIONS[key];
           const val1 = data1?.[key];
           const val2 = data2?.[key];
 
           return (
             <div key={key} className="grid grid-cols-[1fr,auto,1fr] gap-2 text-sm items-center">
               <div className="text-right font-mono">{formatValue(key, val1)}</div>
-              <div className="flex flex-col items-center gap-0.5 min-w-[80px]">
-                <span className="text-xs text-muted-foreground capitalize">{label}</span>
+              <div className="flex flex-col items-center gap-0.5 min-w-[100px]">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground capitalize">{label}</span>
+                  {description && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-3 w-3 text-muted-foreground/50 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[250px] text-center">
+                        {description}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
                 <DiffIndicator value1={val1} value2={val2} invert={invertFields.includes(key)} />
               </div>
               <div className="text-left font-mono">{formatValue(key, val2)}</div>
@@ -168,20 +225,21 @@ export function SnapshotCompareModal({ snapshots, onClose }: SnapshotCompareModa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-background rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">Comparar Análises</h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-muted rounded"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <TooltipProvider delayDuration={300}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-background rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h2 className="text-lg font-semibold">Comparar Análises</h2>
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-muted rounded"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-        <div className="flex-1 overflow-auto p-4">
+          <div className="flex-1 overflow-auto p-4">
           {isPending && (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
@@ -246,8 +304,9 @@ export function SnapshotCompareModal({ snapshots, onClose }: SnapshotCompareModa
               )}
             </div>
           )}
+          </div>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
