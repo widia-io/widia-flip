@@ -7,6 +7,7 @@ const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ??
     "postgres://widia:widia@localhost:5432/widia_flip?sslmode=disable",
+  options: "-c search_path=flip",
 });
 
 export const auth = betterAuth({
