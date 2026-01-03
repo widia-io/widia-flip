@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SnapshotAnnotations } from "@/components/snapshots/SnapshotAnnotations";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   prospecting: { label: "Prospecção", variant: "outline" },
@@ -220,8 +221,12 @@ export function SnapshotDetailModal({
           )}
         </div>
 
-        {onDelete && (
-          <DialogFooter className="mt-6">
+        <DialogFooter className="mt-6 flex-row justify-between sm:justify-between">
+          <SnapshotAnnotations
+            snapshotId={snapshot.id}
+            snapshotType={type}
+          />
+          {onDelete && (
             <Button
               variant="destructive"
               onClick={() => setShowDeleteConfirm(true)}
@@ -230,8 +235,8 @@ export function SnapshotDetailModal({
               <Trash2 className="h-4 w-4 mr-2" />
               Excluir Análise
             </Button>
-          </DialogFooter>
-        )}
+          )}
+        </DialogFooter>
       </DialogContent>
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
