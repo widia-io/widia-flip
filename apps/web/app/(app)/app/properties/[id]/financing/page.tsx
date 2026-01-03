@@ -45,9 +45,10 @@ export default async function PropertyFinancingPage({
         initialInputs={financing?.inputs}
         initialPayments={financing?.payments}
         initialOutputs={financing?.outputs}
+        initialRates={financing?.effective_rates}
       />
 
-      <FinancingSnapshotHistory snapshots={snapshots} />
+      <FinancingSnapshotHistory snapshots={snapshots} propertyId={id} />
     </div>
   );
 }

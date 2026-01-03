@@ -1,15 +1,18 @@
 "use client";
 
-import type { FinancingOutputs } from "@widia/shared";
+import type { FinancingOutputs, FinancingAnalysisResponse } from "@widia/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+type EffectiveRates = FinancingAnalysisResponse["effective_rates"];
+
 interface FinancingOutputsProps {
   outputs: FinancingOutputs;
+  rates?: EffectiveRates;
 }
 
-export function FinancingOutputsDisplay({ outputs }: FinancingOutputsProps) {
+export function FinancingOutputsDisplay({ outputs, rates }: FinancingOutputsProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -20,6 +23,11 @@ export function FinancingOutputsDisplay({ outputs }: FinancingOutputsProps) {
 
   const formatPercent = (value: number) => {
     return `${value.toFixed(2)}%`;
+  };
+
+  const formatRateLabel = (label: string, rate?: number) => {
+    if (rate === undefined) return label;
+    return `${label} (${(rate * 100).toFixed(1)}%)`;
   };
 
   return (
@@ -49,9 +57,9 @@ export function FinancingOutputsDisplay({ outputs }: FinancingOutputsProps) {
             label="Taxas Bancárias"
             value={formatCurrency(outputs.bank_fees_total)}
           />
-          <OutputItem label="ITBI" value={formatCurrency(outputs.itbi_value)} />
+          <OutputItem label={formatRateLabel("ITBI", rates?.itbi_rate)} value={formatCurrency(outputs.itbi_value)} />
           <OutputItem
-            label="Registro"
+            label={formatRateLabel("Registro", rates?.registry_rate)}
             value={formatCurrency(outputs.registry_value)}
           />
           <OutputItem
@@ -68,7 +76,7 @@ export function FinancingOutputsDisplay({ outputs }: FinancingOutputsProps) {
             highlight
           />
           <OutputItem
-            label="Corretagem"
+            label={formatRateLabel("Corretagem", rates?.broker_rate)}
             value={formatCurrency(outputs.broker_fee)}
           />
           <OutputItem
@@ -77,7 +85,7 @@ export function FinancingOutputsDisplay({ outputs }: FinancingOutputsProps) {
             variant={outputs.gross_profit > 0 ? "positive" : outputs.gross_profit < 0 ? "negative" : "default"}
           />
           <OutputItem
-            label="Imposto PJ"
+            label={formatRateLabel("Imposto PJ", rates?.pj_tax_rate)}
             value={formatCurrency(outputs.pj_tax_value)}
           />
           <OutputItem

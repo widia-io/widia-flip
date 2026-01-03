@@ -59,18 +59,21 @@ type financingPayment struct {
 }
 
 type financingAnalysisResponse struct {
-	PlanID   string             `json:"plan_id"`
-	Inputs   financingInputs    `json:"inputs"`
-	Payments []financingPayment `json:"payments"`
-	Outputs  financingOutputs   `json:"outputs"`
+	PlanID         string             `json:"plan_id"`
+	Inputs         financingInputs    `json:"inputs"`
+	Payments       []financingPayment `json:"payments"`
+	Outputs        financingOutputs   `json:"outputs"`
+	EffectiveRates effectiveRates     `json:"effective_rates"`
 }
 
 type financingSnapshot struct {
-	ID           string          `json:"id"`
-	InputsJSON   json.RawMessage `json:"inputs"`
-	PaymentsJSON json.RawMessage `json:"payments"`
-	OutputsJSON  json.RawMessage `json:"outputs"`
-	CreatedAt    time.Time       `json:"created_at"`
+	ID             string          `json:"id"`
+	InputsJSON     json.RawMessage `json:"inputs"`
+	PaymentsJSON   json.RawMessage `json:"payments"`
+	OutputsJSON    json.RawMessage `json:"outputs"`
+	EffectiveRates json.RawMessage `json:"effective_rates,omitempty"`
+	StatusPipeline *string         `json:"status_pipeline,omitempty"`
+	CreatedAt      time.Time       `json:"created_at"`
 }
 
 type listFinancingSnapshotsResponse struct {
@@ -169,6 +172,17 @@ func (a *api) handlePropertyFinancingAnalysis(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// /api/v1/properties/:id/analysis/financing/snapshots/:snapshotId
+	if len(subparts) == 2 && subparts[0] == "snapshots" {
+		snapshotID := subparts[1]
+		if r.Method != http.MethodDelete {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		a.handleDeleteFinancingSnapshot(w, r, propertyID, snapshotID)
+		return
+	}
+
 	w.WriteHeader(http.StatusNotFound)
 }
 
@@ -198,6 +212,13 @@ func (a *api) handleGetFinancing(w http.ResponseWriter, r *http.Request, propert
 		return
 	}
 
+	// Get effective settings (property-level overrides + workspace fallback)
+	settings, err := a.getEffectiveFinancingSettings(r.Context(), propertyID, workspaceID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch settings"})
+		return
+	}
+
 	// Get financing plan
 	var planID string
 	var inputs financingInputs
@@ -215,12 +236,12 @@ func (a *api) handleGetFinancing(w http.ResponseWriter, r *http.Request, propert
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// Return empty response with partial outputs
-			resp := financingAnalysisResponse{
-				Inputs:   inputs,
-				Payments: []financingPayment{},
-				Outputs:  financingOutputs{IsPartial: true},
-			}
-			writeJSON(w, http.StatusOK, resp)
+			writeJSON(w, http.StatusOK, financingAnalysisResponse{
+				Inputs:         inputs,
+				Payments:       []financingPayment{},
+				Outputs:        financingOutputs{IsPartial: true},
+				EffectiveRates: financingSettingsToRates(settings),
+			})
 			return
 		}
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch financing"})
@@ -234,21 +255,15 @@ func (a *api) handleGetFinancing(w http.ResponseWriter, r *http.Request, propert
 		return
 	}
 
-	// Get workspace settings
-	settings, err := a.getWorkspaceFinancingSettings(r.Context(), workspaceID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch settings"})
-		return
-	}
-
 	// Calculate outputs
 	outputs := a.calculateFinancingOutputs(inputs, payments, settings)
 
 	writeJSON(w, http.StatusOK, financingAnalysisResponse{
-		PlanID:   planID,
-		Inputs:   inputs,
-		Payments: payments,
-		Outputs:  outputs,
+		PlanID:         planID,
+		Inputs:         inputs,
+		Payments:       payments,
+		Outputs:        outputs,
+		EffectiveRates: financingSettingsToRates(settings),
 	})
 }
 
@@ -373,8 +388,8 @@ func (a *api) handleUpdateFinancing(w http.ResponseWriter, r *http.Request, prop
 		return
 	}
 
-	// Get workspace settings
-	settings, err := a.getWorkspaceFinancingSettings(r.Context(), workspaceID)
+	// Get effective settings (property-level overrides + workspace fallback)
+	settings, err := a.getEffectiveFinancingSettings(r.Context(), propertyID, workspaceID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch settings"})
 		return
@@ -384,10 +399,11 @@ func (a *api) handleUpdateFinancing(w http.ResponseWriter, r *http.Request, prop
 	outputs := a.calculateFinancingOutputs(inputs, payments, settings)
 
 	writeJSON(w, http.StatusOK, financingAnalysisResponse{
-		PlanID:   planID,
-		Inputs:   inputs,
-		Payments: payments,
-		Outputs:  outputs,
+		PlanID:         planID,
+		Inputs:         inputs,
+		Payments:       payments,
+		Outputs:        outputs,
+		EffectiveRates: financingSettingsToRates(settings),
 	})
 }
 
@@ -550,16 +566,16 @@ func (a *api) handleCreateFinancingSnapshot(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Check access and get workspace_id
-	var workspaceID string
+	// Check access and get workspace_id + status_pipeline
+	var workspaceID, statusPipeline string
 	err := a.db.QueryRowContext(
 		r.Context(),
-		`SELECT p.workspace_id
+		`SELECT p.workspace_id, p.status_pipeline
 		 FROM properties p
 		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
 		 WHERE p.id = $1 AND m.user_id = $2`,
 		propertyID, userID,
-	).Scan(&workspaceID)
+	).Scan(&workspaceID, &statusPipeline)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "property not found"})
@@ -605,8 +621,8 @@ func (a *api) handleCreateFinancingSnapshot(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Get workspace settings
-	settings, err := a.getWorkspaceFinancingSettings(r.Context(), workspaceID)
+	// Get effective settings (property-level overrides + workspace fallback)
+	settings, err := a.getEffectiveFinancingSettings(r.Context(), propertyID, workspaceID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch settings"})
 		return
@@ -619,15 +635,16 @@ func (a *api) handleCreateFinancingSnapshot(w http.ResponseWriter, r *http.Reque
 	inputsJSON, _ := json.Marshal(inputs)
 	paymentsJSON, _ := json.Marshal(payments)
 	outputsJSON, _ := json.Marshal(outputs)
+	ratesJSON, _ := json.Marshal(financingSettingsToRates(settings))
 
 	var snapshotID string
 	var createdAt time.Time
 	err = a.db.QueryRowContext(
 		r.Context(),
-		`INSERT INTO analysis_financing_snapshots (property_id, workspace_id, inputs_json, payments_json, outputs_json)
-		 VALUES ($1, $2, $3, $4, $5)
+		`INSERT INTO analysis_financing_snapshots (property_id, workspace_id, inputs_json, payments_json, outputs_json, effective_rates, status_pipeline)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
 		 RETURNING id, created_at`,
-		propertyID, workspaceID, inputsJSON, paymentsJSON, outputsJSON,
+		propertyID, workspaceID, inputsJSON, paymentsJSON, outputsJSON, ratesJSON, statusPipeline,
 	).Scan(&snapshotID, &createdAt)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to create snapshot"})
@@ -672,7 +689,7 @@ func (a *api) handleListFinancingSnapshots(w http.ResponseWriter, r *http.Reques
 
 	rows, err := a.db.QueryContext(
 		r.Context(),
-		`SELECT id, inputs_json, payments_json, outputs_json, created_at
+		`SELECT id, inputs_json, payments_json, outputs_json, effective_rates, status_pipeline, created_at
 		 FROM analysis_financing_snapshots
 		 WHERE property_id = $1
 		 ORDER BY created_at DESC
@@ -688,15 +705,69 @@ func (a *api) handleListFinancingSnapshots(w http.ResponseWriter, r *http.Reques
 	items := make([]financingSnapshot, 0)
 	for rows.Next() {
 		var s financingSnapshot
-		err := rows.Scan(&s.ID, &s.InputsJSON, &s.PaymentsJSON, &s.OutputsJSON, &s.CreatedAt)
+		var rates, status sql.NullString
+		err := rows.Scan(&s.ID, &s.InputsJSON, &s.PaymentsJSON, &s.OutputsJSON, &rates, &status, &s.CreatedAt)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan snapshot"})
 			return
+		}
+		if rates.Valid {
+			s.EffectiveRates = json.RawMessage(rates.String)
+		}
+		if status.Valid {
+			s.StatusPipeline = &status.String
 		}
 		items = append(items, s)
 	}
 
 	writeJSON(w, http.StatusOK, listFinancingSnapshotsResponse{Items: items})
+}
+
+func (a *api) handleDeleteFinancingSnapshot(w http.ResponseWriter, r *http.Request, propertyID, snapshotID string) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	// Check access
+	var workspaceID string
+	err := a.db.QueryRowContext(
+		r.Context(),
+		`SELECT p.workspace_id
+		 FROM properties p
+		 JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
+		 WHERE p.id = $1 AND m.user_id = $2`,
+		propertyID, userID,
+	).Scan(&workspaceID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "property not found"})
+			return
+		}
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check property"})
+		return
+	}
+
+	// Delete snapshot (only if it belongs to this property and workspace)
+	result, err := a.db.ExecContext(
+		r.Context(),
+		`DELETE FROM analysis_financing_snapshots
+		 WHERE id = $1 AND property_id = $2 AND workspace_id = $3`,
+		snapshotID, propertyID, workspaceID,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to delete snapshot"})
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "snapshot not found"})
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // Helper functions

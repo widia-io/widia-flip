@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { FinancingSnapshot } from "@widia/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,13 +12,38 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SnapshotDetailModal } from "@/components/SnapshotDetailModal";
+import { deleteFinancingSnapshotAction } from "@/lib/actions/financing";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+
+const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+  prospecting: { label: "Prospecção", variant: "outline" },
+  analyzing: { label: "Analisando", variant: "secondary" },
+  bought: { label: "Comprado", variant: "default" },
+  renovation: { label: "Reforma", variant: "secondary" },
+  for_sale: { label: "À Venda", variant: "outline" },
+  sold: { label: "Vendido", variant: "default" },
+  archived: { label: "Arquivado", variant: "secondary" },
+};
 
 interface FinancingSnapshotHistoryProps {
   snapshots: FinancingSnapshot[];
+  propertyId: string;
 }
 
-export function FinancingSnapshotHistory({ snapshots }: FinancingSnapshotHistoryProps) {
+export function FinancingSnapshotHistory({ snapshots, propertyId }: FinancingSnapshotHistoryProps) {
+  const router = useRouter();
+  const [selectedSnapshot, setSelectedSnapshot] = useState<FinancingSnapshot | null>(null);
+
+  const handleDelete = async () => {
+    if (!selectedSnapshot) return;
+    const result = await deleteFinancingSnapshotAction(propertyId, selectedSnapshot.id);
+    if (result.success) {
+      setSelectedSnapshot(null);
+      router.refresh();
+    }
+  };
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -61,6 +88,7 @@ export function FinancingSnapshotHistory({ snapshots }: FinancingSnapshotHistory
           <TableHeader>
             <TableRow>
               <TableHead>Data</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Entrada</TableHead>
               <TableHead className="text-right">Parcelas</TableHead>
               <TableHead className="text-right">Lucro</TableHead>
@@ -72,11 +100,25 @@ export function FinancingSnapshotHistory({ snapshots }: FinancingSnapshotHistory
               const outputs = snapshot.outputs;
               const isPositive = outputs.net_profit > 0;
               const isNegative = outputs.net_profit < 0;
+              const statusConfig = snapshot.status_pipeline
+                ? STATUS_CONFIG[snapshot.status_pipeline]
+                : null;
 
               return (
-                <TableRow key={snapshot.id}>
+                <TableRow
+                  key={snapshot.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setSelectedSnapshot(snapshot)}
+                >
                   <TableCell className="text-muted-foreground">
                     {formatDate(snapshot.created_at)}
+                  </TableCell>
+                  <TableCell>
+                    {statusConfig ? (
+                      <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(outputs.down_payment_value)}
@@ -108,6 +150,14 @@ export function FinancingSnapshotHistory({ snapshots }: FinancingSnapshotHistory
           </TableBody>
         </Table>
       </CardContent>
+
+      <SnapshotDetailModal
+        snapshot={selectedSnapshot}
+        open={selectedSnapshot !== null}
+        onOpenChange={(open) => !open && setSelectedSnapshot(null)}
+        type="financing"
+        onDelete={handleDelete}
+      />
     </Card>
   );
 }
