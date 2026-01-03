@@ -18,9 +18,9 @@ interface FlipScoreBadgeProps {
 
 function getScoreColor(score: number | null | undefined): string {
   if (score == null) return "bg-muted text-muted-foreground";
-  if (score >= 70) return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-  if (score >= 40) return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
-  return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+  if (score >= 70) return "badge-success";
+  if (score >= 40) return "badge-warning";
+  return "badge-destructive";
 }
 
 function getScoreLabel(score: number | null | undefined): string {

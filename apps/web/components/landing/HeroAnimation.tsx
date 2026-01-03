@@ -57,11 +57,11 @@ export function HeroAnimation() {
             <div className="flex items-center gap-2">
               <div className="h-2 w-24 rounded-full bg-muted overflow-hidden">
                 <div
-                  className="h-full bg-green-500 transition-all duration-500"
+                  className="h-full bg-accent transition-all duration-500"
                   style={{ width: `${metrics[2].values[currentIndex]}%` }}
                 />
               </div>
-              <span className="font-semibold text-green-600">
+              <span className="font-semibold text-accent">
                 {metrics[2].values[currentIndex]}
               </span>
             </div>
