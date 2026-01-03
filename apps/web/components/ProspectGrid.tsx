@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition, useMemo } from "react";
-import { Loader2, Search, Filter, X, ArrowUpDown, HelpCircle, ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
+import { Loader2, Search, Filter, X, ArrowUpDown, HelpCircle, ChevronDown, ChevronUp, SlidersHorizontal, Lightbulb } from "lucide-react";
 
 import type { Prospect } from "@widia/shared";
 
@@ -404,9 +404,17 @@ export function ProspectGrid({
               : "Adicione seu primeiro lead para começar a priorizar pelo Flip Score."}
           </p>
           {!searchQuery && !statusFilter && (
-            <div className="mt-6">
-              <ProspectAddModal workspaceId={workspaceId} canAccessFlipScoreV1={canAccessFlipScoreV1} />
-            </div>
+            <>
+              <div className="mt-4 flex items-start gap-2 rounded-lg bg-primary/5 px-4 py-3 text-left max-w-sm">
+                <Lightbulb className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                <p className="text-xs text-muted-foreground">
+                  <strong>Dica:</strong> Cole o link de um anúncio do ZAP, VivaReal ou OLX para preencher automaticamente.
+                </p>
+              </div>
+              <div className="mt-6">
+                <ProspectAddModal workspaceId={workspaceId} canAccessFlipScoreV1={canAccessFlipScoreV1} />
+              </div>
+            </>
           )}
         </div>
       ) : (

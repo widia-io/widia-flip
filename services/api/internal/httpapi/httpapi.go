@@ -59,6 +59,9 @@ func NewHandler(deps Deps) http.Handler {
 	// M10 - Billing (protected - requires user auth)
 	protectedMux.HandleFunc("/api/v1/billing/", api.handleBillingSubroutes)
 
+	// User preferences (onboarding, feature tour)
+	protectedMux.HandleFunc("/api/v1/user/preferences", api.handleUserPreferences)
+
 	// Apply auth middleware only to protected routes
 	var protectedHandler http.Handler = protectedMux
 	protectedHandler = authMiddleware(api.tokenVerifier, protectedHandler)
