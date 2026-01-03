@@ -1059,3 +1059,23 @@ export const ListAnnotationsResponseSchema = z.object({
   items: z.array(SnapshotAnnotationSchema),
 });
 export type ListAnnotationsResponse = z.infer<typeof ListAnnotationsResponseSchema>;
+
+// Snapshot Comparison
+
+export const FullSnapshotSchema = z.object({
+  id: z.string(),
+  property_id: z.string(),
+  property_name: z.string().nullable(),
+  snapshot_type: SnapshotTypeEnum,
+  status_pipeline: PropertyStatusEnum.optional().nullable(),
+  inputs: z.record(z.unknown()),
+  outputs: z.record(z.unknown()),
+  rates: z.record(z.unknown()).optional(),
+  created_at: z.string(),
+});
+export type FullSnapshot = z.infer<typeof FullSnapshotSchema>;
+
+export const CompareSnapshotsResponseSchema = z.object({
+  snapshots: z.array(FullSnapshotSchema),
+});
+export type CompareSnapshotsResponse = z.infer<typeof CompareSnapshotsResponseSchema>;

@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import type { UnifiedSnapshot, CashSnapshot, FinancingSnapshot } from "@widia/shared";
+import { useState, useMemo } from "react";
+import type { UnifiedSnapshot } from "@widia/shared";
 import { SnapshotsTable } from "./SnapshotsTable";
 import { SnapshotsFilters } from "./SnapshotsFilters";
 import { SnapshotsEmptyState } from "./SnapshotsEmptyState";
 import { SnapshotsInfoCard } from "./SnapshotsInfoCard";
-import { SnapshotDetailModal } from "@/components/SnapshotDetailModal";
+import { SnapshotCompareModal } from "./SnapshotCompareModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { GitCompare } from "lucide-react";
 
 interface SnapshotsPageClientProps {
   snapshots: UnifiedSnapshot[];
@@ -25,10 +27,37 @@ export function SnapshotsPageClient({
   initialFilters,
 }: SnapshotsPageClientProps) {
   const [selectedSnapshot, setSelectedSnapshot] = useState<UnifiedSnapshot | null>(null);
+  const [selectedForCompare, setSelectedForCompare] = useState<Set<string>>(new Set());
+  const [showCompareModal, setShowCompareModal] = useState(false);
 
-  // Build a mock CashSnapshot or FinancingSnapshot for the detail modal
-  // The modal expects full snapshot data, but we only have unified summary
-  // For MVP, we show a simplified modal with the unified data
+  const snapshotsMap = useMemo(() => {
+    const map = new Map<string, UnifiedSnapshot>();
+    snapshots.forEach((s) => map.set(`${s.snapshot_type}-${s.id}`, s));
+    return map;
+  }, [snapshots]);
+
+  const handleSelectionChange = (snapshotKey: string, checked: boolean) => {
+    setSelectedForCompare((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        if (next.size < 2) {
+          next.add(snapshotKey);
+        }
+      } else {
+        next.delete(snapshotKey);
+      }
+      return next;
+    });
+  };
+
+  const selectedSnapshotsForCompare = useMemo(() => {
+    const keys = Array.from(selectedForCompare);
+    if (keys.length !== 2) return null;
+    const s1 = snapshotsMap.get(keys[0]);
+    const s2 = snapshotsMap.get(keys[1]);
+    if (!s1 || !s2) return null;
+    return [s1, s2] as [UnifiedSnapshot, UnifiedSnapshot];
+  }, [selectedForCompare, snapshotsMap]);
 
   if (snapshots.length === 0 && !initialFilters.snapshot_type && !initialFilters.status_pipeline && !initialFilters.property_search) {
     return <SnapshotsEmptyState />;
@@ -41,9 +70,26 @@ export function SnapshotsPageClient({
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="text-lg">
-              {totalCount} {totalCount === 1 ? "análise" : "análises"}
-            </CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-lg">
+                {totalCount} {totalCount === 1 ? "análise" : "análises"}
+              </CardTitle>
+              {selectedForCompare.size > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  ({selectedForCompare.size}/2 selecionadas)
+                </span>
+              )}
+              {selectedSnapshotsForCompare && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => setShowCompareModal(true)}
+                >
+                  <GitCompare className="h-4 w-4 mr-1" />
+                  Comparar
+                </Button>
+              )}
+            </div>
             <SnapshotsFilters initialFilters={initialFilters} />
           </div>
         </CardHeader>
@@ -56,6 +102,8 @@ export function SnapshotsPageClient({
             <SnapshotsTable
               snapshots={snapshots}
               onSnapshotClick={setSelectedSnapshot}
+              selectedForCompare={selectedForCompare}
+              onSelectionChange={handleSelectionChange}
             />
           )}
         </CardContent>
@@ -66,6 +114,13 @@ export function SnapshotsPageClient({
           snapshot={selectedSnapshot}
           open={selectedSnapshot !== null}
           onOpenChange={(open) => !open && setSelectedSnapshot(null)}
+        />
+      )}
+
+      {showCompareModal && selectedSnapshotsForCompare && (
+        <SnapshotCompareModal
+          snapshots={selectedSnapshotsForCompare}
+          onClose={() => setShowCompareModal(false)}
         />
       )}
     </div>

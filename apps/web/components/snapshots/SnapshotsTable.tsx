@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { MessageSquare } from "lucide-react";
 
@@ -30,9 +31,16 @@ const STATUS_CONFIG: Record<
 interface SnapshotsTableProps {
   snapshots: UnifiedSnapshot[];
   onSnapshotClick: (snapshot: UnifiedSnapshot) => void;
+  selectedForCompare?: Set<string>;
+  onSelectionChange?: (snapshotKey: string, checked: boolean) => void;
 }
 
-export function SnapshotsTable({ snapshots, onSnapshotClick }: SnapshotsTableProps) {
+export function SnapshotsTable({
+  snapshots,
+  onSnapshotClick,
+  selectedForCompare,
+  onSelectionChange,
+}: SnapshotsTableProps) {
   const formatCurrency = (value: number | null) => {
     if (value === null) return "-";
     return new Intl.NumberFormat("pt-BR", {
@@ -50,10 +58,14 @@ export function SnapshotsTable({ snapshots, onSnapshotClick }: SnapshotsTablePro
     });
   };
 
+  const getSnapshotKey = (snapshot: UnifiedSnapshot) =>
+    `${snapshot.snapshot_type}-${snapshot.id}`;
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
+          {onSelectionChange && <TableHead className="w-10"></TableHead>}
           <TableHead>Imóvel</TableHead>
           <TableHead>Tipo</TableHead>
           <TableHead>Status</TableHead>
@@ -70,13 +82,30 @@ export function SnapshotsTable({ snapshots, onSnapshotClick }: SnapshotsTablePro
           const statusConfig = snapshot.status_pipeline
             ? STATUS_CONFIG[snapshot.status_pipeline]
             : null;
+          const snapshotKey = getSnapshotKey(snapshot);
+          const isSelected = selectedForCompare?.has(snapshotKey) ?? false;
+          const selectionDisabled = !isSelected && (selectedForCompare?.size ?? 0) >= 2;
 
           return (
             <TableRow
-              key={`${snapshot.snapshot_type}-${snapshot.id}`}
-              className="cursor-pointer hover:bg-muted/50"
+              key={snapshotKey}
+              className={cn(
+                "cursor-pointer hover:bg-muted/50",
+                isSelected && "bg-primary/5"
+              )}
               onClick={() => onSnapshotClick(snapshot)}
             >
+              {onSelectionChange && (
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={isSelected}
+                    disabled={selectionDisabled}
+                    onCheckedChange={(checked) =>
+                      onSelectionChange(snapshotKey, checked === true)
+                    }
+                  />
+                </TableCell>
+              )}
               <TableCell>
                 <Link
                   href={`/app/properties/${snapshot.property_id}/overview`}
