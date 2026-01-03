@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink, Building2, Lightbulb, ArrowRight } from "lucide-react";
 
 import type { Property } from "@widia/shared";
 
@@ -77,7 +77,29 @@ export function PropertyTable({
     });
   };
 
-  const emptyMessage = "Você ainda não tem imóveis cadastrados. Comece adicionando uma prospecção!";
+  const renderEmptyState = () => (
+    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted mb-4">
+        <Building2 className="h-7 w-7 text-muted-foreground" />
+      </div>
+      <h3 className="text-lg font-semibold">Nenhum imóvel cadastrado</h3>
+      <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+        Imóveis são criados a partir de leads convertidos na Prospecção.
+      </p>
+      <div className="mt-4 flex items-start gap-2 rounded-lg bg-primary/5 px-4 py-3 text-left max-w-sm">
+        <Lightbulb className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+        <p className="text-xs text-muted-foreground">
+          Vá para <strong>Prospecção</strong>, avalie um lead com o Flip Score e clique em <strong>Converter</strong>.
+        </p>
+      </div>
+      <Link href="/app/prospects">
+        <Button className="mt-6" variant="default">
+          Ir para Prospecção
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </Link>
+    </div>
+  );
 
   return (
     <div>
@@ -113,9 +135,7 @@ export function PropertyTable({
       {/* Mobile: Card list */}
       <div className="lg:hidden space-y-3">
         {properties.length === 0 ? (
-          <Card className="p-6">
-            <p className="text-center text-muted-foreground">{emptyMessage}</p>
-          </Card>
+          <Card className="p-6">{renderEmptyState()}</Card>
         ) : (
           properties.map((property) => (
             <PropertyCard key={property.id} property={property} />
@@ -139,11 +159,8 @@ export function PropertyTable({
           <TableBody>
             {properties.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  {emptyMessage}
+                <TableCell colSpan={6} className="p-0">
+                  {renderEmptyState()}
                 </TableCell>
               </TableRow>
             ) : (

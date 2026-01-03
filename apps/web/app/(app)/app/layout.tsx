@@ -2,16 +2,27 @@ import type { ReactNode } from "react";
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { ListWorkspacesResponseSchema } from "@widia/shared";
+import { ListWorkspacesResponseSchema, UserPreferencesSchema } from "@widia/shared";
 
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { PaywallProvider } from "@/components/PaywallModal";
+import { FeatureTourWrapper } from "@/components/FeatureTourWrapper";
 import { SidebarProvider } from "@/lib/hooks/useSidebar";
 import { getServerSession } from "@/lib/serverAuth";
 import { apiFetch } from "@/lib/apiFetch";
 import { getActiveWorkspaceId } from "@/lib/workspace";
 import { auth } from "@/lib/auth";
+
+async function getUserPreferences() {
+  try {
+    const data = await apiFetch("/api/v1/user/preferences");
+    const parsed = UserPreferencesSchema.safeParse(data);
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession();
@@ -19,12 +30,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     redirect("/login");
   }
 
-  // Fetch user's workspaces
+  // Fetch user's workspaces and preferences in parallel
   let workspacesRaw: { items: { id: string; name: string }[] };
+  let preferences: Awaited<ReturnType<typeof getUserPreferences>> = null;
+
   try {
-    workspacesRaw = await apiFetch<{ items: { id: string; name: string }[] }>(
-      "/api/v1/workspaces",
-    );
+    [workspacesRaw, preferences] = await Promise.all([
+      apiFetch<{ items: { id: string; name: string }[] }>("/api/v1/workspaces"),
+      getUserPreferences(),
+    ]);
   } catch (error) {
     // Token missing/expired - clear session and redirect to login
     if (error instanceof Error &&
@@ -48,6 +62,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     }
   }
 
+  // Auto-start feature tour for new users who haven't completed it
+  const shouldAutoStartTour = preferences && !preferences.feature_tour_completed;
+
   return (
     <PaywallProvider>
       <SidebarProvider>
@@ -63,6 +80,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <main className="flex-1 px-4 py-4 sm:py-6">{children}</main>
           </div>
         </div>
+
+        {/* Feature Tour */}
+        <FeatureTourWrapper autoStart={shouldAutoStartTour ?? false} />
       </SidebarProvider>
     </PaywallProvider>
   );

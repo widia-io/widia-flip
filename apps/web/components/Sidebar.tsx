@@ -9,10 +9,10 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useSidebar } from "@/lib/hooks/useSidebar";
 
 const staticNavItems = [
-  { href: "/app", label: "Dashboard", icon: Home },
-  { href: "/app/prospects", label: "Prospecção", icon: Search },
-  { href: "/app/properties", label: "Imóveis", icon: Building2 },
-  { href: "/app/workspaces", label: "Projetos", icon: FolderKanban },
+  { href: "/app", label: "Dashboard", icon: Home, tourId: undefined },
+  { href: "/app/prospects", label: "Prospecção", icon: Search, tourId: "prospects-link" },
+  { href: "/app/properties", label: "Imóveis", icon: Building2, tourId: "properties-link" },
+  { href: "/app/workspaces", label: "Projetos", icon: FolderKanban, tourId: undefined },
 ];
 
 function SidebarContent({ onNavigate, activeWorkspaceId }: { onNavigate?: () => void; activeWorkspaceId?: string }) {
@@ -30,7 +30,7 @@ function SidebarContent({ onNavigate, activeWorkspaceId }: { onNavigate?: () => 
       <nav className="flex-1 px-3 py-4 space-y-1">
         {staticNavItems.map((item) => {
           const isActive = pathname === item.href ||
-            (item.href !== "/app" && pathname.startsWith(item.href));
+            (item.href !== "/app" && pathname.startsWith(item.href) && !pathname.includes("/billing"));
           const Icon = item.icon;
 
           return (
@@ -38,6 +38,7 @@ function SidebarContent({ onNavigate, activeWorkspaceId }: { onNavigate?: () => 
               key={item.href}
               href={item.href}
               onClick={onNavigate}
+              data-tour={item.tourId}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isActive
@@ -89,7 +90,10 @@ export function Sidebar({ activeWorkspaceId }: SidebarProps) {
       </Sheet>
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex h-full w-64 flex-col border-r border-border bg-background">
+      <aside
+        data-tour="sidebar"
+        className="hidden lg:flex h-full w-64 flex-col border-r border-border bg-background"
+      >
         <SidebarContent activeWorkspaceId={activeWorkspaceId} />
       </aside>
     </>

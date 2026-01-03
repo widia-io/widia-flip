@@ -1,11 +1,12 @@
 "use client";
 
-import { LogOut, Menu } from "lucide-react";
+import { LogOut, Menu, HelpCircle } from "lucide-react";
 import { signOutAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { WorkspaceSelector } from "@/components/WorkspaceSelector";
 import { useSidebar } from "@/lib/hooks/useSidebar";
+import { useFeatureTour } from "@/components/FeatureTour";
 
 function getInitials(email: string): string {
   const name = email.split("@")[0];
@@ -25,6 +26,7 @@ interface HeaderProps {
 
 export function Header({ userEmail, workspaces, activeWorkspaceId }: HeaderProps) {
   const { toggle } = useSidebar();
+  const { startTour } = useFeatureTour();
 
   return (
     <header className="flex items-center justify-between border-b border-border bg-background px-4 py-3">
@@ -48,11 +50,23 @@ export function Header({ userEmail, workspaces, activeWorkspaceId }: HeaderProps
 
       {/* Right side: workspace selector + actions */}
       <div className="flex items-center gap-2 sm:gap-3">
-        <WorkspaceSelector
-          workspaces={workspaces}
-          activeWorkspaceId={activeWorkspaceId}
-        />
+        <div data-tour="workspace-selector">
+          <WorkspaceSelector
+            workspaces={workspaces}
+            activeWorkspaceId={activeWorkspaceId}
+          />
+        </div>
         <div className="hidden sm:block h-6 w-px bg-border" />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={startTour}
+          className="hidden lg:inline-flex"
+          title="Ver tour do app"
+        >
+          <HelpCircle className="h-4 w-4" />
+          <span className="sr-only">Ver tour</span>
+        </Button>
         <ThemeToggle />
         <form action={signOutAction}>
           <Button variant="ghost" size="sm" type="submit" className="px-2 sm:px-3">

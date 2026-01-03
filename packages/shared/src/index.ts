@@ -899,3 +899,31 @@ export function parseEnforcementError(
   }
   return null;
 }
+
+// User Preferences (Onboarding)
+
+export const OnboardingChecklistSchema = z.object({
+  created_workspace: z.boolean(),
+  added_prospect: z.boolean(),
+  calculated_score: z.boolean(),
+  converted_to_property: z.boolean(),
+});
+export type OnboardingChecklist = z.infer<typeof OnboardingChecklistSchema>;
+
+export const UserPreferencesSchema = z.object({
+  id: z.string(),
+  user_id: z.string(),
+  onboarding_completed: z.boolean(),
+  onboarding_checklist: OnboardingChecklistSchema,
+  feature_tour_completed: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type UserPreferences = z.infer<typeof UserPreferencesSchema>;
+
+export const UpdateUserPreferencesRequestSchema = z.object({
+  onboarding_completed: z.boolean().optional(),
+  onboarding_checklist: OnboardingChecklistSchema.partial().optional(),
+  feature_tour_completed: z.boolean().optional(),
+});
+export type UpdateUserPreferencesRequest = z.infer<typeof UpdateUserPreferencesRequestSchema>;
