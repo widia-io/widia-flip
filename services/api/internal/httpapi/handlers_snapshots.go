@@ -3,6 +3,7 @@ package httpapi
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -130,7 +131,7 @@ func (a *api) handleListUnifiedSnapshots(w http.ResponseWriter, r *http.Request)
 	// Check workspace membership
 	var exists bool
 	err := a.db.QueryRowContext(r.Context(),
-		`SELECT EXISTS(SELECT 1 FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2)`,
+		`SELECT EXISTS(SELECT 1 FROM flip.workspace_memberships WHERE workspace_id = $1 AND user_id = $2)`,
 		workspaceID, userID,
 	).Scan(&exists)
 	if err != nil || !exists {
@@ -298,14 +299,14 @@ func (a *api) handleListAnnotations(w http.ResponseWriter, r *http.Request, snap
 	if snapshotType == "cash" {
 		err = a.db.QueryRowContext(r.Context(),
 			`SELECT s.workspace_id FROM flip.analysis_cash_snapshots s
-			 JOIN workspace_memberships m ON m.workspace_id = s.workspace_id
+			 JOIN flip.workspace_memberships m ON m.workspace_id = s.workspace_id
 			 WHERE s.id = $1 AND m.user_id = $2`,
 			snapshotID, userID,
 		).Scan(&workspaceID)
 	} else {
 		err = a.db.QueryRowContext(r.Context(),
 			`SELECT s.workspace_id FROM flip.analysis_financing_snapshots s
-			 JOIN workspace_memberships m ON m.workspace_id = s.workspace_id
+			 JOIN flip.workspace_memberships m ON m.workspace_id = s.workspace_id
 			 WHERE s.id = $1 AND m.user_id = $2`,
 			snapshotID, userID,
 		).Scan(&workspaceID)
@@ -376,14 +377,14 @@ func (a *api) handleCreateAnnotation(w http.ResponseWriter, r *http.Request) {
 	if req.SnapshotType == "cash" {
 		err = a.db.QueryRowContext(r.Context(),
 			`SELECT s.workspace_id FROM flip.analysis_cash_snapshots s
-			 JOIN workspace_memberships m ON m.workspace_id = s.workspace_id
+			 JOIN flip.workspace_memberships m ON m.workspace_id = s.workspace_id
 			 WHERE s.id = $1 AND m.user_id = $2`,
 			req.SnapshotID, userID,
 		).Scan(&workspaceID)
 	} else {
 		err = a.db.QueryRowContext(r.Context(),
 			`SELECT s.workspace_id FROM flip.analysis_financing_snapshots s
-			 JOIN workspace_memberships m ON m.workspace_id = s.workspace_id
+			 JOIN flip.workspace_memberships m ON m.workspace_id = s.workspace_id
 			 WHERE s.id = $1 AND m.user_id = $2`,
 			req.SnapshotID, userID,
 		).Scan(&workspaceID)
@@ -407,7 +408,8 @@ func (a *api) handleCreateAnnotation(w http.ResponseWriter, r *http.Request) {
 	).Scan(&annotation.ID, &annotation.SnapshotID, &annotation.SnapshotType, &annotation.Note, &annotation.CreatedBy, &annotation.CreatedAt, &annotation.UpdatedAt)
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to create annotation"})
+		log.Printf("ERROR: failed to create annotation: %v (snapshot_id=%s, workspace_id=%s, user_id=%s)", err, req.SnapshotID, workspaceID, userID)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to create annotation", Details: []string{err.Error()}})
 		return
 	}
 
@@ -436,7 +438,7 @@ func (a *api) handleUpdateAnnotation(w http.ResponseWriter, r *http.Request, ann
 	var workspaceID string
 	err := a.db.QueryRowContext(r.Context(),
 		`SELECT a.workspace_id FROM flip.snapshot_annotations a
-		 JOIN workspace_memberships m ON m.workspace_id = a.workspace_id
+		 JOIN flip.workspace_memberships m ON m.workspace_id = a.workspace_id
 		 WHERE a.id = $1 AND m.user_id = $2`,
 		annotationID, userID,
 	).Scan(&workspaceID)
@@ -478,7 +480,7 @@ func (a *api) handleDeleteAnnotation(w http.ResponseWriter, r *http.Request, ann
 	var workspaceID string
 	err := a.db.QueryRowContext(r.Context(),
 		`SELECT a.workspace_id FROM flip.snapshot_annotations a
-		 JOIN workspace_memberships m ON m.workspace_id = a.workspace_id
+		 JOIN flip.workspace_memberships m ON m.workspace_id = a.workspace_id
 		 WHERE a.id = $1 AND m.user_id = $2`,
 		annotationID, userID,
 	).Scan(&workspaceID)
