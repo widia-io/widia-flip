@@ -62,6 +62,10 @@ func NewHandler(deps Deps) http.Handler {
 	// User preferences (onboarding, feature tour)
 	protectedMux.HandleFunc("/api/v1/user/preferences", api.handleUserPreferences)
 
+	// Unified Snapshots (workspace-wide)
+	protectedMux.HandleFunc("/api/v1/snapshots", api.handleSnapshotsCollection)
+	protectedMux.HandleFunc("/api/v1/snapshots/", api.handleSnapshotsSubroutes)
+
 	// Apply auth middleware only to protected routes
 	var protectedHandler http.Handler = protectedMux
 	protectedHandler = authMiddleware(api.tokenVerifier, protectedHandler)

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Building2, FolderKanban, CreditCard } from "lucide-react";
+import { Home, Search, Building2, FolderKanban, CreditCard, LineChart } from "lucide-react";
 import { MeuFlipLogo } from "@/components/MeuFlipLogo";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -12,6 +12,7 @@ const staticNavItems = [
   { href: "/app", label: "Dashboard", icon: Home, tourId: undefined },
   { href: "/app/prospects", label: "Prospecção", icon: Search, tourId: "prospects-link" },
   { href: "/app/properties", label: "Imóveis", icon: Building2, tourId: "properties-link" },
+  { href: "/app/snapshots", label: "Análises", icon: LineChart, tourId: "snapshots-link" },
   { href: "/app/workspaces", label: "Projetos", icon: FolderKanban, tourId: undefined },
 ];
 

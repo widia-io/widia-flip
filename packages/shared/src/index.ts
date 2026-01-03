@@ -990,3 +990,72 @@ export const TAX_RATE_PRESETS = {
   },
 } as const;
 export type TaxRatePresetKey = keyof typeof TAX_RATE_PRESETS;
+
+// Unified Snapshots (workspace-wide listing)
+
+export const SnapshotTypeEnum = z.enum(["cash", "financing"]);
+export type SnapshotType = z.infer<typeof SnapshotTypeEnum>;
+
+export const UnifiedSnapshotSchema = z.object({
+  id: z.string(),
+  property_id: z.string(),
+  property_name: z.string().nullable(),
+  snapshot_type: SnapshotTypeEnum,
+  status_pipeline: PropertyStatusEnum.optional(),
+  net_profit: z.number(),
+  roi: z.number(),
+  purchase_price: z.number().nullable(),
+  sale_price: z.number().nullable(),
+  created_at: z.string(),
+  annotation_count: z.number(),
+});
+export type UnifiedSnapshot = z.infer<typeof UnifiedSnapshotSchema>;
+
+export const ListUnifiedSnapshotsResponseSchema = z.object({
+  items: z.array(UnifiedSnapshotSchema),
+  total_count: z.number(),
+});
+export type ListUnifiedSnapshotsResponse = z.infer<typeof ListUnifiedSnapshotsResponseSchema>;
+
+export const ListUnifiedSnapshotsQuerySchema = z.object({
+  workspace_id: z.string(),
+  snapshot_type: z.enum(["cash", "financing", "all"]).optional(),
+  status_pipeline: PropertyStatusEnum.optional(),
+  min_roi: z.number().optional(),
+  property_search: z.string().optional(),
+  date_from: z.string().optional(),
+  date_to: z.string().optional(),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+});
+export type ListUnifiedSnapshotsQuery = z.infer<typeof ListUnifiedSnapshotsQuerySchema>;
+
+// Snapshot Annotations
+
+export const SnapshotAnnotationSchema = z.object({
+  id: z.string(),
+  snapshot_id: z.string(),
+  snapshot_type: SnapshotTypeEnum,
+  note: z.string(),
+  created_by: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type SnapshotAnnotation = z.infer<typeof SnapshotAnnotationSchema>;
+
+export const CreateAnnotationRequestSchema = z.object({
+  snapshot_id: z.string(),
+  snapshot_type: SnapshotTypeEnum,
+  note: z.string().min(1).max(1000),
+});
+export type CreateAnnotationRequest = z.infer<typeof CreateAnnotationRequestSchema>;
+
+export const UpdateAnnotationRequestSchema = z.object({
+  note: z.string().min(1).max(1000),
+});
+export type UpdateAnnotationRequest = z.infer<typeof UpdateAnnotationRequestSchema>;
+
+export const ListAnnotationsResponseSchema = z.object({
+  items: z.array(SnapshotAnnotationSchema),
+});
+export type ListAnnotationsResponse = z.infer<typeof ListAnnotationsResponseSchema>;
