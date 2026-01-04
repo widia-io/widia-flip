@@ -21,6 +21,7 @@ export default async function LoginPage(props: {
   const error = typeof searchParams.error === "string" ? searchParams.error : "";
   const success =
     typeof searchParams.success === "string" ? searchParams.success : "";
+  const email = typeof searchParams.email === "string" ? searchParams.email : "";
   const tab = typeof searchParams.tab === "string" ? searchParams.tab : "login";
 
   return (
@@ -46,15 +47,40 @@ export default async function LoginPage(props: {
         <CardContent>
           {error ? (
             <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {error}
+              {error === "email_not_verified" ? (
+                <>
+                  <p className="font-medium">Email não verificado</p>
+                  <p className="mt-1">
+                    Verifique sua caixa de entrada{email ? ` (${email})` : ""} e
+                    clique no link de confirmação.
+                  </p>
+                </>
+              ) : error === "invalid_token" ? (
+                "Link de verificação inválido ou expirado. Tente fazer login novamente para receber um novo link."
+              ) : (
+                error
+              )}
             </div>
           ) : null}
 
           {success ? (
             <div className="mb-4 rounded-lg border border-primary/50 bg-primary/10 px-4 py-3 text-sm text-primary">
-              {success === "account_created"
-                ? "Conta criada com sucesso! Faça login para continuar."
-                : success}
+              {success === "verify_email" ? (
+                <>
+                  <p className="font-medium">Verifique seu email!</p>
+                  <p className="mt-1 text-muted-foreground">
+                    Enviamos um link de confirmação para{" "}
+                    <strong>{email || "seu email"}</strong>. Clique no link para
+                    ativar sua conta.
+                  </p>
+                </>
+              ) : success === "email_verified" ? (
+                "Email confirmado! Faça login para continuar."
+              ) : success === "account_created" ? (
+                "Conta criada com sucesso! Faça login para continuar."
+              ) : (
+                success
+              )}
             </div>
           ) : null}
 

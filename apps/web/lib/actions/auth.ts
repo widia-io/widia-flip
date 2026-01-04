@@ -19,6 +19,10 @@ export async function signInEmailAction(formData: FormData) {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Sign-in failed";
+    // Check if error is about email verification
+    if (message.toLowerCase().includes("email") && message.toLowerCase().includes("verif")) {
+      redirect(`/login?error=email_not_verified&email=${encodeURIComponent(email)}`);
+    }
     redirect(`/login?error=${encodeURIComponent(message)}`);
   }
 
@@ -37,6 +41,7 @@ export async function signUpEmailAction(formData: FormData) {
         name,
         email,
         password,
+        callbackURL: "/app",
       },
     });
   } catch (e) {
@@ -44,8 +49,8 @@ export async function signUpEmailAction(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(message)}`);
   }
 
-  // Depending on config, sign-up may or may not sign-in automatically.
-  redirect("/login?success=account_created");
+  // Email verification enabled - redirect with email for confirmation message
+  redirect(`/login?success=verify_email&email=${encodeURIComponent(email)}`);
 }
 
 export async function signOutAction() {
