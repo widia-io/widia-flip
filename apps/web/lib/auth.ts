@@ -11,8 +11,14 @@ const pool = new Pool({
   options: "-c search_path=flip",
 });
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@meuflip.com";
+// Lazy initialization to avoid build-time errors when env vars are not set
+let resendClient: Resend | null = null;
+function getResend() {
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
 
 // SVG logo inline for emails (emails don't support CSS classes)
 const logoSvg = `
@@ -122,7 +128,8 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      await resend.emails.send({
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@meuflip.com";
+      await getResend().emails.send({
         from: fromEmail,
         to: user.email,
         subject: "Confirme seu email - Meu Flip",
