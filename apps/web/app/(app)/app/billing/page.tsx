@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
 import { BillingStatusCard } from "./BillingStatusCard";
 import { TierLimitsCard } from "./TierLimitsCard";
-import { UpgradeCTA } from "./UpgradeCTA";
+import { PlanSelector } from "./PlanSelector";
 
 async function getEntitlements(): Promise<UserEntitlements | null> {
   try {
@@ -68,17 +68,20 @@ export default async function UserBillingPage() {
         </CardContent>
       </Card>
 
-      {/* Upgrade Options */}
-      {entitlements && entitlements.billing.tier !== "growth" && (
+      {/* Plan Selection */}
+      {entitlements && (
         <Card>
           <CardHeader>
-            <CardTitle>Fazer Upgrade</CardTitle>
+            <CardTitle>Alterar Plano</CardTitle>
             <CardDescription>
-              Desbloqueie mais recursos com um plano superior
+              Escolha o plano ideal para suas necessidades
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <UpgradeCTA currentTier={entitlements.billing.tier} />
+            <PlanSelector
+              currentTier={entitlements.billing.tier}
+              hasSubscription={!!entitlements.billing.stripe_customer_id}
+            />
           </CardContent>
         </Card>
       )}
