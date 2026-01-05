@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { ListWorkspacesResponseSchema, UserPreferencesSchema, AdminStatusResponseSchema } from "@widia/shared";
+import { ListWorkspacesResponseSchema, UserPreferencesSchema, AdminStatusResponseSchema, UserEntitlementsSchema, type UserEntitlements } from "@widia/shared";
 
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -34,22 +34,33 @@ async function getAdminStatus() {
   }
 }
 
+async function getUserEntitlements(): Promise<UserEntitlements | null> {
+  try {
+    const data = await apiFetch<UserEntitlements>("/api/v1/billing/me");
+    return UserEntitlementsSchema.parse(data);
+  } catch {
+    return null;
+  }
+}
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession();
   if (!session) {
     redirect("/login");
   }
 
-  // Fetch user's workspaces, preferences, and admin status in parallel
+  // Fetch user's workspaces, preferences, admin status, and entitlements in parallel
   let workspacesRaw: { items: { id: string; name: string }[] };
   let preferences: Awaited<ReturnType<typeof getUserPreferences>> = null;
   let isAdmin = false;
+  let entitlements: UserEntitlements | null = null;
 
   try {
-    [workspacesRaw, preferences, isAdmin] = await Promise.all([
+    [workspacesRaw, preferences, isAdmin, entitlements] = await Promise.all([
       apiFetch<{ items: { id: string; name: string }[] }>("/api/v1/workspaces"),
       getUserPreferences(),
       getAdminStatus(),
+      getUserEntitlements(),
     ]);
   } catch (error) {
     // Token missing/expired - clear session and redirect to login
@@ -92,6 +103,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               userEmail={session.user.email}
               workspaces={workspaces.items}
               activeWorkspaceId={activeWorkspaceId}
+              entitlements={entitlements}
             />
             <main className="flex-1 px-4 py-4 sm:py-6">{children}</main>
           </div>
