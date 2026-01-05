@@ -1079,3 +1079,83 @@ export const CompareSnapshotsResponseSchema = z.object({
   snapshots: z.array(FullSnapshotSchema),
 });
 export type CompareSnapshotsResponse = z.infer<typeof CompareSnapshotsResponseSchema>;
+
+// Admin Dashboard
+
+export const AdminUserStatsSchema = z.object({
+  total: z.number(),
+  byTier: z.record(z.string(), z.number()),
+});
+export type AdminUserStats = z.infer<typeof AdminUserStatsSchema>;
+
+export const AdminStorageStatsSchema = z.object({
+  totalFiles: z.number(),
+  totalBytes: z.number(),
+});
+export type AdminStorageStats = z.infer<typeof AdminStorageStatsSchema>;
+
+export const AdminStatsResponseSchema = z.object({
+  users: AdminUserStatsSchema,
+  workspaces: z.object({ total: z.number() }),
+  properties: z.object({
+    total: z.number(),
+    byStatus: z.record(z.string(), z.number()),
+  }),
+  prospects: z.object({
+    total: z.number(),
+    byStatus: z.record(z.string(), z.number()),
+  }),
+  snapshots: z.object({
+    cash: z.number(),
+    financing: z.number(),
+  }),
+  storage: AdminStorageStatsSchema,
+});
+export type AdminStatsResponse = z.infer<typeof AdminStatsResponseSchema>;
+
+export const AdminUserSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  name: z.string(),
+  isAdmin: z.boolean(),
+  isActive: z.boolean(),
+  tier: z.string().nullable(),
+  billingStatus: z.string().nullable(),
+  workspaceCount: z.number(),
+  createdAt: z.string(),
+});
+export type AdminUser = z.infer<typeof AdminUserSchema>;
+
+export const AdminUserWorkspaceSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.string(),
+});
+export type AdminUserWorkspace = z.infer<typeof AdminUserWorkspaceSchema>;
+
+export const AdminUserDetailSchema = AdminUserSchema.extend({
+  workspaces: z.array(AdminUserWorkspaceSchema),
+  storage: AdminStorageStatsSchema,
+});
+export type AdminUserDetail = z.infer<typeof AdminUserDetailSchema>;
+
+export const ListAdminUsersResponseSchema = z.object({
+  items: z.array(AdminUserSchema),
+  total: z.number(),
+});
+export type ListAdminUsersResponse = z.infer<typeof ListAdminUsersResponseSchema>;
+
+export const UpdateUserTierRequestSchema = z.object({
+  tier: BillingTierEnum,
+});
+export type UpdateUserTierRequest = z.infer<typeof UpdateUserTierRequestSchema>;
+
+export const UpdateUserStatusRequestSchema = z.object({
+  isActive: z.boolean(),
+});
+export type UpdateUserStatusRequest = z.infer<typeof UpdateUserStatusRequestSchema>;
+
+export const AdminStatusResponseSchema = z.object({
+  isAdmin: z.boolean(),
+});
+export type AdminStatusResponse = z.infer<typeof AdminStatusResponseSchema>;

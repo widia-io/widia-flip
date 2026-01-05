@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Building2, FolderKanban, CreditCard, LineChart } from "lucide-react";
+import { Home, Search, Building2, FolderKanban, CreditCard, LineChart, Shield } from "lucide-react";
 import { MeuFlipLogo } from "@/components/MeuFlipLogo";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -16,7 +16,7 @@ const staticNavItems = [
   { href: "/app/workspaces", label: "Projetos", icon: FolderKanban, tourId: undefined },
 ];
 
-function SidebarContent({ onNavigate, activeWorkspaceId }: { onNavigate?: () => void; activeWorkspaceId?: string }) {
+function SidebarContent({ onNavigate, activeWorkspaceId, isAdmin }: { onNavigate?: () => void; activeWorkspaceId?: string; isAdmin?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -69,6 +69,23 @@ function SidebarContent({ onNavigate, activeWorkspaceId }: { onNavigate?: () => 
             Faturamento
           </Link>
         )}
+
+        {/* Admin link - only show for admins */}
+        {isAdmin && (
+          <Link
+            href="/app/admin"
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              pathname.startsWith("/app/admin")
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            )}
+          >
+            <Shield className="h-4 w-4" />
+            Admin
+          </Link>
+        )}
       </nav>
     </div>
   );
@@ -76,9 +93,10 @@ function SidebarContent({ onNavigate, activeWorkspaceId }: { onNavigate?: () => 
 
 interface SidebarProps {
   activeWorkspaceId?: string;
+  isAdmin?: boolean;
 }
 
-export function Sidebar({ activeWorkspaceId }: SidebarProps) {
+export function Sidebar({ activeWorkspaceId, isAdmin }: SidebarProps) {
   const { isOpen, close } = useSidebar();
 
   return (
@@ -86,7 +104,7 @@ export function Sidebar({ activeWorkspaceId }: SidebarProps) {
       {/* Mobile drawer */}
       <Sheet open={isOpen} onOpenChange={(open) => !open && close()}>
         <SheetContent side="left" className="w-64 p-0">
-          <SidebarContent onNavigate={close} activeWorkspaceId={activeWorkspaceId} />
+          <SidebarContent onNavigate={close} activeWorkspaceId={activeWorkspaceId} isAdmin={isAdmin} />
         </SheetContent>
       </Sheet>
 
@@ -95,7 +113,7 @@ export function Sidebar({ activeWorkspaceId }: SidebarProps) {
         data-tour="sidebar"
         className="hidden lg:flex h-full w-64 flex-col border-r border-border bg-background"
       >
-        <SidebarContent activeWorkspaceId={activeWorkspaceId} />
+        <SidebarContent activeWorkspaceId={activeWorkspaceId} isAdmin={isAdmin} />
       </aside>
     </>
   );

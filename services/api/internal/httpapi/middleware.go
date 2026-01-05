@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"log"
 	"net/http"
@@ -69,4 +70,57 @@ func newRequestID() string {
 
 	// Fallback (should be extremely rare).
 	return hex.EncodeToString([]byte(time.Now().Format(time.RFC3339Nano)))
+}
+
+func adminAuthMiddleware(verifier *auth.JWKSVerifier, db *sql.DB, next http.Handler) http.Handler {
+	return authMiddleware(verifier, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userID, ok := auth.UserIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, apiError{
+				Code:    "UNAUTHORIZED",
+				Message: "missing user context",
+			})
+			return
+		}
+
+		var isAdmin, isActive bool
+		err := db.QueryRowContext(r.Context(),
+			`SELECT is_admin, is_active FROM "user" WHERE id = $1`,
+			userID,
+		).Scan(&isAdmin, &isActive)
+
+		if err == sql.ErrNoRows {
+			writeError(w, http.StatusUnauthorized, apiError{
+				Code:    "UNAUTHORIZED",
+				Message: "user not found",
+			})
+			return
+		}
+		if err != nil {
+			log.Printf("admin check error: %v", err)
+			writeError(w, http.StatusInternalServerError, apiError{
+				Code:    "INTERNAL_ERROR",
+				Message: "failed to check admin status",
+			})
+			return
+		}
+
+		if !isActive {
+			writeError(w, http.StatusForbidden, apiError{
+				Code:    "ACCOUNT_DISABLED",
+				Message: "account is disabled",
+			})
+			return
+		}
+
+		if !isAdmin {
+			writeError(w, http.StatusForbidden, apiError{
+				Code:    "FORBIDDEN",
+				Message: "admin access required",
+			})
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	}))
 }

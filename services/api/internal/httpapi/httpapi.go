@@ -62,6 +62,9 @@ func NewHandler(deps Deps) http.Handler {
 	// User preferences (onboarding, feature tour)
 	protectedMux.HandleFunc("/api/v1/user/preferences", api.handleUserPreferences)
 
+	// User admin status check (protected, not admin-only)
+	protectedMux.HandleFunc("/api/v1/user/admin-status", api.handleUserAdminStatus)
+
 	// Unified Snapshots (workspace-wide)
 	protectedMux.HandleFunc("/api/v1/snapshots", api.handleSnapshotsCollection)
 	protectedMux.HandleFunc("/api/v1/snapshots/", api.handleSnapshotsSubroutes)
@@ -70,17 +73,26 @@ func NewHandler(deps Deps) http.Handler {
 	var protectedHandler http.Handler = protectedMux
 	protectedHandler = authMiddleware(api.tokenVerifier, protectedHandler)
 
+	// Admin routes (JWT auth + is_admin check)
+	adminMux := http.NewServeMux()
+	adminMux.HandleFunc("/api/v1/admin/stats", api.handleAdminStats)
+	adminMux.HandleFunc("/api/v1/admin/users", api.handleAdminUsersCollection)
+	adminMux.HandleFunc("/api/v1/admin/users/", api.handleAdminUsersSubroutes)
+	var adminHandler http.Handler = adminMux
+	adminHandler = adminAuthMiddleware(api.tokenVerifier, api.db, adminHandler)
+
 	// Internal routes (protected by X-Internal-Secret, no JWT auth)
 	internalMux := http.NewServeMux()
 	internalMux.HandleFunc("/api/v1/internal/billing/", api.handleInternalBillingSubroutes)
 	var internalHandler http.Handler = internalMux
 	internalHandler = internalSecretMiddleware(internalHandler)
 
-	// Combine public, protected, and internal routes
+	// Combine public, protected, internal, and admin routes
 	mainMux := http.NewServeMux()
 	mainMux.Handle("/api/v1/health", publicMux)
 	mainMux.Handle("/api/v1/public/", publicMux)
 	mainMux.Handle("/api/v1/internal/", internalHandler)
+	mainMux.Handle("/api/v1/admin/", adminHandler)
 	mainMux.Handle("/", protectedHandler)
 
 	var h http.Handler = mainMux
