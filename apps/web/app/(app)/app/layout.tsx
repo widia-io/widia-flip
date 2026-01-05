@@ -78,7 +78,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   // Auto-start feature tour for new users who haven't completed it
-  const shouldAutoStartTour = preferences && !preferences.feature_tour_completed;
+  // If preferences is null (new user) or feature_tour_completed is false, show tour
+  const shouldAutoStartTour = !preferences || !preferences.feature_tour_completed;
 
   return (
     <PaywallProvider>
