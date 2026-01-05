@@ -178,6 +178,39 @@ func (a *api) checkDocumentCreationLimit(ctx context.Context, userID string, wor
 	return count < limits.MaxDocsPerMonth, count, limits.MaxDocsPerMonth, billing.Tier, periodStart, periodEnd
 }
 
+// checkURLImportLimit checks if workspace can create a new URL import
+func (a *api) checkURLImportLimit(ctx context.Context, userID string, workspaceID string, billing userBilling) (bool, int, int, string, time.Time, time.Time) {
+	limits := tierLimitsMap[billing.Tier]
+	if limits.MaxURLImportsPerMonth == 0 {
+		limits = tierLimitsMap["starter"]
+	}
+
+	periodStart, periodEnd, _ := a.getBillingPeriod(ctx, userID)
+	count, err := a.countURLImportsInPeriod(ctx, workspaceID, periodStart, periodEnd)
+	if err != nil {
+		slog.Error("enforcement: failed to count url imports", slog.String("workspace_id", workspaceID), slog.Any("error", err))
+		return true, 0, limits.MaxURLImportsPerMonth, billing.Tier, periodStart, periodEnd
+	}
+
+	return count < limits.MaxURLImportsPerMonth, count, limits.MaxURLImportsPerMonth, billing.Tier, periodStart, periodEnd
+}
+
+// checkStorageLimit checks if workspace has storage space for additional bytes
+func (a *api) checkStorageLimit(ctx context.Context, workspaceID string, billing userBilling, additionalBytes int64) (bool, int64, int64, string) {
+	limits := tierLimitsMap[billing.Tier]
+	if limits.MaxStorageBytes == 0 {
+		limits = tierLimitsMap["starter"]
+	}
+
+	storageUsed, err := a.getWorkspaceStorageUsed(ctx, workspaceID)
+	if err != nil {
+		slog.Error("enforcement: failed to get storage used", slog.String("workspace_id", workspaceID), slog.Any("error", err))
+		return true, 0, limits.MaxStorageBytes, billing.Tier
+	}
+
+	return (storageUsed + additionalBytes) <= limits.MaxStorageBytes, storageUsed, limits.MaxStorageBytes, billing.Tier
+}
+
 // enforceWorkspaceCreation checks and enforces workspace creation limits
 // Returns true if request should continue, false if blocked (error already written)
 func (a *api) enforceWorkspaceCreation(w http.ResponseWriter, r *http.Request, userID string, requestID string) bool {
@@ -412,6 +445,133 @@ func (a *api) enforceDocumentCreation(w http.ResponseWriter, r *http.Request, us
 			Limit:       limit,
 			PeriodStart: periodStart.Format(time.RFC3339),
 			PeriodEnd:   periodEnd.Format(time.RFC3339),
+		})
+		return false
+	}
+
+	return true
+}
+
+// enforceURLImportCreation checks and enforces URL import limits
+func (a *api) enforceURLImportCreation(w http.ResponseWriter, r *http.Request, userID string, workspaceID string, requestID string) bool {
+	// Get workspace owner
+	var ownerUserID string
+	err := a.db.QueryRowContext(
+		r.Context(),
+		`SELECT created_by_user_id FROM workspaces WHERE id = $1`,
+		workspaceID,
+	).Scan(&ownerUserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to get workspace owner"})
+		return false
+	}
+
+	// Check billing status
+	allowed, billing, err := a.checkBillingStatus(r.Context(), ownerUserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check billing status"})
+		return false
+	}
+
+	if !allowed {
+		slog.Warn("enforcement_blocked",
+			slog.String("request_id", requestID),
+			slog.String("user_id", userID),
+			slog.String("workspace_id", workspaceID),
+			slog.String("action", "url_import"),
+			slog.String("reason", "billing_status"),
+			slog.String("status", billing.Status),
+		)
+		writeEnforcementError(w, ErrCodePaywallRequired, "Regularize seu pagamento para continuar importando via URL.", enforcementDetails{
+			Tier:          billing.Tier,
+			BillingStatus: billing.Status,
+		})
+		return false
+	}
+
+	// Check URL import limit
+	limitOK, used, limit, tier, periodStart, periodEnd := a.checkURLImportLimit(r.Context(), ownerUserID, workspaceID, billing)
+	if !limitOK {
+		slog.Warn("enforcement_blocked",
+			slog.String("request_id", requestID),
+			slog.String("user_id", userID),
+			slog.String("workspace_id", workspaceID),
+			slog.String("action", "url_import"),
+			slog.String("reason", "limit_exceeded"),
+			slog.String("tier", tier),
+			slog.Int("used", used),
+			slog.Int("limit", limit),
+		)
+		writeEnforcementError(w, ErrCodeLimitExceeded, "Limite de importações via URL atingido neste ciclo. Faça upgrade para importar mais.", enforcementDetails{
+			Tier:        tier,
+			Metric:      "url_imports",
+			Usage:       used,
+			Limit:       limit,
+			PeriodStart: periodStart.Format(time.RFC3339),
+			PeriodEnd:   periodEnd.Format(time.RFC3339),
+		})
+		return false
+	}
+
+	return true
+}
+
+// enforceStorageLimit checks and enforces storage limits
+func (a *api) enforceStorageLimit(w http.ResponseWriter, r *http.Request, userID string, workspaceID string, additionalBytes int64, requestID string) bool {
+	// Get workspace owner
+	var ownerUserID string
+	err := a.db.QueryRowContext(
+		r.Context(),
+		`SELECT created_by_user_id FROM workspaces WHERE id = $1`,
+		workspaceID,
+	).Scan(&ownerUserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to get workspace owner"})
+		return false
+	}
+
+	// Check billing status
+	allowed, billing, err := a.checkBillingStatus(r.Context(), ownerUserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check billing status"})
+		return false
+	}
+
+	if !allowed {
+		slog.Warn("enforcement_blocked",
+			slog.String("request_id", requestID),
+			slog.String("user_id", userID),
+			slog.String("workspace_id", workspaceID),
+			slog.String("action", "storage_upload"),
+			slog.String("reason", "billing_status"),
+			slog.String("status", billing.Status),
+		)
+		writeEnforcementError(w, ErrCodePaywallRequired, "Regularize seu pagamento para continuar enviando arquivos.", enforcementDetails{
+			Tier:          billing.Tier,
+			BillingStatus: billing.Status,
+		})
+		return false
+	}
+
+	// Check storage limit
+	limitOK, used, limit, tier := a.checkStorageLimit(r.Context(), workspaceID, billing, additionalBytes)
+	if !limitOK {
+		slog.Warn("enforcement_blocked",
+			slog.String("request_id", requestID),
+			slog.String("user_id", userID),
+			slog.String("workspace_id", workspaceID),
+			slog.String("action", "storage_upload"),
+			slog.String("reason", "storage_limit_exceeded"),
+			slog.String("tier", tier),
+			slog.Int64("used", used),
+			slog.Int64("limit", limit),
+			slog.Int64("additional_bytes", additionalBytes),
+		)
+		writeEnforcementError(w, ErrCodeLimitExceeded, "Limite de armazenamento atingido. Faça upgrade para enviar mais arquivos.", enforcementDetails{
+			Tier:   tier,
+			Metric: "storage_bytes",
+			Usage:  int(used),
+			Limit:  int(limit),
 		})
 		return false
 	}

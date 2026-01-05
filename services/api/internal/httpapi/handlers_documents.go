@@ -217,6 +217,12 @@ func (a *api) handleGetUploadURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// M12 - Enforce storage limit before generating upload URL
+	requestID := r.Header.Get("X-Request-ID")
+	if !a.enforceStorageLimit(w, r, userID, req.WorkspaceID, req.SizeBytes, requestID) {
+		return
+	}
+
 	// If property_id provided, verify it belongs to workspace
 	if req.PropertyID != nil && *req.PropertyID != "" {
 		var propWorkspaceID string
@@ -414,6 +420,19 @@ func (a *api) handleRegisterDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// M12 - Increment workspace storage usage
+	if req.SizeBytes != nil && *req.SizeBytes > 0 {
+		_, err = a.db.ExecContext(
+			r.Context(),
+			`UPDATE workspaces SET storage_used_bytes = COALESCE(storage_used_bytes, 0) + $1 WHERE id = $2`,
+			*req.SizeBytes, req.WorkspaceID,
+		)
+		if err != nil {
+			// Log but don't fail - document is already created
+			// Storage tracking is observability, not critical path
+		}
+	}
+
 	// Create timeline event if linked to a property
 	if req.PropertyID != nil && *req.PropertyID != "" {
 		a.createTimelineEvent(r.Context(), *req.PropertyID, req.WorkspaceID, EventTypeDocUploaded, map[string]any{
@@ -488,16 +507,17 @@ func (a *api) handleDeleteDocument(w http.ResponseWriter, r *http.Request, docID
 		return
 	}
 
-	// Check access via document
+	// Check access via document and get size for storage tracking
 	var workspaceID string
+	var sizeBytes sql.NullInt64
 	err := a.db.QueryRowContext(
 		r.Context(),
-		`SELECT d.workspace_id
+		`SELECT d.workspace_id, d.size_bytes
 		 FROM documents d
 		 JOIN workspace_memberships m ON m.workspace_id = d.workspace_id
 		 WHERE d.id = $1 AND m.user_id = $2`,
 		docID, userID,
-	).Scan(&workspaceID)
+	).Scan(&workspaceID, &sizeBytes)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "document not found"})
@@ -522,6 +542,16 @@ func (a *api) handleDeleteDocument(w http.ResponseWriter, r *http.Request, docID
 	if rowsAffected == 0 {
 		writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "document not found"})
 		return
+	}
+
+	// M12 - Decrement workspace storage usage
+	if sizeBytes.Valid && sizeBytes.Int64 > 0 {
+		_, _ = a.db.ExecContext(
+			r.Context(),
+			`UPDATE workspaces SET storage_used_bytes = GREATEST(0, COALESCE(storage_used_bytes, 0) - $1) WHERE id = $2`,
+			sizeBytes.Int64, workspaceID,
+		)
+		// Ignore error - storage tracking is observability, not critical path
 	}
 
 	w.WriteHeader(http.StatusNoContent)

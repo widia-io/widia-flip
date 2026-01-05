@@ -31,9 +31,20 @@ type workspaceUsageResponse struct {
 }
 
 type usageMetrics struct {
-	Prospects usageMetric `json:"prospects"`
-	Snapshots usageMetric `json:"snapshots"`
-	Documents usageMetric `json:"documents"`
+	Prospects    usageMetric      `json:"prospects"`
+	Snapshots    usageMetric      `json:"snapshots"`
+	Documents    usageMetric      `json:"documents"`
+	URLImports   usageMetric      `json:"url_imports"`
+	StorageBytes usageMetricInt64 `json:"storage_bytes"`
+}
+
+// usageMetricInt64 is for metrics that need int64 (like storage bytes)
+type usageMetricInt64 struct {
+	Metric      string `json:"metric"`
+	Usage       int64  `json:"usage"`
+	Limit       int64  `json:"limit"`
+	At80Percent bool   `json:"at_80_percent"`
+	AtOrOver100 bool   `json:"at_or_over_100"`
 }
 
 // billingPeriod derives period_start and period_end from user_billing
@@ -131,10 +142,52 @@ func (a *api) countDocumentsInPeriod(ctx context.Context, workspaceID string, pe
 	return count, err
 }
 
+// countURLImportsInPeriod counts prospects imported via URL within the period
+func (a *api) countURLImportsInPeriod(ctx context.Context, workspaceID string, periodStart, periodEnd time.Time) (int, error) {
+	var count int
+	err := a.db.QueryRowContext(
+		ctx,
+		`SELECT COUNT(*)
+		 FROM prospecting_properties
+		 WHERE workspace_id = $1
+		   AND created_at >= $2
+		   AND created_at < $3
+		   AND imported_via_url = TRUE
+		   AND deleted_at IS NULL`,
+		workspaceID, periodStart, periodEnd,
+	).Scan(&count)
+	return count, err
+}
+
+// getWorkspaceStorageUsed returns total storage used by workspace (in bytes)
+func (a *api) getWorkspaceStorageUsed(ctx context.Context, workspaceID string) (int64, error) {
+	var storageUsed int64
+	err := a.db.QueryRowContext(
+		ctx,
+		`SELECT COALESCE(storage_used_bytes, 0)
+		 FROM workspaces
+		 WHERE id = $1`,
+		workspaceID,
+	).Scan(&storageUsed)
+	return storageUsed, err
+}
+
 // buildUsageMetric creates a usageMetric with threshold flags
 func buildUsageMetric(metric string, usage, limit int) usageMetric {
 	threshold80 := int(float64(limit) * 0.8)
 	return usageMetric{
+		Metric:      metric,
+		Usage:       usage,
+		Limit:       limit,
+		At80Percent: usage >= threshold80 && usage < limit,
+		AtOrOver100: usage >= limit,
+	}
+}
+
+// buildUsageMetricInt64 creates a usageMetricInt64 for int64 values (like storage bytes)
+func buildUsageMetricInt64(metric string, usage, limit int64) usageMetricInt64 {
+	threshold80 := int64(float64(limit) * 0.8)
+	return usageMetricInt64{
 		Metric:      metric,
 		Usage:       usage,
 		Limit:       limit,
@@ -246,10 +299,24 @@ func (a *api) handleGetWorkspaceUsage(w http.ResponseWriter, r *http.Request, wo
 		return
 	}
 
+	urlImportsCount, err := a.countURLImportsInPeriod(r.Context(), workspaceID, periodStart, periodEnd)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count url imports"})
+		return
+	}
+
+	storageUsed, err := a.getWorkspaceStorageUsed(r.Context(), workspaceID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to get storage usage"})
+		return
+	}
+
 	// Build metrics with threshold flags
 	prospectsMetric := buildUsageMetric("prospects", prospectsCount, limits.MaxProspectsPerMonth)
 	snapshotsMetric := buildUsageMetric("snapshots", snapshotsCount, limits.MaxSnapshotsPerMonth)
 	documentsMetric := buildUsageMetric("documents", documentsCount, limits.MaxDocsPerMonth)
+	urlImportsMetric := buildUsageMetric("url_imports", urlImportsCount, limits.MaxURLImportsPerMonth)
+	storageBytesMetric := buildUsageMetricInt64("storage_bytes", storageUsed, limits.MaxStorageBytes)
 
 	// Log soft limit events (observability)
 	// Note: In production, consider rate-limiting these logs per workspace+period+metric
@@ -278,9 +345,11 @@ func (a *api) handleGetWorkspaceUsage(w http.ResponseWriter, r *http.Request, wo
 		PeriodType:  periodType,
 		Tier:        billing.Tier,
 		Metrics: usageMetrics{
-			Prospects: prospectsMetric,
-			Snapshots: snapshotsMetric,
-			Documents: documentsMetric,
+			Prospects:    prospectsMetric,
+			Snapshots:    snapshotsMetric,
+			Documents:    documentsMetric,
+			URLImports:   urlImportsMetric,
+			StorageBytes: storageBytesMetric,
 		},
 	}
 

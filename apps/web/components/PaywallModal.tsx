@@ -37,6 +37,8 @@ const METRIC_LABELS: Record<string, string> = {
   prospects: "Prospects",
   snapshots: "Análises Salvas",
   documents: "Documentos",
+  url_imports: "Importações URL",
+  storage_bytes: "Storage",
   flip_score_v1: "Flip Score v1",
 };
 

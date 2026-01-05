@@ -124,12 +124,27 @@ export function ProspectAddModal({ workspaceId, canAccessFlipScoreV1 = false }: 
       const res = await fetch("/api/scrape-property", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: urlToScrape }),
+        body: JSON.stringify({ url: urlToScrape, workspace_id: workspaceId }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
+        // M12 - Handle limit exceeded (402) with paywall
+        if (res.status === 402) {
+          setOpen(false);
+          showPaywall({
+            error: {
+              code: "LIMIT_EXCEEDED",
+              message: data.error?.message ?? "Limite de importações via URL atingido",
+              details: {
+                tier: "starter", // Will be updated by actual tier from backend if needed
+                metric: "url_imports",
+              },
+            },
+          }, workspaceId);
+          return;
+        }
         throw new Error(data.error?.message ?? "Erro ao importar dados");
       }
 

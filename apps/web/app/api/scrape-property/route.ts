@@ -4,10 +4,13 @@ import {
   ScrapePropertyRequestSchema,
   ScrapedPropertySchema,
   type ScrapePropertyResponse,
+  type WorkspaceUsageResponse,
 } from "@widia/shared";
+import { getServerSession, getServerAccessToken } from "@/lib/serverAuth";
 
 const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const GO_API_BASE_URL = process.env.GO_API_BASE_URL ?? "http://localhost:8080";
 
 const EXTRACTION_PROMPT = `Você é um extrator de dados de imóveis. Analise o texto abaixo de um anúncio imobiliário e extraia os dados em formato JSON.
 
@@ -62,6 +65,33 @@ interface OpenRouterResponse {
 
 export async function POST(request: Request) {
   try {
+    // Check authentication
+    const session = await getServerSession();
+    if (!session) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Login necessário para importar via URL",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
+    const token = await getServerAccessToken();
+    if (!token) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Sessão inválida",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
     // Check API keys
     if (!FIRECRAWL_API_KEY) {
       console.error("[scrape-property] FIRECRAWL_API_KEY not configured");
@@ -105,7 +135,46 @@ export async function POST(request: Request) {
       );
     }
 
-    const { url } = parsed.data;
+    const { url, workspace_id } = parsed.data;
+
+    // M12 - Check URL import limit before calling external APIs
+    try {
+      const usageRes = await fetch(
+        `${GO_API_BASE_URL}/api/v1/workspaces/${workspace_id}/usage`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (usageRes.ok) {
+        const usage = (await usageRes.json()) as WorkspaceUsageResponse;
+        if (usage.metrics.url_imports.at_or_over_100) {
+          console.log(
+            "[scrape-property] URL import limit exceeded:",
+            usage.metrics.url_imports,
+          );
+          return NextResponse.json(
+            {
+              error: {
+                code: "LIMIT_EXCEEDED",
+                message: `Limite de importações por URL atingido (${usage.metrics.url_imports.usage}/${usage.metrics.url_imports.limit}). Faça upgrade para continuar.`,
+              },
+            },
+            { status: 402 },
+          );
+        }
+      } else {
+        console.warn(
+          "[scrape-property] Failed to check usage, proceeding anyway:",
+          usageRes.status,
+        );
+      }
+    } catch (usageErr) {
+      console.warn("[scrape-property] Usage check error, proceeding:", usageErr);
+    }
 
     console.log("[scrape-property] Scraping URL:", url);
 

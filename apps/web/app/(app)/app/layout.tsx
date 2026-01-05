@@ -65,13 +65,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // Get active workspace from cookie
   let activeWorkspaceId = await getActiveWorkspaceId();
 
-  // If no active workspace or it doesn't exist in the list, use the first one
-  // (The cookie will be set when the user interacts with the selector)
+  // Validate activeWorkspaceId against user's actual workspaces
+  // If no workspaces or invalid ID, clear it
   if (workspaces.items.length > 0) {
     const workspaceIds = workspaces.items.map((ws) => ws.id);
     if (!activeWorkspaceId || !workspaceIds.includes(activeWorkspaceId)) {
       activeWorkspaceId = workspaces.items[0].id;
     }
+  } else {
+    // No workspaces - don't use stale cookie value
+    activeWorkspaceId = null;
   }
 
   // Auto-start feature tour for new users who haven't completed it
@@ -81,7 +84,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <PaywallProvider>
       <SidebarProvider>
         <div className="flex min-h-screen bg-background text-foreground">
-          <Sidebar activeWorkspaceId={activeWorkspaceId ?? undefined} isAdmin={isAdmin} />
+          <Sidebar isAdmin={isAdmin} />
 
           <div className="flex min-w-0 flex-1 flex-col">
             <Header

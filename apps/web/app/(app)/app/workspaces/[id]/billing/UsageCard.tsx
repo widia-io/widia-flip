@@ -1,8 +1,16 @@
 "use client";
 
 import { type WorkspaceUsageResponse, type UsageMetric } from "@widia/shared";
-import { Users, Camera, FileText, AlertTriangle } from "lucide-react";
+import { Users, Camera, FileText, AlertTriangle, Link2, HardDrive } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
 
 interface UsageCardProps {
   usage: WorkspaceUsageResponse | null;
@@ -12,12 +20,15 @@ interface UsageBarProps {
   metric: UsageMetric;
   label: string;
   icon: React.ElementType;
+  formatValue?: (value: number) => string;
 }
 
-function UsageBar({ metric, label, icon: Icon }: UsageBarProps) {
+function UsageBar({ metric, label, icon: Icon, formatValue }: UsageBarProps) {
   const percentage = metric.limit > 0 ? Math.min((metric.usage / metric.limit) * 100, 100) : 0;
   const isWarning = metric.at_80_percent;
   const isExceeded = metric.at_or_over_100;
+  const displayUsage = formatValue ? formatValue(metric.usage) : String(metric.usage);
+  const displayLimit = formatValue ? formatValue(metric.limit) : String(metric.limit);
 
   return (
     <div className="space-y-2">
@@ -32,7 +43,7 @@ function UsageBar({ metric, label, icon: Icon }: UsageBarProps) {
           isWarning && !isExceeded && "text-amber-600 dark:text-amber-400 font-medium",
           !isWarning && !isExceeded && "text-muted-foreground"
         )}>
-          {metric.usage} / {metric.limit}
+          {displayUsage} / {displayLimit}
         </span>
       </div>
       <div className="h-2 w-full rounded-full bg-muted">
@@ -108,11 +119,22 @@ export function UsageCard({ usage }: UsageCardProps) {
           label="Documentos"
           icon={FileText}
         />
+        <UsageBar
+          metric={usage.metrics.url_imports}
+          label="Importações URL"
+          icon={Link2}
+        />
+        <UsageBar
+          metric={usage.metrics.storage_bytes}
+          label="Storage"
+          icon={HardDrive}
+          formatValue={formatBytes}
+        />
       </div>
 
       {/* Info text */}
       <p className="text-xs text-muted-foreground">
-        Os limites sao reiniciados a cada ciclo de cobranca. O uso atual e por este projeto.
+        Prospects, snapshots, docs e importações reiniciam a cada ciclo. Storage é cumulativo.
       </p>
     </div>
   );
