@@ -12,7 +12,9 @@ import {
   Star,
   Users,
   Building2,
+  MessageCircle,
 } from "lucide-react";
+import { SUPPORT_WHATSAPP, SUPPORT_WHATSAPP_URL } from "@/components/WhatsAppButton";
 
 import { getServerSession } from "@/lib/serverAuth";
 import { Button } from "@/components/ui/button";
@@ -502,6 +504,15 @@ export default async function HomePage() {
               </a>
               <a href="#features" className="hover:text-foreground">
                 Recursos
+              </a>
+              <a
+                href={SUPPORT_WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-foreground"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Suporte
               </a>
             </div>
             <p className="text-sm text-muted-foreground">

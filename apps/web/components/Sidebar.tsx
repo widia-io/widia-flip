@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Building2, FolderKanban, CreditCard, LineChart, Shield } from "lucide-react";
+import { Home, Search, Building2, FolderKanban, CreditCard, LineChart, Shield, MessageCircle } from "lucide-react";
 import { MeuFlipLogo } from "@/components/MeuFlipLogo";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useSidebar } from "@/lib/hooks/useSidebar";
+import { SUPPORT_WHATSAPP, SUPPORT_WHATSAPP_URL } from "@/components/WhatsAppButton";
 
 const staticNavItems = [
   { href: "/app", label: "Dashboard", icon: Home, tourId: undefined },
@@ -87,6 +88,23 @@ function SidebarContent({ onNavigate, activeWorkspaceId, isAdmin }: { onNavigate
           </Link>
         )}
       </nav>
+
+      {/* Support WhatsApp */}
+      <div className="border-t border-border px-3 py-4">
+        <a
+          href={SUPPORT_WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={onNavigate}
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          <MessageCircle className="h-4 w-4" />
+          <div className="flex flex-col">
+            <span>Suporte</span>
+            <span className="text-xs opacity-70">{SUPPORT_WHATSAPP}</span>
+          </div>
+        </a>
+      </div>
     </div>
   );
 }
