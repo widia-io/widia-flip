@@ -162,8 +162,6 @@ export default async function WorkspaceBillingPage(props: {
               currentTier={entitlements.billing.tier}
               hasSubscription={!!entitlements.billing.stripe_customer_id}
               workspaceId={params.id}
-              trialEnd={entitlements.billing.trial_end}
-              status={entitlements.billing.status}
             />
           </CardContent>
         </Card>

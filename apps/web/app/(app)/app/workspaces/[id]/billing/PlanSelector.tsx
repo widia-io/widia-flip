@@ -11,8 +11,6 @@ interface PlanSelectorProps {
   currentTier: BillingTier;
   hasSubscription: boolean;
   workspaceId: string;
-  trialEnd: string | null;
-  status: string;
 }
 
 interface PlanOption {
@@ -65,16 +63,13 @@ const PLANS: PlanOption[] = [
 
 const TIER_ORDER: BillingTier[] = ["starter", "pro", "growth"];
 
-export function PlanSelector({ currentTier, hasSubscription, workspaceId, trialEnd, status }: PlanSelectorProps) {
+export function PlanSelector({ currentTier, hasSubscription, workspaceId }: PlanSelectorProps) {
   const [isPending, startTransition] = useTransition();
   const [pendingTier, setPendingTier] = useState<BillingTier | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if trial is expired - if so, user has no active plan
-  const isTrialExpired = status === "trialing" && trialEnd && new Date(trialEnd).getTime() < Date.now();
-
-  // When trial expired, no plan is "current" - all are available
-  const effectiveCurrentTier = isTrialExpired ? null : currentTier;
+  // When user has no subscription (trial active or expired), no plan is "current" - all are available
+  const effectiveCurrentTier = hasSubscription ? currentTier : null;
   const currentIndex = effectiveCurrentTier ? TIER_ORDER.indexOf(effectiveCurrentTier) : -1;
 
   const handleChangePlan = (tier: BillingTier) => {
