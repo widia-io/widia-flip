@@ -3,6 +3,7 @@ import "./globals.css";
 import type { ReactNode } from "react";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 
 export const metadata = {
   title: "Meu Flip - Analise flips em 30 segundos",
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <ThemeProvider>
           {children}
           <Toaster />
+          <WhatsAppButton />
         </ThemeProvider>
       </body>
     </html>
