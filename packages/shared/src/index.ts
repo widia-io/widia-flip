@@ -869,6 +869,16 @@ export const WorkspaceUsageResponseSchema = z.object({
 });
 export type WorkspaceUsageResponse = z.infer<typeof WorkspaceUsageResponseSchema>;
 
+export const UserUsageResponseSchema = z.object({
+  user_id: z.string(),
+  period_start: z.string(),
+  period_end: z.string(),
+  period_type: PeriodTypeEnum,
+  tier: BillingTierEnum,
+  metrics: UsageMetricsSchema,
+});
+export type UserUsageResponse = z.infer<typeof UserUsageResponseSchema>;
+
 // M12 - Paywall + Enforcement (Hard Limits)
 
 export const EnforcementErrorCodeEnum = z.enum([

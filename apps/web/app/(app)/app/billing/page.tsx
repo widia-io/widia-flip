@@ -1,6 +1,11 @@
 import { CreditCard } from "lucide-react";
 import { redirect } from "next/navigation";
-import { UserEntitlementsSchema, type UserEntitlements } from "@widia/shared";
+import {
+  UserEntitlementsSchema,
+  UserUsageResponseSchema,
+  type UserEntitlements,
+  type UserUsageResponse,
+} from "@widia/shared";
 
 import { apiFetch } from "@/lib/apiFetch";
 import { getServerSession } from "@/lib/serverAuth";
@@ -9,11 +14,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BillingStatusCard } from "./BillingStatusCard";
 import { TierLimitsCard } from "./TierLimitsCard";
 import { PlanSelector } from "./PlanSelector";
+import { UsageCard } from "./UsageCard";
 
 async function getEntitlements(): Promise<UserEntitlements | null> {
   try {
     const data = await apiFetch<UserEntitlements>("/api/v1/billing/me");
     return UserEntitlementsSchema.parse(data);
+  } catch {
+    return null;
+  }
+}
+
+async function getUsage(): Promise<UserUsageResponse | null> {
+  try {
+    const data = await apiFetch<UserUsageResponse>("/api/v1/billing/me/usage");
+    return UserUsageResponseSchema.parse(data);
   } catch {
     return null;
   }
@@ -25,7 +40,10 @@ export default async function UserBillingPage() {
     redirect("/login");
   }
 
-  const entitlements = await getEntitlements();
+  const [entitlements, usage] = await Promise.all([
+    getEntitlements(),
+    getUsage(),
+  ]);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -55,12 +73,25 @@ export default async function UserBillingPage() {
         </CardContent>
       </Card>
 
+      {/* Usage This Period */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Uso neste Ciclo</CardTitle>
+          <CardDescription>
+            Consumo de recursos neste periodo
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <UsageCard usage={usage} />
+        </CardContent>
+      </Card>
+
       {/* Tier Limits */}
       <Card>
         <CardHeader>
           <CardTitle>Limites do Plano</CardTitle>
           <CardDescription>
-            Recursos disponíveis no seu plano
+            Recursos disponiveis no seu plano
           </CardDescription>
         </CardHeader>
         <CardContent>

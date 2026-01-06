@@ -224,6 +224,199 @@ func logUsageExceededSoft(
 	)
 }
 
+// userUsageResponse is the response for GET /api/v1/billing/me/usage
+// Aggregates usage across ALL user's workspaces
+type userUsageResponse struct {
+	UserID      string       `json:"user_id"`
+	PeriodStart string       `json:"period_start"`
+	PeriodEnd   string       `json:"period_end"`
+	PeriodType  string       `json:"period_type"`
+	Tier        string       `json:"tier"`
+	Metrics     usageMetrics `json:"metrics"`
+}
+
+// countUserProspectsInPeriod counts prospects across ALL user's workspaces
+func (a *api) countUserProspectsInPeriod(ctx context.Context, userID string, periodStart, periodEnd time.Time) (int, error) {
+	var count int
+	err := a.db.QueryRowContext(
+		ctx,
+		`SELECT COUNT(*)
+		 FROM prospecting_properties pp
+		 JOIN workspaces w ON w.id = pp.workspace_id
+		 WHERE w.created_by_user_id = $1
+		   AND pp.created_at >= $2
+		   AND pp.created_at < $3
+		   AND pp.deleted_at IS NULL`,
+		userID, periodStart, periodEnd,
+	).Scan(&count)
+	return count, err
+}
+
+// countUserSnapshotsInPeriod counts snapshots across ALL user's workspaces
+func (a *api) countUserSnapshotsInPeriod(ctx context.Context, userID string, periodStart, periodEnd time.Time) (int, error) {
+	var cashCount, financingCount int
+
+	err := a.db.QueryRowContext(
+		ctx,
+		`SELECT COUNT(*)
+		 FROM analysis_cash_snapshots acs
+		 JOIN workspaces w ON w.id = acs.workspace_id
+		 WHERE w.created_by_user_id = $1
+		   AND acs.created_at >= $2
+		   AND acs.created_at < $3`,
+		userID, periodStart, periodEnd,
+	).Scan(&cashCount)
+	if err != nil {
+		return 0, err
+	}
+
+	err = a.db.QueryRowContext(
+		ctx,
+		`SELECT COUNT(*)
+		 FROM analysis_financing_snapshots afs
+		 JOIN workspaces w ON w.id = afs.workspace_id
+		 WHERE w.created_by_user_id = $1
+		   AND afs.created_at >= $2
+		   AND afs.created_at < $3`,
+		userID, periodStart, periodEnd,
+	).Scan(&financingCount)
+	if err != nil {
+		return 0, err
+	}
+
+	return cashCount + financingCount, nil
+}
+
+// countUserDocumentsInPeriod counts documents across ALL user's workspaces
+func (a *api) countUserDocumentsInPeriod(ctx context.Context, userID string, periodStart, periodEnd time.Time) (int, error) {
+	var count int
+	err := a.db.QueryRowContext(
+		ctx,
+		`SELECT COUNT(*)
+		 FROM documents d
+		 JOIN workspaces w ON w.id = d.workspace_id
+		 WHERE w.created_by_user_id = $1
+		   AND d.created_at >= $2
+		   AND d.created_at < $3`,
+		userID, periodStart, periodEnd,
+	).Scan(&count)
+	return count, err
+}
+
+// countUserURLImportsInPeriod counts URL imports across ALL user's workspaces
+func (a *api) countUserURLImportsInPeriod(ctx context.Context, userID string, periodStart, periodEnd time.Time) (int, error) {
+	var count int
+	err := a.db.QueryRowContext(
+		ctx,
+		`SELECT COUNT(*)
+		 FROM prospecting_properties pp
+		 JOIN workspaces w ON w.id = pp.workspace_id
+		 WHERE w.created_by_user_id = $1
+		   AND pp.created_at >= $2
+		   AND pp.created_at < $3
+		   AND pp.imported_via_url = TRUE
+		   AND pp.deleted_at IS NULL`,
+		userID, periodStart, periodEnd,
+	).Scan(&count)
+	return count, err
+}
+
+// getUserTotalStorageUsed returns total storage across ALL user's workspaces
+func (a *api) getUserTotalStorageUsed(ctx context.Context, userID string) (int64, error) {
+	var storageUsed int64
+	err := a.db.QueryRowContext(
+		ctx,
+		`SELECT COALESCE(SUM(storage_used_bytes), 0)
+		 FROM workspaces
+		 WHERE created_by_user_id = $1`,
+		userID,
+	).Scan(&storageUsed)
+	return storageUsed, err
+}
+
+// handleGetUserUsage handles GET /api/v1/billing/me/usage
+// Returns aggregated usage across all user's workspaces
+func (a *api) handleGetUserUsage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	// Get user's billing info
+	billing, err := a.getUserBilling(r.Context(), userID)
+	if err != nil {
+		billing, err = a.createDefaultBilling(r.Context(), userID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to get billing info"})
+			return
+		}
+	}
+
+	// Get billing period
+	periodStart, periodEnd, periodType := a.getBillingPeriod(r.Context(), userID)
+
+	// Get tier limits
+	limits := tierLimitsMap[billing.Tier]
+	if limits.MaxWorkspaces == 0 {
+		limits = tierLimitsMap["starter"]
+	}
+
+	// Count aggregated usage across all workspaces
+	prospectsCount, err := a.countUserProspectsInPeriod(r.Context(), userID, periodStart, periodEnd)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count prospects"})
+		return
+	}
+
+	snapshotsCount, err := a.countUserSnapshotsInPeriod(r.Context(), userID, periodStart, periodEnd)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count snapshots"})
+		return
+	}
+
+	documentsCount, err := a.countUserDocumentsInPeriod(r.Context(), userID, periodStart, periodEnd)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count documents"})
+		return
+	}
+
+	urlImportsCount, err := a.countUserURLImportsInPeriod(r.Context(), userID, periodStart, periodEnd)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count url imports"})
+		return
+	}
+
+	storageUsed, err := a.getUserTotalStorageUsed(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to get storage usage"})
+		return
+	}
+
+	// Build metrics
+	response := userUsageResponse{
+		UserID:      userID,
+		PeriodStart: periodStart.Format(time.RFC3339),
+		PeriodEnd:   periodEnd.Format(time.RFC3339),
+		PeriodType:  periodType,
+		Tier:        billing.Tier,
+		Metrics: usageMetrics{
+			Prospects:    buildUsageMetric("prospects", prospectsCount, limits.MaxProspectsPerMonth),
+			Snapshots:    buildUsageMetric("snapshots", snapshotsCount, limits.MaxSnapshotsPerMonth),
+			Documents:    buildUsageMetric("documents", documentsCount, limits.MaxDocsPerMonth),
+			URLImports:   buildUsageMetric("url_imports", urlImportsCount, limits.MaxURLImportsPerMonth),
+			StorageBytes: buildUsageMetricInt64("storage_bytes", storageUsed, limits.MaxStorageBytes),
+		},
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
 // handleGetWorkspaceUsage handles GET /api/v1/workspaces/:id/usage
 func (a *api) handleGetWorkspaceUsage(w http.ResponseWriter, r *http.Request, workspaceID string) {
 	if r.Method != http.MethodGet {

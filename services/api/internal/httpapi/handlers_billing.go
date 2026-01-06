@@ -413,6 +413,9 @@ func (a *api) handleBillingSubroutes(w http.ResponseWriter, r *http.Request) {
 	case "me":
 		a.handleGetBillingMe(w, r)
 		return
+	case "me/usage":
+		a.handleGetUserUsage(w, r)
+		return
 	default:
 		w.WriteHeader(http.StatusNotFound)
 		return
