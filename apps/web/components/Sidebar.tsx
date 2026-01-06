@@ -65,7 +65,7 @@ function SidebarContent({ onNavigate, isAdmin }: { onNavigate?: () => void; isAd
           )}
         >
           <CreditCard className="h-4 w-4" />
-          Faturamento
+          Assinatura
         </Link>
 
         {/* Admin link - only show for admins */}

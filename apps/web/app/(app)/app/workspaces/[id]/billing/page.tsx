@@ -74,7 +74,7 @@ export default async function WorkspaceBillingPage(props: {
         <ChevronRight className="h-4 w-4" />
         <span className="font-medium text-foreground">{workspace.name}</span>
         <ChevronRight className="h-4 w-4" />
-        <span>Faturamento</span>
+        <span>Assinatura</span>
       </nav>
 
       {/* Header */}
@@ -83,7 +83,7 @@ export default async function WorkspaceBillingPage(props: {
           <CreditCard className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold">Faturamento</h1>
+          <h1 className="text-xl font-semibold">Assinatura</h1>
           <p className="text-sm text-muted-foreground">
             Gerencie sua assinatura e plano
           </p>

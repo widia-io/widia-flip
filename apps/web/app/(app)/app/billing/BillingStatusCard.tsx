@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, Loader2, AlertTriangle } from "lucide-react";
 import { type UserEntitlements } from "@widia/shared";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface BillingStatusCardProps {
   entitlements: UserEntitlements | null;
@@ -53,6 +54,11 @@ export function BillingStatusCard({ entitlements }: BillingStatusCardProps) {
   const tierLabel = TIER_LABELS[billing.tier] ?? billing.tier;
   const statusInfo = STATUS_LABELS[billing.status] ?? { label: billing.status, variant: "outline" as const };
 
+  // Check if trial is expired
+  const isTrialExpired = billing.status === "trialing" &&
+    billing.trial_end &&
+    new Date(billing.trial_end).getTime() < Date.now();
+
   const handleOpenPortal = () => {
     setPortalError(null);
     startTransition(async () => {
@@ -83,11 +89,24 @@ export function BillingStatusCard({ entitlements }: BillingStatusCardProps) {
 
   return (
     <div className="space-y-4">
+      {/* Trial Expired Alert */}
+      {isTrialExpired && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Período de teste expirado</AlertTitle>
+          <AlertDescription>
+            Seu período de teste terminou. Assine um plano abaixo para continuar usando todos os recursos.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Plan & Status */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-lg font-semibold">{tierLabel}</span>
-          <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+          <Badge variant={isTrialExpired ? "destructive" : statusInfo.variant}>
+            {isTrialExpired ? "Trial expirado" : statusInfo.label}
+          </Badge>
         </div>
       </div>
 

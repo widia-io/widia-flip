@@ -35,7 +35,7 @@ export default async function UserBillingPage() {
           <CreditCard className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold">Faturamento</h1>
+          <h1 className="text-xl font-semibold">Assinatura</h1>
           <p className="text-sm text-muted-foreground">
             Gerencie sua assinatura e plano
           </p>

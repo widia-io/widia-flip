@@ -34,17 +34,24 @@ export function TierBadge({ entitlements }: TierBadgeProps) {
     ? Math.ceil((new Date(billing.trial_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : 0;
 
+  // Check if trial is expired
+  const isTrialExpired = status === "trialing" && billing.trial_end && daysLeft <= 0;
+
   // Determine variant and content
   let variant: "default" | "secondary" | "destructive" | "outline" = "default";
   let content = tier;
   let tooltipText = "Clique para gerenciar seu plano";
 
-  if (status === "trialing") {
+  if (isTrialExpired) {
+    variant = "destructive";
+    content = "Trial Expirado";
+    tooltipText = "Seu período de teste expirou. Clique para assinar um plano.";
+  } else if (status === "trialing") {
     variant = "secondary";
     content = `${tier} Trial`;
     if (daysLeft > 0) {
       content += ` \u2022 ${daysLeft}d`;
-      tooltipText = `Seu per\u00edodo de teste termina em ${daysLeft} dia${daysLeft !== 1 ? "s" : ""}`;
+      tooltipText = `Seu período de teste termina em ${daysLeft} dia${daysLeft !== 1 ? "s" : ""}`;
     }
   } else if (status === "past_due" || status === "unpaid") {
     variant = "destructive";
@@ -54,7 +61,7 @@ export function TierBadge({ entitlements }: TierBadgeProps) {
     tooltipText = "Assinatura cancelada";
   }
 
-  const showWarning = status === "past_due" || status === "unpaid";
+  const showWarning = isTrialExpired || status === "past_due" || status === "unpaid";
 
   return (
     <TooltipProvider>

@@ -65,6 +65,42 @@ func writeEnforcementError(w http.ResponseWriter, code string, message string, d
 	})
 }
 
+// isTrialExpired checks if billing is in trial-expired state
+func isTrialExpired(billing userBilling) bool {
+	return billing.Status == "trialing" && billing.TrialEnd != nil && time.Now().UTC().After(*billing.TrialEnd)
+}
+
+// getBillingBlockedMessage returns appropriate message based on billing state
+func getBillingBlockedMessage(billing userBilling, action string) string {
+	if isTrialExpired(billing) {
+		return "Seu período de teste expirou. Assine um plano para continuar."
+	}
+	switch action {
+	case "workspace":
+		return "Regularize seu pagamento para continuar criando recursos."
+	case "prospect":
+		return "Regularize seu pagamento para continuar criando prospects."
+	case "snapshot":
+		return "Regularize seu pagamento para continuar salvando análises."
+	case "document":
+		return "Regularize seu pagamento para continuar enviando documentos."
+	case "url_import":
+		return "Regularize seu pagamento para continuar importando via URL."
+	case "storage":
+		return "Regularize seu pagamento para continuar enviando arquivos."
+	default:
+		return "Regularize seu pagamento para continuar."
+	}
+}
+
+// getBillingStatusForResponse returns display status for enforcement error
+func getBillingStatusForResponse(billing userBilling) string {
+	if isTrialExpired(billing) {
+		return "trial_expired"
+	}
+	return billing.Status
+}
+
 // checkBillingStatus checks if user's billing status allows creation actions
 // Returns (allowed, billing, error)
 func (a *api) checkBillingStatus(ctx context.Context, userID string) (bool, userBilling, error) {
@@ -84,6 +120,14 @@ func (a *api) checkBillingStatus(ctx context.Context, userID string) (bool, user
 	// Check if status requires payment
 	if billingStatusesBlocked[billing.Status] {
 		return false, billing, nil
+	}
+
+	// Check if trial expired (status is still "trialing" but trial_end is in the past)
+	if billing.Status == "trialing" && billing.TrialEnd != nil {
+		if time.Now().UTC().After(*billing.TrialEnd) {
+			// Trial expired without subscription - block creation
+			return false, billing, nil
+		}
 	}
 
 	// Check if canceled AND period expired
@@ -227,11 +271,11 @@ func (a *api) enforceWorkspaceCreation(w http.ResponseWriter, r *http.Request, u
 			slog.String("user_id", userID),
 			slog.String("action", "create_workspace"),
 			slog.String("reason", "billing_status"),
-			slog.String("status", billing.Status),
+			slog.String("status", getBillingStatusForResponse(billing)),
 		)
-		writeEnforcementError(w, ErrCodePaywallRequired, "Regularize seu pagamento para continuar criando recursos.", enforcementDetails{
+		writeEnforcementError(w, ErrCodePaywallRequired, getBillingBlockedMessage(billing, "workspace"), enforcementDetails{
 			Tier:          billing.Tier,
-			BillingStatus: billing.Status,
+			BillingStatus: getBillingStatusForResponse(billing),
 		})
 		return false
 	}
@@ -288,11 +332,11 @@ func (a *api) enforceProspectCreation(w http.ResponseWriter, r *http.Request, us
 			slog.String("workspace_id", workspaceID),
 			slog.String("action", "create_prospect"),
 			slog.String("reason", "billing_status"),
-			slog.String("status", billing.Status),
+			slog.String("status", getBillingStatusForResponse(billing)),
 		)
-		writeEnforcementError(w, ErrCodePaywallRequired, "Regularize seu pagamento para continuar criando prospects.", enforcementDetails{
+		writeEnforcementError(w, ErrCodePaywallRequired, getBillingBlockedMessage(billing, "prospect"), enforcementDetails{
 			Tier:          billing.Tier,
-			BillingStatus: billing.Status,
+			BillingStatus: getBillingStatusForResponse(billing),
 		})
 		return false
 	}
@@ -352,11 +396,11 @@ func (a *api) enforceSnapshotCreation(w http.ResponseWriter, r *http.Request, us
 			slog.String("workspace_id", workspaceID),
 			slog.String("action", "create_snapshot"),
 			slog.String("reason", "billing_status"),
-			slog.String("status", billing.Status),
+			slog.String("status", getBillingStatusForResponse(billing)),
 		)
-		writeEnforcementError(w, ErrCodePaywallRequired, "Regularize seu pagamento para continuar salvando análises.", enforcementDetails{
+		writeEnforcementError(w, ErrCodePaywallRequired, getBillingBlockedMessage(billing, "snapshot"), enforcementDetails{
 			Tier:          billing.Tier,
-			BillingStatus: billing.Status,
+			BillingStatus: getBillingStatusForResponse(billing),
 		})
 		return false
 	}
@@ -416,11 +460,11 @@ func (a *api) enforceDocumentCreation(w http.ResponseWriter, r *http.Request, us
 			slog.String("workspace_id", workspaceID),
 			slog.String("action", "create_document"),
 			slog.String("reason", "billing_status"),
-			slog.String("status", billing.Status),
+			slog.String("status", getBillingStatusForResponse(billing)),
 		)
-		writeEnforcementError(w, ErrCodePaywallRequired, "Regularize seu pagamento para continuar enviando documentos.", enforcementDetails{
+		writeEnforcementError(w, ErrCodePaywallRequired, getBillingBlockedMessage(billing, "document"), enforcementDetails{
 			Tier:          billing.Tier,
-			BillingStatus: billing.Status,
+			BillingStatus: getBillingStatusForResponse(billing),
 		})
 		return false
 	}
@@ -480,11 +524,11 @@ func (a *api) enforceURLImportCreation(w http.ResponseWriter, r *http.Request, u
 			slog.String("workspace_id", workspaceID),
 			slog.String("action", "url_import"),
 			slog.String("reason", "billing_status"),
-			slog.String("status", billing.Status),
+			slog.String("status", getBillingStatusForResponse(billing)),
 		)
-		writeEnforcementError(w, ErrCodePaywallRequired, "Regularize seu pagamento para continuar importando via URL.", enforcementDetails{
+		writeEnforcementError(w, ErrCodePaywallRequired, getBillingBlockedMessage(billing, "url_import"), enforcementDetails{
 			Tier:          billing.Tier,
-			BillingStatus: billing.Status,
+			BillingStatus: getBillingStatusForResponse(billing),
 		})
 		return false
 	}
@@ -544,11 +588,11 @@ func (a *api) enforceStorageLimit(w http.ResponseWriter, r *http.Request, userID
 			slog.String("workspace_id", workspaceID),
 			slog.String("action", "storage_upload"),
 			slog.String("reason", "billing_status"),
-			slog.String("status", billing.Status),
+			slog.String("status", getBillingStatusForResponse(billing)),
 		)
-		writeEnforcementError(w, ErrCodePaywallRequired, "Regularize seu pagamento para continuar enviando arquivos.", enforcementDetails{
+		writeEnforcementError(w, ErrCodePaywallRequired, getBillingBlockedMessage(billing, "storage"), enforcementDetails{
 			Tier:          billing.Tier,
-			BillingStatus: billing.Status,
+			BillingStatus: getBillingStatusForResponse(billing),
 		})
 		return false
 	}
