@@ -81,6 +81,8 @@ export default async function UserBillingPage() {
             <PlanSelector
               currentTier={entitlements.billing.tier}
               hasSubscription={!!entitlements.billing.stripe_customer_id}
+              trialEnd={entitlements.billing.trial_end}
+              status={entitlements.billing.status}
             />
           </CardContent>
         </Card>

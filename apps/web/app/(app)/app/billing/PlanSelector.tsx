@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 interface PlanSelectorProps {
   currentTier: BillingTier;
   hasSubscription: boolean; // true if user has stripe_customer_id
+  trialEnd: string | null; // trial_end timestamp
+  status: string; // billing status
 }
 
 interface PlanOption {
@@ -62,12 +64,17 @@ const PLANS: PlanOption[] = [
 
 const TIER_ORDER: BillingTier[] = ["starter", "pro", "growth"];
 
-export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps) {
+export function PlanSelector({ currentTier, hasSubscription, trialEnd, status }: PlanSelectorProps) {
   const [isPending, startTransition] = useTransition();
   const [pendingTier, setPendingTier] = useState<BillingTier | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const currentIndex = TIER_ORDER.indexOf(currentTier);
+  // Check if trial is expired - if so, user has no active plan
+  const isTrialExpired = status === "trialing" && trialEnd && new Date(trialEnd).getTime() < Date.now();
+
+  // When trial expired, no plan is "current" - all are available
+  const effectiveCurrentTier = isTrialExpired ? null : currentTier;
+  const currentIndex = effectiveCurrentTier ? TIER_ORDER.indexOf(effectiveCurrentTier) : -1;
 
   const handleChangePlan = (tier: BillingTier) => {
     setError(null);
@@ -140,9 +147,9 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
       <div className="grid gap-4 sm:grid-cols-3">
         {PLANS.map((plan) => {
           const planIndex = TIER_ORDER.indexOf(plan.tier);
-          const isCurrent = plan.tier === currentTier;
-          const isUpgrade = planIndex > currentIndex;
-          const isDowngrade = planIndex < currentIndex;
+          const isCurrent = effectiveCurrentTier === plan.tier;
+          const isUpgrade = currentIndex === -1 || planIndex > currentIndex;
+          const isDowngrade = currentIndex !== -1 && planIndex < currentIndex;
 
           return (
             <div
@@ -185,12 +192,14 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
                 >
                   {isPending && pendingTier === plan.tier ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : currentIndex === -1 ? (
+                    <Check className="mr-2 h-4 w-4" />
                   ) : isUpgrade ? (
                     <ArrowUp className="mr-2 h-4 w-4" />
                   ) : (
                     <ArrowDown className="mr-2 h-4 w-4" />
                   )}
-                  {isUpgrade ? "Upgrade" : "Downgrade"}
+                  {currentIndex === -1 ? "Assinar" : isUpgrade ? "Upgrade" : "Downgrade"}
                 </Button>
               )}
             </div>
