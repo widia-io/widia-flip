@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { ListWorkspacesResponseSchema, UserPreferencesSchema, AdminStatusResponseSchema } from "@widia/shared";
+import { ListWorkspacesResponseSchema, UserPreferencesSchema, AdminStatusResponseSchema, UserEntitlementsSchema, type UserEntitlements } from "@widia/shared";
 
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -34,22 +34,33 @@ async function getAdminStatus() {
   }
 }
 
+async function getUserEntitlements(): Promise<UserEntitlements | null> {
+  try {
+    const data = await apiFetch<UserEntitlements>("/api/v1/billing/me");
+    return UserEntitlementsSchema.parse(data);
+  } catch {
+    return null;
+  }
+}
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession();
   if (!session) {
     redirect("/login");
   }
 
-  // Fetch user's workspaces, preferences, and admin status in parallel
+  // Fetch user's workspaces, preferences, admin status, and entitlements in parallel
   let workspacesRaw: { items: { id: string; name: string }[] };
   let preferences: Awaited<ReturnType<typeof getUserPreferences>> = null;
   let isAdmin = false;
+  let entitlements: UserEntitlements | null = null;
 
   try {
-    [workspacesRaw, preferences, isAdmin] = await Promise.all([
+    [workspacesRaw, preferences, isAdmin, entitlements] = await Promise.all([
       apiFetch<{ items: { id: string; name: string }[] }>("/api/v1/workspaces"),
       getUserPreferences(),
       getAdminStatus(),
+      getUserEntitlements(),
     ]);
   } catch (error) {
     // Token missing/expired - clear session and redirect to login
@@ -65,29 +76,34 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // Get active workspace from cookie
   let activeWorkspaceId = await getActiveWorkspaceId();
 
-  // If no active workspace or it doesn't exist in the list, use the first one
-  // (The cookie will be set when the user interacts with the selector)
+  // Validate activeWorkspaceId against user's actual workspaces
+  // If no workspaces or invalid ID, clear it
   if (workspaces.items.length > 0) {
     const workspaceIds = workspaces.items.map((ws) => ws.id);
     if (!activeWorkspaceId || !workspaceIds.includes(activeWorkspaceId)) {
       activeWorkspaceId = workspaces.items[0].id;
     }
+  } else {
+    // No workspaces - don't use stale cookie value
+    activeWorkspaceId = null;
   }
 
   // Auto-start feature tour for new users who haven't completed it
-  const shouldAutoStartTour = preferences && !preferences.feature_tour_completed;
+  // If preferences is null (new user) or feature_tour_completed is false, show tour
+  const shouldAutoStartTour = !preferences || !preferences.feature_tour_completed;
 
   return (
     <PaywallProvider>
       <SidebarProvider>
         <div className="flex min-h-screen bg-background text-foreground">
-          <Sidebar activeWorkspaceId={activeWorkspaceId ?? undefined} isAdmin={isAdmin} />
+          <Sidebar isAdmin={isAdmin} />
 
           <div className="flex min-w-0 flex-1 flex-col">
             <Header
               userEmail={session.user.email}
               workspaces={workspaces.items}
               activeWorkspaceId={activeWorkspaceId}
+              entitlements={entitlements}
             />
             <main className="flex-1 px-4 py-4 sm:py-6">{children}</main>
           </div>

@@ -255,7 +255,7 @@ export default async function HomePage() {
               Escolha o plano ideal para sua operação
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Todos os planos incluem 7 dias grátis. Cancele quando quiser.
+              Comece com 7 dias grátis no plano Pro. Cancele quando quiser.
             </p>
           </div>
 
@@ -284,11 +284,15 @@ export default async function HomePage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-emerald-500" />
-                    <span>Viabilidade cash</span>
+                    <span>5 docs/mês • 100MB storage</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-emerald-500" />
-                    <span>Flip Score básico</span>
+                    <span>5 importações URL/mês</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-500" />
+                    <span>Viabilidade cash</span>
                   </li>
                 </ul>
               </CardHeader>
@@ -305,7 +309,7 @@ export default async function HomePage() {
             <Card className="relative flex flex-col border-primary">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                 <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
-                  Mais popular
+                  Trial grátis
                 </span>
               </div>
               <CardHeader className="flex-1">
@@ -330,22 +334,22 @@ export default async function HomePage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-emerald-500" />
-                    <span>Financiamento completo</span>
+                    <span>50 docs/mês • 2GB storage</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-emerald-500" />
-                    <span>Flip Score v1</span>
+                    <span>50 importações URL/mês</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-emerald-500" />
-                    <span>Custos e documentos</span>
+                    <span>Financiamento + Flip Score v1</span>
                   </li>
                 </ul>
               </CardHeader>
               <div className="p-6 pt-0">
                 <Button className="w-full" asChild>
                   <Link href={isLoggedIn ? "/app" : "/login?tab=signup"}>
-                    Começar trial
+                    Começar trial grátis
                   </Link>
                 </Button>
               </div>
@@ -375,15 +379,15 @@ export default async function HomePage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-emerald-500" />
-                    <span>Import via URL</span>
+                    <span>200 docs/mês • 20GB storage</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-emerald-500" />
-                    <span>Suporte prioritário</span>
+                    <span>Importações URL ilimitadas</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-emerald-500" />
-                    <span>Tudo do Pro</span>
+                    <span>Tudo do Pro + Suporte prioritário</span>
                   </li>
                 </ul>
               </CardHeader>
@@ -441,9 +445,9 @@ export default async function HomePage() {
             <div className="rounded-lg border p-6">
               <h3 className="font-medium">Como funciona o trial de 7 dias?</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Você tem acesso completo ao plano escolhido por 7 dias sem
-                cobrança. Se não cancelar antes do término, a assinatura é
-                ativada automaticamente.
+                Você começa com acesso completo ao plano Pro por 7 dias sem
+                cobrança. Assim você testa todos os recursos avançados como
+                financiamento, Flip Score v1 e importação de URLs.
               </p>
             </div>
 
@@ -485,9 +489,7 @@ export default async function HomePage() {
             </Button>
           </div>
         </div>
-      </section>
-
-      {/* Footer */}
+      </section>      {/* Footer */}
       <footer className="border-t border-border">
         <div className="mx-auto max-w-6xl px-4 py-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">

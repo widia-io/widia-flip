@@ -1,6 +1,6 @@
 "use client";
 
-import { type WorkspaceUsageResponse, type UsageMetric } from "@widia/shared";
+import { type UserUsageResponse, type UsageMetric } from "@widia/shared";
 import { Users, Camera, FileText, AlertTriangle, Link2, HardDrive } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +13,7 @@ function formatBytes(bytes: number): string {
 }
 
 interface UsageCardProps {
-  usage: WorkspaceUsageResponse | null;
+  usage: UserUsageResponse | null;
 }
 
 interface UsageBarProps {
@@ -121,7 +121,7 @@ export function UsageCard({ usage }: UsageCardProps) {
         />
         <UsageBar
           metric={usage.metrics.url_imports}
-          label="Importações URL"
+          label="Importacoes URL"
           icon={Link2}
         />
         <UsageBar
@@ -134,7 +134,7 @@ export function UsageCard({ usage }: UsageCardProps) {
 
       {/* Info text */}
       <p className="text-xs text-muted-foreground">
-        Prospects, snapshots, docs e importações reiniciam a cada ciclo. Storage é cumulativo.
+        Prospects, snapshots, docs e importacoes reiniciam a cada ciclo. Storage e cumulativo.
       </p>
     </div>
   );

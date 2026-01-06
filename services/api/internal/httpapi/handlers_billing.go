@@ -14,30 +14,38 @@ import (
 
 // Tier limits matching packages/shared TIER_LIMITS
 type tierLimits struct {
-	MaxWorkspaces         int `json:"max_workspaces"`
-	MaxProspectsPerMonth  int `json:"max_prospects_per_month"`
-	MaxSnapshotsPerMonth  int `json:"max_snapshots_per_month"`
-	MaxDocsPerMonth       int `json:"max_docs_per_month"`
+	MaxWorkspaces           int   `json:"max_workspaces"`
+	MaxProspectsPerMonth    int   `json:"max_prospects_per_month"`
+	MaxSnapshotsPerMonth    int   `json:"max_snapshots_per_month"`
+	MaxDocsPerMonth         int   `json:"max_docs_per_month"`
+	MaxURLImportsPerMonth   int   `json:"max_url_imports_per_month"`
+	MaxStorageBytes         int64 `json:"max_storage_bytes"`
 }
 
 var tierLimitsMap = map[string]tierLimits{
 	"starter": {
-		MaxWorkspaces:        1,
-		MaxProspectsPerMonth: 50,
-		MaxSnapshotsPerMonth: 30,
-		MaxDocsPerMonth:      10,
+		MaxWorkspaces:         1,
+		MaxProspectsPerMonth:  50,
+		MaxSnapshotsPerMonth:  30,
+		MaxDocsPerMonth:       5,
+		MaxURLImportsPerMonth: 5,
+		MaxStorageBytes:       100 * 1024 * 1024, // 100MB
 	},
 	"pro": {
-		MaxWorkspaces:        3,
-		MaxProspectsPerMonth: 300,
-		MaxSnapshotsPerMonth: 200,
-		MaxDocsPerMonth:      100,
+		MaxWorkspaces:         3,
+		MaxProspectsPerMonth:  300,
+		MaxSnapshotsPerMonth:  200,
+		MaxDocsPerMonth:       50,
+		MaxURLImportsPerMonth: 50,
+		MaxStorageBytes:       2 * 1024 * 1024 * 1024, // 2GB
 	},
 	"growth": {
-		MaxWorkspaces:        10,
-		MaxProspectsPerMonth: 999999, // Unlimited
-		MaxSnapshotsPerMonth: 999999, // Unlimited
-		MaxDocsPerMonth:      500,
+		MaxWorkspaces:         10,
+		MaxProspectsPerMonth:  999999, // Unlimited
+		MaxSnapshotsPerMonth:  999999, // Unlimited
+		MaxDocsPerMonth:       200,
+		MaxURLImportsPerMonth: 999999, // Unlimited
+		MaxStorageBytes:       20 * 1024 * 1024 * 1024, // 20GB
 	},
 }
 
@@ -173,7 +181,7 @@ func (a *api) createDefaultBilling(ctx context.Context, userID string) (userBill
 	err := a.db.QueryRowContext(
 		ctx,
 		`INSERT INTO user_billing (user_id, tier, status, trial_end)
-		 VALUES ($1, 'starter', 'trialing', NOW() + INTERVAL '7 days')
+		 VALUES ($1, 'pro', 'trialing', NOW() + INTERVAL '7 days')
 		 ON CONFLICT (user_id) DO UPDATE SET user_id = EXCLUDED.user_id
 		 RETURNING user_id, tier, status, stripe_customer_id, stripe_subscription_id, stripe_price_id,
 		           current_period_start, current_period_end, trial_end, cancel_at_period_end,
@@ -404,6 +412,9 @@ func (a *api) handleBillingSubroutes(w http.ResponseWriter, r *http.Request) {
 	switch rest {
 	case "me":
 		a.handleGetBillingMe(w, r)
+		return
+	case "me/usage":
+		a.handleGetUserUsage(w, r)
 		return
 	default:
 		w.WriteHeader(http.StatusNotFound)

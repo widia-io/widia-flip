@@ -1,10 +1,13 @@
 "use client";
 
 import { LogOut, Menu, HelpCircle } from "lucide-react";
+import { type UserEntitlements } from "@widia/shared";
+
 import { signOutAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { WorkspaceSelector } from "@/components/WorkspaceSelector";
+import { TierBadge } from "@/components/TierBadge";
 import { useSidebar } from "@/lib/hooks/useSidebar";
 import { useFeatureTour } from "@/components/FeatureTour";
 
@@ -22,9 +25,10 @@ interface HeaderProps {
   userEmail: string;
   workspaces: Workspace[];
   activeWorkspaceId: string | null;
+  entitlements: UserEntitlements | null;
 }
 
-export function Header({ userEmail, workspaces, activeWorkspaceId }: HeaderProps) {
+export function Header({ userEmail, workspaces, activeWorkspaceId, entitlements }: HeaderProps) {
   const { toggle } = useSidebar();
   const { startTour } = useFeatureTour();
 
@@ -46,6 +50,7 @@ export function Header({ userEmail, workspaces, activeWorkspaceId }: HeaderProps
           {getInitials(userEmail)}
         </div>
         <span className="hidden sm:inline text-sm text-muted-foreground">{userEmail}</span>
+        <TierBadge entitlements={entitlements} />
       </div>
 
       {/* Right side: workspace selector + actions */}

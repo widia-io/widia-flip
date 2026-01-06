@@ -10,7 +10,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface BillingStatusCardProps {
   entitlements: UserEntitlements | null;
-  workspaceId: string;
 }
 
 const TIER_LABELS: Record<string, string> = {
@@ -21,10 +20,10 @@ const TIER_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   active: { label: "Ativo", variant: "default" },
-  trialing: { label: "Período de teste", variant: "secondary" },
+  trialing: { label: "Teste gratuito", variant: "secondary" },
   canceled: { label: "Cancelado", variant: "outline" },
   past_due: { label: "Pagamento pendente", variant: "destructive" },
-  unpaid: { label: "Não pago", variant: "destructive" },
+  unpaid: { label: "Nao pago", variant: "destructive" },
   incomplete: { label: "Incompleto", variant: "outline" },
   incomplete_expired: { label: "Expirado", variant: "destructive" },
 };
@@ -39,14 +38,14 @@ function formatDate(dateString: string | null): string {
   });
 }
 
-export function BillingStatusCard({ entitlements, workspaceId }: BillingStatusCardProps) {
+export function BillingStatusCard({ entitlements }: BillingStatusCardProps) {
   const [isPending, startTransition] = useTransition();
   const [portalError, setPortalError] = useState<string | null>(null);
 
   if (!entitlements) {
     return (
       <div className="text-sm text-muted-foreground">
-        Não foi possível carregar informações de faturamento.
+        Nao foi possivel carregar informacoes de faturamento.
       </div>
     );
   }
@@ -64,7 +63,7 @@ export function BillingStatusCard({ entitlements, workspaceId }: BillingStatusCa
     setPortalError(null);
     startTransition(async () => {
       try {
-        const returnUrl = `${window.location.origin}/app/workspaces/${workspaceId}/billing`;
+        const returnUrl = `${window.location.origin}/app/billing`;
 
         const res = await fetch("/api/billing/portal", {
           method: "POST",
@@ -122,7 +121,7 @@ export function BillingStatusCard({ entitlements, workspaceId }: BillingStatusCa
 
         {billing.current_period_end && billing.status === "active" && (
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Próxima cobrança</span>
+            <span className="text-muted-foreground">Proxima cobranca</span>
             <span>{formatDate(billing.current_period_end)}</span>
           </div>
         )}
@@ -130,7 +129,7 @@ export function BillingStatusCard({ entitlements, workspaceId }: BillingStatusCa
         {billing.cancel_at_period_end && (
           <div className="flex justify-between text-amber-600 dark:text-amber-400">
             <span>Cancelamento agendado</span>
-            <span>Final do período</span>
+            <span>Final do periodo</span>
           </div>
         )}
       </div>
@@ -159,7 +158,7 @@ export function BillingStatusCard({ entitlements, workspaceId }: BillingStatusCa
 
       {!billing.stripe_customer_id && billing.status === "trialing" && (
         <p className="text-sm text-muted-foreground">
-          Você está no período de teste gratuito de 7 dias.
+          Voce esta no periodo de teste gratuito de 7 dias.
         </p>
       )}
     </div>

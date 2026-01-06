@@ -14,7 +14,7 @@ import { apiFetch } from "@/lib/apiFetch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 import { BillingStatusCard } from "./BillingStatusCard";
-import { UpgradeCTA } from "./UpgradeCTA";
+import { PlanSelector } from "./PlanSelector";
 import { TierLimitsCard } from "./TierLimitsCard";
 import { UsageCard } from "./UsageCard";
 
@@ -74,7 +74,7 @@ export default async function WorkspaceBillingPage(props: {
         <ChevronRight className="h-4 w-4" />
         <span className="font-medium text-foreground">{workspace.name}</span>
         <ChevronRight className="h-4 w-4" />
-        <span>Faturamento</span>
+        <span>Assinatura</span>
       </nav>
 
       {/* Header */}
@@ -83,7 +83,7 @@ export default async function WorkspaceBillingPage(props: {
           <CreditCard className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold">Faturamento</h1>
+          <h1 className="text-xl font-semibold">Assinatura</h1>
           <p className="text-sm text-muted-foreground">
             Gerencie sua assinatura e plano
           </p>
@@ -148,18 +148,19 @@ export default async function WorkspaceBillingPage(props: {
         </CardContent>
       </Card>
 
-      {/* Upgrade Options */}
-      {entitlements && entitlements.billing.tier !== "growth" && (
+      {/* Plan Selection */}
+      {entitlements && (
         <Card>
           <CardHeader>
-            <CardTitle>Fazer Upgrade</CardTitle>
+            <CardTitle>Alterar Plano</CardTitle>
             <CardDescription>
-              Desbloqueie mais recursos com um plano superior
+              Escolha o plano ideal para suas necessidades
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <UpgradeCTA
+            <PlanSelector
               currentTier={entitlements.billing.tier}
+              hasSubscription={!!entitlements.billing.stripe_customer_id}
               workspaceId={params.id}
             />
           </CardContent>

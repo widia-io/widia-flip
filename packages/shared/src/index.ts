@@ -567,6 +567,7 @@ export type SaveCalculatorResponse = z.infer<typeof SaveCalculatorResponseSchema
 
 export const ScrapePropertyRequestSchema = z.object({
   url: z.string().url("URL inválida"),
+  workspace_id: z.string().uuid("workspace_id inválido"),
 });
 export type ScrapePropertyRequest = z.infer<typeof ScrapePropertyRequestSchema>;
 
@@ -735,6 +736,8 @@ export const TierLimitsSchema = z.object({
   max_prospects_per_month: z.number(),
   max_snapshots_per_month: z.number(),
   max_docs_per_month: z.number(),
+  max_url_imports_per_month: z.number(),
+  max_storage_bytes: z.number(),
 });
 export type TierLimits = z.infer<typeof TierLimitsSchema>;
 
@@ -743,19 +746,25 @@ export const TIER_LIMITS: Record<BillingTier, TierLimits> = {
     max_workspaces: 1,
     max_prospects_per_month: 50,
     max_snapshots_per_month: 30,
-    max_docs_per_month: 10,
+    max_docs_per_month: 5,
+    max_url_imports_per_month: 5,
+    max_storage_bytes: 100 * 1024 * 1024, // 100MB
   },
   pro: {
     max_workspaces: 3,
     max_prospects_per_month: 300,
     max_snapshots_per_month: 200,
-    max_docs_per_month: 100,
+    max_docs_per_month: 50,
+    max_url_imports_per_month: 50,
+    max_storage_bytes: 2 * 1024 * 1024 * 1024, // 2GB
   },
   growth: {
     max_workspaces: 10,
     max_prospects_per_month: 999999, // Unlimited
     max_snapshots_per_month: 999999, // Unlimited
-    max_docs_per_month: 500,
+    max_docs_per_month: 200,
+    max_url_imports_per_month: 999999, // Unlimited
+    max_storage_bytes: 20 * 1024 * 1024 * 1024, // 20GB
   },
 };
 
@@ -842,6 +851,8 @@ export const UsageMetricsSchema = z.object({
   prospects: UsageMetricSchema,
   snapshots: UsageMetricSchema,
   documents: UsageMetricSchema,
+  url_imports: UsageMetricSchema,
+  storage_bytes: UsageMetricSchema,
 });
 export type UsageMetrics = z.infer<typeof UsageMetricsSchema>;
 
@@ -857,6 +868,16 @@ export const WorkspaceUsageResponseSchema = z.object({
   metrics: UsageMetricsSchema,
 });
 export type WorkspaceUsageResponse = z.infer<typeof WorkspaceUsageResponseSchema>;
+
+export const UserUsageResponseSchema = z.object({
+  user_id: z.string(),
+  period_start: z.string(),
+  period_end: z.string(),
+  period_type: PeriodTypeEnum,
+  tier: BillingTierEnum,
+  metrics: UsageMetricsSchema,
+});
+export type UserUsageResponse = z.infer<typeof UserUsageResponseSchema>;
 
 // M12 - Paywall + Enforcement (Hard Limits)
 

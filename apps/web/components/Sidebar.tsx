@@ -17,7 +17,7 @@ const staticNavItems = [
   { href: "/app/workspaces", label: "Projetos", icon: FolderKanban, tourId: undefined },
 ];
 
-function SidebarContent({ onNavigate, activeWorkspaceId, isAdmin }: { onNavigate?: () => void; activeWorkspaceId?: string; isAdmin?: boolean }) {
+function SidebarContent({ onNavigate, isAdmin }: { onNavigate?: () => void; isAdmin?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -54,22 +54,20 @@ function SidebarContent({ onNavigate, activeWorkspaceId, isAdmin }: { onNavigate
           );
         })}
 
-        {/* Billing link - only show if workspace is selected */}
-        {activeWorkspaceId && (
-          <Link
-            href={`/app/workspaces/${activeWorkspaceId}/billing`}
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-              pathname.includes("/billing")
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            )}
-          >
-            <CreditCard className="h-4 w-4" />
-            Faturamento
-          </Link>
-        )}
+        {/* Billing link - always visible */}
+        <Link
+          href="/app/billing"
+          onClick={onNavigate}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+            pathname.startsWith("/app/billing")
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          )}
+        >
+          <CreditCard className="h-4 w-4" />
+          Assinatura
+        </Link>
 
         {/* Admin link - only show for admins */}
         {isAdmin && (
@@ -110,11 +108,10 @@ function SidebarContent({ onNavigate, activeWorkspaceId, isAdmin }: { onNavigate
 }
 
 interface SidebarProps {
-  activeWorkspaceId?: string;
   isAdmin?: boolean;
 }
 
-export function Sidebar({ activeWorkspaceId, isAdmin }: SidebarProps) {
+export function Sidebar({ isAdmin }: SidebarProps) {
   const { isOpen, close } = useSidebar();
 
   return (
@@ -122,7 +119,7 @@ export function Sidebar({ activeWorkspaceId, isAdmin }: SidebarProps) {
       {/* Mobile drawer */}
       <Sheet open={isOpen} onOpenChange={(open) => !open && close()}>
         <SheetContent side="left" className="w-64 p-0">
-          <SidebarContent onNavigate={close} activeWorkspaceId={activeWorkspaceId} isAdmin={isAdmin} />
+          <SidebarContent onNavigate={close} isAdmin={isAdmin} />
         </SheetContent>
       </Sheet>
 
@@ -131,7 +128,7 @@ export function Sidebar({ activeWorkspaceId, isAdmin }: SidebarProps) {
         data-tour="sidebar"
         className="hidden lg:flex h-full w-64 flex-col border-r border-border bg-background"
       >
-        <SidebarContent activeWorkspaceId={activeWorkspaceId} isAdmin={isAdmin} />
+        <SidebarContent isAdmin={isAdmin} />
       </aside>
     </>
   );

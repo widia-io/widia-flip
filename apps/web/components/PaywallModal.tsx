@@ -37,6 +37,8 @@ const METRIC_LABELS: Record<string, string> = {
   prospects: "Prospects",
   snapshots: "Análises Salvas",
   documents: "Documentos",
+  url_imports: "Importações URL",
+  storage_bytes: "Storage",
   flip_score_v1: "Flip Score v1",
 };
 
@@ -69,12 +71,15 @@ export function PaywallModal({
 
   const tierLabel = TIER_LABELS[details.tier as BillingTier] ?? details.tier;
   const metricLabel = details.metric ? METRIC_LABELS[details.metric] ?? details.metric : "";
+  const isTrialExpired = details.billing_status === "trial_expired";
 
   const handleUpgrade = () => {
     if (workspaceId) {
       router.push(`/app/workspaces/${workspaceId}/billing`);
-      onClose();
+    } else {
+      router.push("/app/billing");
     }
+    onClose();
   };
 
   const handleOpenPortal = () => {
@@ -127,7 +132,13 @@ export function PaywallModal({
             <AlertTriangle className="h-6 w-6 text-amber-500" />
           </div>
           <DialogTitle className="text-center text-xl">
-            {isFeatureAccess ? "Recurso Premium" : isPaywallRequired ? "Pagamento Necessário" : "Limite Atingido"}
+            {isFeatureAccess
+              ? "Recurso Premium"
+              : isTrialExpired
+                ? "Período de Teste Expirado"
+                : isPaywallRequired
+                  ? "Pagamento Necessário"
+                  : "Limite Atingido"}
           </DialogTitle>
           <DialogDescription className="text-center">
             {message}
@@ -162,12 +173,14 @@ export function PaywallModal({
               </div>
               <div className="mt-2 flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Status</span>
-                <span className="font-medium text-destructive">
-                  {details.billing_status === "past_due"
-                    ? "Pagamento pendente"
-                    : details.billing_status === "unpaid"
-                      ? "Não pago"
-                      : details.billing_status}
+                <span className={`font-medium ${isTrialExpired ? "text-amber-600" : "text-destructive"}`}>
+                  {details.billing_status === "trial_expired"
+                    ? "Trial expirado"
+                    : details.billing_status === "past_due"
+                      ? "Pagamento pendente"
+                      : details.billing_status === "unpaid"
+                        ? "Não pago"
+                        : details.billing_status}
                 </span>
               </div>
             </div>
@@ -271,14 +284,21 @@ export function PaywallModal({
               <Button variant="outline" onClick={onClose} disabled={isPending} className="flex-1">
                 Fechar
               </Button>
-              <Button onClick={handleOpenPortal} disabled={isPending} className="flex-1">
-                {isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <CreditCard className="mr-2 h-4 w-4" />
-                )}
-                Gerenciar Pagamento
-              </Button>
+              {isTrialExpired ? (
+                <Button onClick={handleUpgrade} disabled={isPending} className="flex-1">
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Assinar Plano
+                </Button>
+              ) : (
+                <Button onClick={handleOpenPortal} disabled={isPending} className="flex-1">
+                  {isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <CreditCard className="mr-2 h-4 w-4" />
+                  )}
+                  Gerenciar Pagamento
+                </Button>
+              )}
             </div>
           )}
 
