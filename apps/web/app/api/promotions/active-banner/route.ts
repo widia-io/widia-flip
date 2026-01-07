@@ -27,22 +27,35 @@ async function hasActivePaidSubscription(): Promise<boolean> {
 export async function GET() {
   try {
     // If user has active paid subscription, don't show banner
-    if (await hasActivePaidSubscription()) {
+    const hasPaidSub = await hasActivePaidSubscription();
+    console.log("[active-banner] hasActivePaidSubscription:", hasPaidSub);
+
+    if (hasPaidSub) {
+      console.log("[active-banner] Hiding banner for paid subscriber");
       return NextResponse.json({ banner: null } satisfies ActiveBannerResponse);
     }
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-    const res = await fetch(`${apiUrl}/api/v1/public/promotions/active-banner`, {
+    const fetchUrl = `${apiUrl}/api/v1/public/promotions/active-banner`;
+    console.log("[active-banner] Fetching from:", fetchUrl);
+
+    const res = await fetch(fetchUrl, {
       cache: "no-store",
     });
 
+    console.log("[active-banner] Go API response status:", res.status);
+
     if (!res.ok) {
+      const errorText = await res.text();
+      console.log("[active-banner] Go API error response:", errorText);
       return NextResponse.json({ banner: null } satisfies ActiveBannerResponse);
     }
 
     const data: ActiveBannerResponse = await res.json();
+    console.log("[active-banner] Go API returned:", JSON.stringify(data));
     return NextResponse.json(data);
-  } catch {
+  } catch (error) {
+    console.error("[active-banner] Exception:", error);
     return NextResponse.json({ banner: null } satisfies ActiveBannerResponse);
   }
 }
