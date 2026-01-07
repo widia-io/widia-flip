@@ -17,8 +17,8 @@ async function hasActivePaidSubscription(): Promise<boolean> {
     if (!res.ok) return false;
 
     const data: UserEntitlements = await res.json();
-    // Hide banner if user is subscribed with a non-trial tier
-    return data.is_subscribed && data.billing.tier !== "trial";
+    // Hide banner if user is subscribed with a non-trialing status
+    return data.is_subscribed && data.billing.status !== "trialing";
   } catch {
     return false;
   }
