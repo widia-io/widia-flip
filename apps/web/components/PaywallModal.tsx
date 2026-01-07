@@ -74,11 +74,7 @@ export function PaywallModal({
   const isTrialExpired = details.billing_status === "trial_expired";
 
   const handleUpgrade = () => {
-    if (workspaceId) {
-      router.push(`/app/workspaces/${workspaceId}/billing`);
-    } else {
-      router.push("/app/billing");
-    }
+    router.push("/app/billing");
     onClose();
   };
 

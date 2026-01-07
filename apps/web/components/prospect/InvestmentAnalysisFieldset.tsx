@@ -36,9 +36,7 @@ export function InvestmentAnalysisFieldset({
   const router = useRouter();
 
   const handleUpgrade = () => {
-    if (workspaceId) {
-      router.push(`/app/workspaces/${workspaceId}/billing`);
-    }
+    router.push("/app/billing");
   };
 
   const id = (field: string) => `${idPrefix}${field}`;

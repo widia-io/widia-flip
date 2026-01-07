@@ -2,20 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { ArrowUp, ArrowDown, Loader2, Check } from "lucide-react";
-import { type BillingTier } from "@widia/shared";
+import { type BillingTier, type BillingInterval, TIER_PRICES } from "@widia/shared";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 interface PlanSelectorProps {
   currentTier: BillingTier;
-  hasSubscription: boolean; // true if user has stripe_customer_id
+  hasSubscription: boolean;
 }
 
 interface PlanOption {
   tier: BillingTier;
   name: string;
-  price: string;
   features: string[];
 }
 
@@ -23,7 +22,6 @@ const PLANS: PlanOption[] = [
   {
     tier: "starter",
     name: "Starter",
-    price: "R$ 29/mes",
     features: [
       "1 projeto",
       "50 prospects/mes",
@@ -35,7 +33,6 @@ const PLANS: PlanOption[] = [
   {
     tier: "pro",
     name: "Pro",
-    price: "R$ 97/mes",
     features: [
       "3 projetos",
       "300 prospects/mes",
@@ -48,7 +45,6 @@ const PLANS: PlanOption[] = [
   {
     tier: "growth",
     name: "Growth",
-    price: "R$ 297/mes",
     features: [
       "10 projetos",
       "Prospects ilimitados",
@@ -60,14 +56,23 @@ const PLANS: PlanOption[] = [
   },
 ];
 
+function formatPrice(tier: BillingTier, interval: BillingInterval): string {
+  const prices = TIER_PRICES[tier];
+  if (interval === "yearly") {
+    const monthlyEquiv = Math.floor(prices.yearly / 12);
+    return `R$ ${monthlyEquiv}`;
+  }
+  return `R$ ${prices.monthly}`;
+}
+
 const TIER_ORDER: BillingTier[] = ["starter", "pro", "growth"];
 
 export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps) {
   const [isPending, startTransition] = useTransition();
   const [pendingTier, setPendingTier] = useState<BillingTier | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [interval, setInterval] = useState<BillingInterval>("monthly");
 
-  // When user has no subscription (trial active or expired), no plan is "current" - all are available
   const effectiveCurrentTier = hasSubscription ? currentTier : null;
   const currentIndex = effectiveCurrentTier ? TIER_ORDER.indexOf(effectiveCurrentTier) : -1;
 
@@ -78,7 +83,6 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
     startTransition(async () => {
       try {
         if (hasSubscription) {
-          // Has subscription - open portal to change plan
           const returnUrl = `${window.location.origin}/app/billing`;
           const res = await fetch("/api/billing/portal", {
             method: "POST",
@@ -98,7 +102,6 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
             window.location.href = data.portal_url;
           }
         } else {
-          // No subscription - create checkout
           const successUrl = `${window.location.origin}/app/billing?success=checkout_success`;
           const cancelUrl = `${window.location.origin}/app/billing?error=checkout_canceled`;
 
@@ -107,6 +110,7 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               tier,
+              interval,
               success_url: successUrl,
               cancel_url: cancelUrl,
             }),
@@ -139,6 +143,25 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
         </div>
       )}
 
+      {/* Interval Toggle */}
+      <div className="flex justify-center gap-2">
+        <Button
+          variant={interval === "monthly" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setInterval("monthly")}
+        >
+          Mensal
+        </Button>
+        <Button
+          variant={interval === "yearly" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setInterval("yearly")}
+        >
+          Anual
+          <Badge variant="secondary" className="ml-2 text-xs">2 meses grátis</Badge>
+        </Button>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-3">
         {PLANS.map((plan) => {
           const planIndex = TIER_ORDER.indexOf(plan.tier);
@@ -162,7 +185,14 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
                     <Badge variant="default" className="text-xs">Atual</Badge>
                   )}
                 </div>
-                <p className="text-lg font-bold text-primary">{plan.price}</p>
+                <p className="text-lg font-bold text-primary">
+                  {formatPrice(plan.tier, interval)}/mes
+                  {interval === "yearly" && (
+                    <span className="text-xs font-normal text-muted-foreground ml-1">
+                      (cobrado anualmente)
+                    </span>
+                  )}
+                </p>
               </div>
 
               <ul className="mb-4 flex-1 space-y-1.5 text-sm">

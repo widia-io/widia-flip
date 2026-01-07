@@ -15,13 +15,21 @@ const PRICE_TO_TIER: Record<string, string> = {};
 function getTierFromPriceId(priceId: string): string {
   // Build the map dynamically from env vars
   if (Object.keys(PRICE_TO_TIER).length === 0) {
+    // Monthly prices
     const starterPriceId = process.env.STRIPE_PRICE_ID_STARTER;
     const proPriceId = process.env.STRIPE_PRICE_ID_PRO;
     const growthPriceId = process.env.STRIPE_PRICE_ID_GROWTH;
+    // Yearly prices
+    const starterYearlyPriceId = process.env.STRIPE_PRICE_ID_STARTER_YEARLY;
+    const proYearlyPriceId = process.env.STRIPE_PRICE_ID_PRO_YEARLY;
+    const growthYearlyPriceId = process.env.STRIPE_PRICE_ID_GROWTH_YEARLY;
 
     if (starterPriceId) PRICE_TO_TIER[starterPriceId] = "starter";
     if (proPriceId) PRICE_TO_TIER[proPriceId] = "pro";
     if (growthPriceId) PRICE_TO_TIER[growthPriceId] = "growth";
+    if (starterYearlyPriceId) PRICE_TO_TIER[starterYearlyPriceId] = "starter";
+    if (proYearlyPriceId) PRICE_TO_TIER[proYearlyPriceId] = "pro";
+    if (growthYearlyPriceId) PRICE_TO_TIER[growthYearlyPriceId] = "growth";
   }
 
   return PRICE_TO_TIER[priceId] ?? "starter";
