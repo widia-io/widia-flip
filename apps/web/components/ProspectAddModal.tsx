@@ -278,6 +278,9 @@ export function ProspectAddModal({ workspaceId, canAccessFlipScoreV1 = false }: 
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
                 Cole o link de um anúncio (ZAP, VivaReal, OLX, etc.) para preencher automaticamente.
+                <span className="block text-xs text-muted-foreground/70 mt-1">
+                  Alguns sites podem bloquear a extração automática.
+                </span>
               </p>
               <div className="flex gap-2">
                 <div className="relative flex-1">
