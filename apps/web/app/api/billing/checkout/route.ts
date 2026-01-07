@@ -80,14 +80,21 @@ export async function POST(request: Request) {
 
     const stripe = getStripe();
 
-    // Validate coupon exists before using it
-    let validCouponId: string | null = null;
+    // Validate and determine discount type (promo code vs coupon)
+    let discount: { coupon: string } | { promotion_code: string } | null = null;
     if (couponId) {
       try {
-        await stripe.coupons.retrieve(couponId);
-        validCouponId = couponId;
+        if (couponId.startsWith("promo_")) {
+          // It's a promotion code
+          await stripe.promotionCodes.retrieve(couponId);
+          discount = { promotion_code: couponId };
+        } else {
+          // It's a coupon
+          await stripe.coupons.retrieve(couponId);
+          discount = { coupon: couponId };
+        }
       } catch {
-        console.warn(`[billing/checkout] Coupon ${couponId} not found, allowing manual promo codes`);
+        console.warn(`[billing/checkout] Discount ${couponId} not found, allowing manual promo codes`);
       }
     }
 
@@ -113,8 +120,8 @@ export async function POST(request: Request) {
         },
       },
       // Stripe doesn't allow both allow_promotion_codes and discounts
-      ...(validCouponId
-        ? { discounts: [{ coupon: validCouponId }] }
+      ...(discount
+        ? { discounts: [discount] }
         : { allow_promotion_codes: true }),
     };
 
