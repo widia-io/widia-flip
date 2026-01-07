@@ -3,23 +3,23 @@ import { Search, BarChart3, CheckCircle, History } from "lucide-react";
 const steps = [
   {
     icon: Search,
-    title: "Prospecte",
-    description: "Cadastre imóveis rapidamente via Quick Add ou importe de URLs",
+    title: "Importe",
+    description: "Cole URL → 30s → dados completos. Ou Quick Add para imóveis offline. Economize 30min de digitação por prospect.",
   },
   {
     icon: BarChart3,
-    title: "Analise",
-    description: "Flip Score classifica automaticamente seus melhores negócios",
+    title: "Priorize",
+    description: "Score 0-100 calculado automaticamente. Top 10% = analise primeiro. Bottom 50% = descarte imediato.",
   },
   {
     icon: CheckCircle,
-    title: "Decida",
-    description: "ROI, lucro líquido e break-even calculados em segundos",
+    title: "Analise",
+    description: "Viabilidade cash/financiada lado a lado. ROI, lucro, margem. Todos custos inclusos. Decida em 30s, não 4h.",
   },
   {
     icon: History,
-    title: "Acompanhe",
-    description: "Histórico de snapshots mostra a evolução de cada operação",
+    title: "Gerencie",
+    description: "Custos, timeline, docs versionados. Snapshots mostram evolução do negócio. Nunca esqueça um custo importante.",
   },
 ];
 

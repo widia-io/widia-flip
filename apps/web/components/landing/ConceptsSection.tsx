@@ -5,30 +5,30 @@ const concepts = [
   {
     icon: Briefcase,
     title: "Projeto",
-    highlight: "Seu espaço de trabalho.",
+    highlight: "Organize operações separadas.",
     description:
-      "Organize diferentes operações de flip em projetos separados. Cada um tem suas próprias taxas (ITBI, corretagem), prospects e histórico.",
+      "Múltiplos projetos independentes. Cada um com suas taxas (ITBI, corretagem, impostos), prospects e histórico próprio. Separe por região ou estratégia.",
   },
   {
     icon: Target,
     title: "Prospect",
-    highlight: "Leads em prospecção.",
+    highlight: "Leads em triagem.",
     description:
-      "Cadastre imóveis rapidamente para triagem inicial. O Flip Score prioriza automaticamente os melhores negócios sem análise completa.",
+      "Importe URLs ou use Quick Add. Flip Score calcula potencial automaticamente. Converta os melhores em propriedades para análise completa.",
   },
   {
     icon: Gauge,
     title: "Flip Score",
-    highlight: "Nota inteligente de 0-100.",
+    highlight: "0-100 calculado automaticamente.",
     description:
-      "Score v0: triagem rápida (preço/m², custos, liquidez). Score v1: análise econômica completa (ROI, lucro, margem de segurança).",
+      "v0: triagem por preço/m², custos e liquidez. v1: ROI, lucro líquido e margem de segurança. Priorize negócios sem análise manual.",
   },
   {
     icon: Camera,
     title: "Snapshot",
-    highlight: "Versões das suas análises.",
+    highlight: "Histórico versionado.",
     description:
-      "Salve 'fotos' da análise em momentos-chave. Acompanhe como o negócio evoluiu desde a prospecção até a venda.",
+      "Salve 'fotos' da análise com timestamp. Acompanhe evolução de custos, viabilidade e decisões desde a prospecção até a venda.",
   },
 ];
 
