@@ -34,16 +34,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const PRICE_IDS: Record<string, string | undefined> = {
-      starter: process.env.STRIPE_PRICE_ID_STARTER,
-      pro: process.env.STRIPE_PRICE_ID_PRO,
-      growth: process.env.STRIPE_PRICE_ID_GROWTH,
+    const PRICE_IDS: Record<string, Record<string, string | undefined>> = {
+      starter: {
+        monthly: process.env.STRIPE_PRICE_ID_STARTER,
+        yearly: process.env.STRIPE_PRICE_ID_STARTER_YEARLY,
+      },
+      pro: {
+        monthly: process.env.STRIPE_PRICE_ID_PRO,
+        yearly: process.env.STRIPE_PRICE_ID_PRO_YEARLY,
+      },
+      growth: {
+        monthly: process.env.STRIPE_PRICE_ID_GROWTH,
+        yearly: process.env.STRIPE_PRICE_ID_GROWTH_YEARLY,
+      },
     };
 
-    const priceId = PRICE_IDS[parsed.data.tier];
+    const { tier, interval } = parsed.data;
+    const priceId = PRICE_IDS[tier]?.[interval];
     if (!priceId) {
       return NextResponse.json(
-        { error: { code: "INVALID_TIER", message: `Price not configured for tier: ${parsed.data.tier}` } },
+        { error: { code: "INVALID_TIER", message: `Price not configured for tier: ${tier} (${interval})` } },
         { status: 400 }
       );
     }
@@ -59,12 +69,14 @@ export async function POST(request: Request) {
       customer_email: session.user.email,
       metadata: {
         user_id: session.user.id,
-        tier: parsed.data.tier,
+        tier,
+        interval,
       },
       subscription_data: {
         metadata: {
           user_id: session.user.id,
-          tier: parsed.data.tier,
+          tier,
+          interval,
         },
       },
     });
