@@ -69,8 +69,8 @@ func CalculateCash(inputs CashInputs, settings CashSettings) CashOutputs {
 	outputs.BrokerFee = round2(salePrice * settings.BrokerRate)
 	outputs.GrossProfit = round2(salePrice - outputs.InvestmentTotal - outputs.BrokerFee)
 
-	// Calculate taxes (PJ tax rate, treat 0 as no tax)
-	outputs.PJTaxValue = round2(salePrice * settings.PJTaxRate)
+	// Calculate taxes (PJ tax rate on gross profit, not sale price)
+	outputs.PJTaxValue = round2(outputs.GrossProfit * settings.PJTaxRate)
 	outputs.NetProfit = round2(outputs.GrossProfit - outputs.PJTaxValue)
 
 	// Calculate ROI

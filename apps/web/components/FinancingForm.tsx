@@ -65,6 +65,19 @@ export function FinancingForm({
 
   const [rates, setRates] = useState<EffectiveRates | undefined>(initialRates);
 
+  // Sync outputs with initialOutputs when page refreshes (e.g., after payment change)
+  useEffect(() => {
+    if (initialOutputs) {
+      setOutputs(initialOutputs);
+    }
+  }, [initialOutputs]);
+
+  useEffect(() => {
+    if (initialRates) {
+      setRates(initialRates);
+    }
+  }, [initialRates]);
+
   // Debounced save
   const [debouncedInputs, setDebouncedInputs] = useState(inputs);
 
@@ -159,6 +172,23 @@ export function FinancingForm({
     setIsSavingSnapshot(true);
     setError(null);
     setSuccess(null);
+
+    // Flush debounce: force update inputs to BD before creating snapshot
+    const hasValue = Object.values(inputs).some((v) => v !== null);
+    if (hasValue) {
+      const requestData: Record<string, number> = {};
+      if (inputs.purchase_price !== null) requestData.purchase_price = inputs.purchase_price;
+      if (inputs.sale_price !== null) requestData.sale_price = inputs.sale_price;
+      if (inputs.down_payment_percent !== null) requestData.down_payment_percent = inputs.down_payment_percent;
+      if (inputs.term_months !== null) requestData.term_months = inputs.term_months;
+      if (inputs.cet !== null) requestData.cet = inputs.cet;
+      if (inputs.interest_rate !== null) requestData.interest_rate = inputs.interest_rate;
+      if (inputs.insurance !== null) requestData.insurance = inputs.insurance;
+      if (inputs.appraisal_fee !== null) requestData.appraisal_fee = inputs.appraisal_fee;
+      if (inputs.other_fees !== null) requestData.other_fees = inputs.other_fees;
+      if (inputs.remaining_debt !== null) requestData.remaining_debt = inputs.remaining_debt;
+      await updateFinancingAction(propertyId, requestData);
+    }
 
     const result = await createFinancingSnapshotAction(propertyId);
 
