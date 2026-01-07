@@ -30,6 +30,7 @@ func NewHandler(deps Deps) http.Handler {
 	publicMux := http.NewServeMux()
 	publicMux.HandleFunc("/api/v1/health", api.handleHealth)
 	publicMux.HandleFunc("/api/v1/public/cash-calc", api.handlePublicCashCalc)
+	publicMux.HandleFunc("/api/v1/public/promotions/active-banner", api.handlePublicActiveBanner)
 
 	// Protected routes (auth required)
 	protectedMux := http.NewServeMux()
@@ -78,6 +79,8 @@ func NewHandler(deps Deps) http.Handler {
 	adminMux.HandleFunc("/api/v1/admin/stats", api.handleAdminStats)
 	adminMux.HandleFunc("/api/v1/admin/users", api.handleAdminUsersCollection)
 	adminMux.HandleFunc("/api/v1/admin/users/", api.handleAdminUsersSubroutes)
+	adminMux.HandleFunc("/api/v1/admin/promotions", api.handleAdminPromotionsCollection)
+	adminMux.HandleFunc("/api/v1/admin/promotions/", api.handleAdminPromotionsSubroutes)
 	var adminHandler http.Handler = adminMux
 	adminHandler = adminAuthMiddleware(api.tokenVerifier, api.db, adminHandler)
 

@@ -1,12 +1,26 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getServerSession } from "@/lib/serverAuth";
-import { CreateCheckoutRequestSchema } from "@widia/shared";
+import { CreateCheckoutRequestSchema, type ActiveBannerResponse } from "@widia/shared";
 
 function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("STRIPE_SECRET_KEY not configured");
   return new Stripe(key);
+}
+
+async function getActiveCouponId(): Promise<string | null> {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+    const res = await fetch(`${apiUrl}/api/v1/public/promotions/active-banner`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const data: ActiveBannerResponse = await res.json();
+    return data.banner?.stripeCouponId || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function POST(request: Request) {
@@ -49,7 +63,7 @@ export async function POST(request: Request) {
       },
     };
 
-    const { tier, interval } = parsed.data;
+    const { tier, interval, voucher_code } = parsed.data;
     const priceId = PRICE_IDS[tier]?.[interval];
     if (!priceId) {
       return NextResponse.json(
@@ -58,8 +72,16 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get coupon: use voucher_code if provided, otherwise check active banner
+    let couponId = voucher_code || null;
+    if (!couponId) {
+      couponId = await getActiveCouponId();
+    }
+
     const stripe = getStripe();
-    const checkoutSession = await stripe.checkout.sessions.create({
+
+    // Build checkout session options
+    const checkoutOptions: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
@@ -67,6 +89,7 @@ export async function POST(request: Request) {
       cancel_url: parsed.data.cancel_url,
       client_reference_id: session.user.id,
       customer_email: session.user.email,
+      allow_promotion_codes: !couponId, // Allow manual codes if no auto-coupon
       metadata: {
         user_id: session.user.id,
         tier,
@@ -79,7 +102,14 @@ export async function POST(request: Request) {
           interval,
         },
       },
-    });
+    };
+
+    // Apply coupon if available
+    if (couponId) {
+      checkoutOptions.discounts = [{ coupon: couponId }];
+    }
+
+    const checkoutSession = await stripe.checkout.sessions.create(checkoutOptions);
 
     return NextResponse.json({
       checkout_url: checkoutSession.url,

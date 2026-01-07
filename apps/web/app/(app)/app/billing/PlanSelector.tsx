@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { ArrowUp, ArrowDown, Loader2, Check } from "lucide-react";
-import { type BillingTier, type BillingInterval, TIER_PRICES } from "@widia/shared";
+import { useState, useTransition, useEffect } from "react";
+import { ArrowUp, ArrowDown, Loader2, Check, Tag, ChevronDown, ChevronUp } from "lucide-react";
+import { type BillingTier, type BillingInterval, TIER_PRICES, type ActiveBanner } from "@widia/shared";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 interface PlanSelectorProps {
   currentTier: BillingTier;
@@ -72,9 +73,30 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
   const [pendingTier, setPendingTier] = useState<BillingTier | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [interval, setInterval] = useState<BillingInterval>("monthly");
+  const [voucherCode, setVoucherCode] = useState("");
+  const [showVoucherInput, setShowVoucherInput] = useState(false);
+  const [activeBanner, setActiveBanner] = useState<ActiveBanner | null>(null);
 
   const effectiveCurrentTier = hasSubscription ? currentTier : null;
   const currentIndex = effectiveCurrentTier ? TIER_ORDER.indexOf(effectiveCurrentTier) : -1;
+
+  // Fetch active promotion banner
+  useEffect(() => {
+    async function fetchBanner() {
+      try {
+        const res = await fetch("/api/promotions/active-banner");
+        if (res.ok) {
+          const data = await res.json();
+          setActiveBanner(data.banner);
+        }
+      } catch {
+        // Ignore errors
+      }
+    }
+    fetchBanner();
+  }, []);
+
+  const hasAutoDiscount = activeBanner?.stripeCouponId != null;
 
   const handleChangePlan = (tier: BillingTier) => {
     setError(null);
@@ -113,6 +135,7 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
               interval,
               success_url: successUrl,
               cancel_url: cancelUrl,
+              voucher_code: voucherCode.trim() || undefined,
             }),
           });
 
@@ -161,6 +184,43 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
           <Badge variant="secondary" className="ml-2 text-xs">2 meses grátis</Badge>
         </Button>
       </div>
+
+      {/* Active Promotion Badge */}
+      {hasAutoDiscount && !hasSubscription && (
+        <div className="flex items-center justify-center gap-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-600 dark:text-emerald-400 text-sm">
+          <Tag className="h-4 w-4" />
+          <span>Desconto aplicado automaticamente no checkout!</span>
+        </div>
+      )}
+
+      {/* Voucher Code Input */}
+      {!hasSubscription && !hasAutoDiscount && (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setShowVoucherInput(!showVoucherInput)}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mx-auto"
+          >
+            <Tag className="h-3.5 w-3.5" />
+            Tem um cupom de desconto?
+            {showVoucherInput ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
+          </button>
+          {showVoucherInput && (
+            <div className="flex gap-2 max-w-xs mx-auto">
+              <Input
+                placeholder="Digite o codigo"
+                value={voucherCode}
+                onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                className="text-center uppercase"
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         {PLANS.map((plan) => {
