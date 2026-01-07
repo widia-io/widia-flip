@@ -120,6 +120,19 @@ export const auth = betterAuth({
     ...(process.env.NODE_ENV === "development" ? ["http://localhost:3000"] : []),
   ],
   database: pool,
+  user: {
+    additionalFields: {
+      phone: {
+        type: "string",
+        required: false,
+      },
+      accepted_terms_at: {
+        type: "string", // ISO timestamp string
+        required: false,
+        fieldName: "accepted_terms_at",
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,

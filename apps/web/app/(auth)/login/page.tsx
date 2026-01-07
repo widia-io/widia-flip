@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { signInEmailAction, signUpEmailAction } from "@/lib/actions/auth";
+import { signInEmailAction } from "@/lib/actions/auth";
 import { getServerSession } from "@/lib/serverAuth";
 import { MeuFlipLogo } from "@/components/MeuFlipLogo";
+import { SignupForm } from "@/components/SignupForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,42 +86,7 @@ export default async function LoginPage(props: {
           ) : null}
 
           {tab === "signup" ? (
-            <form action={signUpEmailAction} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  placeholder="Seu nome"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="Mínimo 8 caracteres"
-                  required
-                  minLength={8}
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                Criar conta
-              </Button>
-            </form>
+            <SignupForm />
           ) : (
             <form action={signInEmailAction} className="space-y-4">
               <div className="space-y-2">
@@ -176,13 +142,13 @@ export default async function LoginPage(props: {
       </Card>
 
       <p className="mt-8 text-center text-xs text-muted-foreground">
-        Ao continuar, você concorda com nossos{" "}
-        <Link href="#" className="underline hover:text-foreground">
+        Ao continuar, voce concorda com nossos{" "}
+        <Link href="/terms" className="underline hover:text-foreground">
           Termos de Uso
         </Link>{" "}
         e{" "}
-        <Link href="#" className="underline hover:text-foreground">
-          Política de Privacidade
+        <Link href="/privacy" className="underline hover:text-foreground">
+          Politica de Privacidade
         </Link>
       </p>
     </div>
