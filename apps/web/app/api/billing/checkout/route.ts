@@ -80,6 +80,17 @@ export async function POST(request: Request) {
 
     const stripe = getStripe();
 
+    // Validate coupon exists before using it
+    let validCouponId: string | null = null;
+    if (couponId) {
+      try {
+        await stripe.coupons.retrieve(couponId);
+        validCouponId = couponId;
+      } catch {
+        console.warn(`[billing/checkout] Coupon ${couponId} not found, allowing manual promo codes`);
+      }
+    }
+
     // Build checkout session options
     const checkoutOptions: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
@@ -89,7 +100,6 @@ export async function POST(request: Request) {
       cancel_url: parsed.data.cancel_url,
       client_reference_id: session.user.id,
       customer_email: session.user.email,
-      allow_promotion_codes: !couponId, // Allow manual codes if no auto-coupon
       metadata: {
         user_id: session.user.id,
         tier,
@@ -102,12 +112,11 @@ export async function POST(request: Request) {
           interval,
         },
       },
+      // Stripe doesn't allow both allow_promotion_codes and discounts
+      ...(validCouponId
+        ? { discounts: [{ coupon: validCouponId }] }
+        : { allow_promotion_codes: true }),
     };
-
-    // Apply coupon if available
-    if (couponId) {
-      checkoutOptions.discounts = [{ coupon: couponId }];
-    }
 
     const checkoutSession = await stripe.checkout.sessions.create(checkoutOptions);
 

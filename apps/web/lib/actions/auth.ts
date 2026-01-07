@@ -33,6 +33,13 @@ export async function signUpEmailAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const phone = String(formData.get("phone") ?? "").trim() || undefined;
+  const terms = formData.get("terms");
+
+  // Validate terms acceptance
+  if (terms !== "on") {
+    redirect(`/login?tab=signup&error=${encodeURIComponent("Voce deve aceitar os termos de uso")}`);
+  }
 
   try {
     await auth.api.signUpEmail({
@@ -41,12 +48,14 @@ export async function signUpEmailAction(formData: FormData) {
         name,
         email,
         password,
+        phone,
+        accepted_terms_at: new Date().toISOString(),
         callbackURL: "/app",
       },
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Sign-up failed";
-    redirect(`/login?error=${encodeURIComponent(message)}`);
+    redirect(`/login?tab=signup&error=${encodeURIComponent(message)}`);
   }
 
   // Email verification enabled - redirect with email for confirmation message
