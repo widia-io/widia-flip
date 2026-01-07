@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import type { ActiveBannerResponse, UserEntitlements } from "@widia/shared";
 import { getServerSession, getServerAccessToken } from "@/lib/serverAuth";
 
+const GO_API_BASE_URL = process.env.GO_API_BASE_URL ?? "http://localhost:8080";
+
 async function hasActivePaidSubscription(): Promise<boolean> {
   try {
     const session = await getServerSession();
     if (!session?.user) return false;
 
     const token = await getServerAccessToken();
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-    const res = await fetch(`${apiUrl}/api/v1/billing/me`, {
+    const res = await fetch(`${GO_API_BASE_URL}/api/v1/billing/me`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
@@ -35,8 +36,7 @@ export async function GET() {
       return NextResponse.json({ banner: null } satisfies ActiveBannerResponse);
     }
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-    const fetchUrl = `${apiUrl}/api/v1/public/promotions/active-banner`;
+    const fetchUrl = `${GO_API_BASE_URL}/api/v1/public/promotions/active-banner`;
     console.log("[active-banner] Fetching from:", fetchUrl);
 
     const res = await fetch(fetchUrl, {
