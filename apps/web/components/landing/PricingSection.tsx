@@ -65,7 +65,7 @@ export function PricingSection({ isLoggedIn }: PricingSectionProps) {
           <Card className="flex flex-col">
             <CardHeader className="flex-1">
               <CardTitle className="text-xl">Starter</CardTitle>
-              <CardDescription>Para começar</CardDescription>
+              <CardDescription>Para quem fecha 1-2 flips/mês</CardDescription>
               <div className="mt-4">
                 <span className="text-4xl font-bold">{formatPrice("starter", interval)}</span>
                 <span className="text-muted-foreground">/mês</span>
@@ -75,6 +75,9 @@ export function PricingSection({ isLoggedIn }: PricingSectionProps) {
                   </span>
                 )}
               </div>
+              <p className="mt-3 text-sm font-medium text-primary">
+                Economize 15h/mês vs Excel manual
+              </p>
               <ul className="mt-6 space-y-3 text-sm">
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-500" />
@@ -82,7 +85,7 @@ export function PricingSection({ isLoggedIn }: PricingSectionProps) {
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-500" />
-                  <span>50 prospects/mês</span>
+                  <span>50 prospects/mês → ~2 deals</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-500" />
@@ -120,7 +123,7 @@ export function PricingSection({ isLoggedIn }: PricingSectionProps) {
             </div>
             <CardHeader className="flex-1">
               <CardTitle className="text-xl">Pro</CardTitle>
-              <CardDescription>Para crescer</CardDescription>
+              <CardDescription>Para quem fecha 3-5 flips/mês</CardDescription>
               <div className="mt-4">
                 <span className="text-4xl font-bold">{formatPrice("pro", interval)}</span>
                 <span className="text-muted-foreground">/mês</span>
@@ -130,6 +133,9 @@ export function PricingSection({ isLoggedIn }: PricingSectionProps) {
                   </span>
                 )}
               </div>
+              <p className="mt-3 text-sm font-medium text-primary">
+                1 flip a mais/mês = ROI de 10-30x
+              </p>
               <ul className="mt-6 space-y-3 text-sm">
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-500" />
@@ -137,7 +143,7 @@ export function PricingSection({ isLoggedIn }: PricingSectionProps) {
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-500" />
-                  <span>300 prospects/mês</span>
+                  <span>300 prospects/mês → ~5 deals</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-500" />
@@ -170,7 +176,7 @@ export function PricingSection({ isLoggedIn }: PricingSectionProps) {
           <Card className="flex flex-col">
             <CardHeader className="flex-1">
               <CardTitle className="text-xl">Growth</CardTitle>
-              <CardDescription>Para escalar</CardDescription>
+              <CardDescription>Para quem fecha 10+ flips/mês</CardDescription>
               <div className="mt-4">
                 <span className="text-4xl font-bold">{formatPrice("growth", interval)}</span>
                 <span className="text-muted-foreground">/mês</span>
@@ -180,6 +186,9 @@ export function PricingSection({ isLoggedIn }: PricingSectionProps) {
                   </span>
                 )}
               </div>
+              <p className="mt-3 text-sm font-medium text-primary">
+                Economize R$ 5k/mês vs contratar analista
+              </p>
               <ul className="mt-6 space-y-3 text-sm">
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-500" />
@@ -187,7 +196,7 @@ export function PricingSection({ isLoggedIn }: PricingSectionProps) {
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-500" />
-                  <span>Prospects ilimitados</span>
+                  <span>Prospects ilimitados → 10+ deals</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-500" />
