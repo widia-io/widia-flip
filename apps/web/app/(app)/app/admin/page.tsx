@@ -7,6 +7,7 @@ import {
   Camera,
   HardDrive,
   ChevronRight,
+  Megaphone,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,13 +31,22 @@ export default async function AdminDashboardPage() {
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground">System overview and metrics</p>
         </div>
-        <Link
-          href="/app/admin/users"
-          className="flex items-center gap-1 text-sm text-primary hover:underline"
-        >
-          Manage Users
-          <ChevronRight className="h-4 w-4" />
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/app/admin/promotions"
+            className="flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            <Megaphone className="h-4 w-4" />
+            Promotions
+          </Link>
+          <Link
+            href="/app/admin/users"
+            className="flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            Manage Users
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

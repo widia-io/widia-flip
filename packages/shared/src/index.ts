@@ -808,6 +808,7 @@ export const CreateCheckoutRequestSchema = z.object({
   interval: BillingIntervalEnum.default("monthly"),
   success_url: z.string().url(),
   cancel_url: z.string().url(),
+  voucher_code: z.string().optional(),
 });
 export type CreateCheckoutRequest = z.infer<typeof CreateCheckoutRequestSchema>;
 
@@ -1191,3 +1192,57 @@ export const AdminStatusResponseSchema = z.object({
   isAdmin: z.boolean(),
 });
 export type AdminStatusResponse = z.infer<typeof AdminStatusResponseSchema>;
+
+// Promotions & Vouchers
+
+export const PromotionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  bannerText: z.string(),
+  bannerEmoji: z.string(),
+  stripeCouponId: z.string().nullable(),
+  endsAt: z.string(),
+  isActive: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type Promotion = z.infer<typeof PromotionSchema>;
+
+export const ActiveBannerSchema = z.object({
+  id: z.string(),
+  bannerText: z.string(),
+  bannerEmoji: z.string(),
+  stripeCouponId: z.string().nullable(),
+  endsAt: z.string(),
+});
+export type ActiveBanner = z.infer<typeof ActiveBannerSchema>;
+
+export const ActiveBannerResponseSchema = z.object({
+  banner: ActiveBannerSchema.nullable(),
+});
+export type ActiveBannerResponse = z.infer<typeof ActiveBannerResponseSchema>;
+
+export const CreatePromotionRequestSchema = z.object({
+  name: z.string().min(1),
+  bannerText: z.string().min(1),
+  bannerEmoji: z.string().optional().default("🎉"),
+  stripeCouponId: z.string().nullable().optional(),
+  endsAt: z.string(), // RFC3339
+  isActive: z.boolean().optional().default(false),
+});
+export type CreatePromotionRequest = z.infer<typeof CreatePromotionRequestSchema>;
+
+export const UpdatePromotionRequestSchema = z.object({
+  name: z.string().min(1).optional(),
+  bannerText: z.string().min(1).optional(),
+  bannerEmoji: z.string().optional(),
+  stripeCouponId: z.string().nullable().optional(),
+  endsAt: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+export type UpdatePromotionRequest = z.infer<typeof UpdatePromotionRequestSchema>;
+
+export const ListPromotionsResponseSchema = z.object({
+  items: z.array(PromotionSchema),
+});
+export type ListPromotionsResponse = z.infer<typeof ListPromotionsResponseSchema>;
