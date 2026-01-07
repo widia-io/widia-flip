@@ -475,6 +475,7 @@ export const DocumentSchema = z.object({
   workspace_id: z.string(),
   property_id: z.string().nullable(),
   cost_item_id: z.string().nullable(),
+  supplier_id: z.string().nullable(),
   storage_key: z.string(),
   storage_provider: z.string(),
   filename: z.string(),
@@ -509,6 +510,7 @@ export const RegisterDocumentRequestSchema = z.object({
   workspace_id: z.string(),
   property_id: z.string().optional(),
   cost_item_id: z.string().optional(),
+  supplier_id: z.string().optional(),
   storage_key: z.string(),
   filename: z.string(),
   content_type: z.string().optional(),
@@ -516,6 +518,86 @@ export const RegisterDocumentRequestSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 export type RegisterDocumentRequest = z.infer<typeof RegisterDocumentRequestSchema>;
+
+// Suppliers (Fornecedores)
+
+export const SupplierCategoryEnum = z.enum([
+  "pintura",
+  "eletrica",
+  "hidraulica",
+  "arquitetura",
+  "engenharia",
+  "marcenaria",
+  "gesso",
+  "piso",
+  "serralheria",
+  "limpeza",
+  "corretor",
+  "advogado",
+  "despachante",
+  "outro",
+]);
+export type SupplierCategory = z.infer<typeof SupplierCategoryEnum>;
+
+export const SUPPLIER_CATEGORY_LABELS: Record<SupplierCategory, string> = {
+  pintura: "Pintura",
+  eletrica: "Elétrica",
+  hidraulica: "Hidráulica",
+  arquitetura: "Arquitetura",
+  engenharia: "Engenharia",
+  marcenaria: "Marcenaria",
+  gesso: "Gesso",
+  piso: "Piso",
+  serralheria: "Serralheria",
+  limpeza: "Limpeza",
+  corretor: "Corretor",
+  advogado: "Advogado",
+  despachante: "Despachante",
+  outro: "Outro",
+};
+
+export const SupplierSchema = z.object({
+  id: z.string(),
+  workspace_id: z.string(),
+  name: z.string(),
+  phone: z.string().nullable(),
+  email: z.string().nullable(),
+  category: SupplierCategoryEnum,
+  notes: z.string().nullable(),
+  rating: z.number().int().min(1).max(5).nullable(),
+  hourly_rate: z.number().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type Supplier = z.infer<typeof SupplierSchema>;
+
+export const ListSuppliersResponseSchema = z.object({
+  items: z.array(SupplierSchema),
+});
+export type ListSuppliersResponse = z.infer<typeof ListSuppliersResponseSchema>;
+
+export const CreateSupplierRequestSchema = z.object({
+  workspace_id: z.string().min(1),
+  name: z.string().min(1),
+  phone: z.string().optional(),
+  email: z.string().email().optional(),
+  category: SupplierCategoryEnum,
+  notes: z.string().optional(),
+  rating: z.number().int().min(1).max(5).optional(),
+  hourly_rate: z.number().nonnegative().optional(),
+});
+export type CreateSupplierRequest = z.infer<typeof CreateSupplierRequestSchema>;
+
+export const UpdateSupplierRequestSchema = z.object({
+  name: z.string().min(1).optional(),
+  phone: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  category: SupplierCategoryEnum.optional(),
+  notes: z.string().nullable().optional(),
+  rating: z.number().int().min(1).max(5).nullable().optional(),
+  hourly_rate: z.number().nonnegative().nullable().optional(),
+});
+export type UpdateSupplierRequest = z.infer<typeof UpdateSupplierRequestSchema>;
 
 // M5 - Public Calculator
 
@@ -741,6 +823,7 @@ export const TierLimitsSchema = z.object({
   max_docs_per_month: z.number(),
   max_url_imports_per_month: z.number(),
   max_storage_bytes: z.number(),
+  max_suppliers: z.number(), // Total per workspace (not monthly)
 });
 export type TierLimits = z.infer<typeof TierLimitsSchema>;
 
@@ -752,6 +835,7 @@ export const TIER_LIMITS: Record<BillingTier, TierLimits> = {
     max_docs_per_month: 5,
     max_url_imports_per_month: 5,
     max_storage_bytes: 100 * 1024 * 1024, // 100MB
+    max_suppliers: 10,
   },
   pro: {
     max_workspaces: 3,
@@ -760,6 +844,7 @@ export const TIER_LIMITS: Record<BillingTier, TierLimits> = {
     max_docs_per_month: 50,
     max_url_imports_per_month: 50,
     max_storage_bytes: 2 * 1024 * 1024 * 1024, // 2GB
+    max_suppliers: 50,
   },
   growth: {
     max_workspaces: 10,
@@ -768,6 +853,7 @@ export const TIER_LIMITS: Record<BillingTier, TierLimits> = {
     max_docs_per_month: 200,
     max_url_imports_per_month: 999999, // Unlimited
     max_storage_bytes: 20 * 1024 * 1024 * 1024, // 20GB
+    max_suppliers: 999999, // Unlimited
   },
 };
 

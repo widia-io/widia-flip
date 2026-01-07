@@ -1,0 +1,1 @@
+-- Cannot restore dropped tables (they were duplicates)

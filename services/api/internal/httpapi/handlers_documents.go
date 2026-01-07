@@ -71,6 +71,7 @@ type document struct {
 	WorkspaceID     string    `json:"workspace_id"`
 	PropertyID      *string   `json:"property_id"`
 	CostItemID      *string   `json:"cost_item_id"`
+	SupplierID      *string   `json:"supplier_id"`
 	StorageKey      string    `json:"storage_key"`
 	StorageProvider string    `json:"storage_provider"`
 	Filename        string    `json:"filename"`
@@ -97,6 +98,7 @@ type registerDocumentRequest struct {
 	WorkspaceID string   `json:"workspace_id"`
 	PropertyID  *string  `json:"property_id"`
 	CostItemID  *string  `json:"cost_item_id"`
+	SupplierID  *string  `json:"supplier_id"`
 	StorageKey  string   `json:"storage_key"`
 	Filename    string   `json:"filename"`
 	ContentType *string  `json:"content_type"`
@@ -395,6 +397,28 @@ func (a *api) handleRegisterDocument(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// If supplier_id provided, verify it belongs to workspace
+	if req.SupplierID != nil && *req.SupplierID != "" {
+		var supplierWorkspaceID string
+		err := a.db.QueryRowContext(
+			r.Context(),
+			`SELECT workspace_id FROM suppliers WHERE id = $1`,
+			*req.SupplierID,
+		).Scan(&supplierWorkspaceID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "supplier not found"})
+				return
+			}
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check supplier"})
+			return
+		}
+		if supplierWorkspaceID != req.WorkspaceID {
+			writeError(w, http.StatusForbidden, apiError{Code: "FORBIDDEN", Message: "supplier does not belong to workspace"})
+			return
+		}
+	}
+
 	// Insert document
 	tags := req.Tags
 	if tags == nil {
@@ -405,11 +429,11 @@ func (a *api) handleRegisterDocument(w http.ResponseWriter, r *http.Request) {
 	var tagsArr pq.StringArray
 	err = a.db.QueryRowContext(
 		r.Context(),
-		`INSERT INTO documents (workspace_id, property_id, cost_item_id, storage_key, storage_provider, filename, content_type, size_bytes, tags)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		 RETURNING id, workspace_id, property_id, cost_item_id, storage_key, storage_provider, filename, content_type, size_bytes, tags, created_at`,
-		req.WorkspaceID, req.PropertyID, req.CostItemID, req.StorageKey, a.storageProvider, req.Filename, req.ContentType, req.SizeBytes, pq.Array(tags),
-	).Scan(&doc.ID, &doc.WorkspaceID, &doc.PropertyID, &doc.CostItemID, &doc.StorageKey, &doc.StorageProvider, &doc.Filename, &doc.ContentType, &doc.SizeBytes, &tagsArr, &doc.CreatedAt)
+		`INSERT INTO documents (workspace_id, property_id, cost_item_id, supplier_id, storage_key, storage_provider, filename, content_type, size_bytes, tags)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		 RETURNING id, workspace_id, property_id, cost_item_id, supplier_id, storage_key, storage_provider, filename, content_type, size_bytes, tags, created_at`,
+		req.WorkspaceID, req.PropertyID, req.CostItemID, req.SupplierID, req.StorageKey, a.storageProvider, req.Filename, req.ContentType, req.SizeBytes, pq.Array(tags),
+	).Scan(&doc.ID, &doc.WorkspaceID, &doc.PropertyID, &doc.CostItemID, &doc.SupplierID, &doc.StorageKey, &doc.StorageProvider, &doc.Filename, &doc.ContentType, &doc.SizeBytes, &tagsArr, &doc.CreatedAt)
 	doc.Tags = tagsArr
 	if err != nil {
 		if strings.Contains(err.Error(), "unique") || strings.Contains(err.Error(), "duplicate") {
