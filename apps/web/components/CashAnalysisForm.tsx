@@ -105,6 +105,17 @@ export function CashAnalysisForm({
     setError(null);
     setSuccess(null);
 
+    // Flush debounce: force update inputs to BD before creating snapshot
+    const hasValue = Object.values(inputs).some((v) => v !== null);
+    if (hasValue) {
+      const requestData: Record<string, number> = {};
+      if (inputs.purchase_price !== null) requestData.purchase_price = inputs.purchase_price;
+      if (inputs.renovation_cost !== null) requestData.renovation_cost = inputs.renovation_cost;
+      if (inputs.other_costs !== null) requestData.other_costs = inputs.other_costs;
+      if (inputs.sale_price !== null) requestData.sale_price = inputs.sale_price;
+      await updateCashAnalysisAction(propertyId, requestData);
+    }
+
     const result = await createCashSnapshotAction(propertyId);
 
     if ("enforcement" in result && result.enforcement) {

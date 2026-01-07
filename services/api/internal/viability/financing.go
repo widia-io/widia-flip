@@ -119,8 +119,8 @@ func CalculateFinancing(inputs FinancingInputs, payments []FinancingPayment, set
 	// sale_price - total_paid - remaining_debt - broker_fee
 	outputs.GrossProfit = round2(salePrice - outputs.TotalPaid - remainingDebt - outputs.BrokerFee)
 
-	// Calculate PJ tax
-	outputs.PJTaxValue = round2(salePrice * settings.PJTaxRate)
+	// Calculate PJ tax on gross profit, not sale price
+	outputs.PJTaxValue = round2(outputs.GrossProfit * settings.PJTaxRate)
 
 	// Calculate net profit
 	outputs.NetProfit = round2(outputs.GrossProfit - outputs.PJTaxValue)

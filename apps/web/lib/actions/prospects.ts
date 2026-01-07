@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 import { recomputeFlipScoreAction } from "@/lib/actions/flip-score";
 
@@ -247,8 +248,8 @@ export async function convertProspectAction(prospectId: string) {
     revalidatePath("/app/prospects");
     revalidatePath("/app/properties");
     redirect(`/app/properties/${result.property_id}`);
-    return { success: true, propertyId: result.property_id };
   } catch (e) {
+    if (isRedirectError(e)) throw e;
     const message =
       e instanceof Error ? e.message : "Erro ao converter prospect";
     return { error: message };
