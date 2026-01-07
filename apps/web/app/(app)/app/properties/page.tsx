@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ListWorkspacesResponseSchema } from "@widia/shared";
 
 import { PropertyTable } from "@/components/PropertyTable";
+import { PropertyStatsHeader } from "@/components/properties/PropertyStatsHeader";
 import { apiFetch } from "@/lib/apiFetch";
 import { listPropertiesAction } from "@/lib/actions/properties";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,11 +55,14 @@ export default async function PropertiesPage(props: {
   const workspaceId = workspace.id;
   const workspaceName = workspace.name;
 
-  const propertiesResult = await listPropertiesAction(workspaceId, {
-    status_pipeline: statusFilter,
-  });
+  // Fetch all properties (stats need full list, table handles filtering)
+  const propertiesResult = await listPropertiesAction(workspaceId, {});
+  const allProperties = propertiesResult.data?.items ?? [];
 
-  const properties = propertiesResult.data?.items ?? [];
+  // Filter for table if status filter is set
+  const properties = statusFilter
+    ? allProperties.filter((p) => p.status_pipeline === statusFilter)
+    : allProperties;
   const error = propertiesResult.error;
 
   return (
@@ -75,6 +79,10 @@ export default async function PropertiesPage(props: {
           {error}
         </div>
       ) : null}
+
+      {allProperties.length > 0 && (
+        <PropertyStatsHeader properties={allProperties} />
+      )}
 
       <PropertyTable
         properties={properties}
