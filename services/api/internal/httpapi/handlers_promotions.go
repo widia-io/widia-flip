@@ -64,6 +64,23 @@ func (a *api) handlePublicActiveBanner(w http.ResponseWriter, r *http.Request) {
 	var p activeBannerResponse
 	var endsAt time.Time
 
+	// Debug: log all promotions and current time
+	var dbNow time.Time
+	a.db.QueryRowContext(ctx, `SELECT NOW()`).Scan(&dbNow)
+	log.Printf("active-banner: DB NOW() = %v", dbNow)
+
+	rows, _ := a.db.QueryContext(ctx, `SELECT id, is_active, ends_at, ends_at > NOW() as valid FROM flip.promotions`)
+	if rows != nil {
+		defer rows.Close()
+		for rows.Next() {
+			var id string
+			var isActive, valid bool
+			var et time.Time
+			rows.Scan(&id, &isActive, &et, &valid)
+			log.Printf("active-banner: promo id=%s is_active=%v ends_at=%v valid=%v", id, isActive, et, valid)
+		}
+	}
+
 	err := a.db.QueryRowContext(ctx, `
 		SELECT id, banner_text, banner_emoji, stripe_coupon_id, ends_at
 		FROM flip.promotions
@@ -73,6 +90,7 @@ func (a *api) handlePublicActiveBanner(w http.ResponseWriter, r *http.Request) {
 	`).Scan(&p.ID, &p.BannerText, &p.BannerEmoji, &p.StripeCouponID, &endsAt)
 
 	if err == sql.ErrNoRows {
+		log.Printf("active-banner: no active banner found (is_active=true AND ends_at > NOW)")
 		writeJSON(w, http.StatusOK, map[string]interface{}{"banner": nil})
 		return
 	}
