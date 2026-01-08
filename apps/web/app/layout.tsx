@@ -2,10 +2,23 @@ import "./globals.css";
 
 import type { ReactNode } from "react";
 import Script from "next/script";
+import { Fraunces, Manrope } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { PromoBanner } from "@/components/PromoBanner";
+
+const displayFont = Fraunces({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-display",
+});
+
+const bodyFont = Manrope({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-body",
+});
 
 export const metadata = {
   title: "Meu Flip - Analise flips em 30 segundos",
@@ -29,7 +42,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           `}
         </Script>
       </head>
-      <body className="min-h-screen" suppressHydrationWarning>
+      <body
+        className={`${bodyFont.variable} ${displayFont.variable} min-h-screen`}
+        suppressHydrationWarning
+      >
         <ThemeProvider>
           <PromoBanner />
           {children}

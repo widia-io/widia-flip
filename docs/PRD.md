@@ -972,6 +972,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-11` — 2025-12-23 — M10 entregue: DB migration `user_billing` (tiers, status, Stripe IDs), Go API endpoints (GET /billing/me, POST internal sync/override), Next.js BFF (checkout, webhook, portal route handlers), billing page + components (BillingStatusCard, UpgradeCTA, TierLimitsCard), server actions. Stripe SDK 20.1.0 integration. 14-day free trial default.
 * `CP-12` — 2025-12-23 — M11 entregue: Usage tracking v1 (prospects/snapshots/docs por workspace por período), Go API endpoint GET /workspaces/:id/usage (derivação de período Stripe/calendário, contagem via queries agregadas, flags 80%/100%), Web UI UsageCard com barras de progresso e avisos de limite, Zod schemas (WorkspaceUsageResponse, UsageMetric), structured logs `usage_exceeded_soft`. Sem enforcement (soft limits only).
 * `CP-13` — 2025-12-23 — M12 entregue: Enforcement hard limits (Go handlers_enforcement.go c/ guards por endpoint), HTTP 402 + error codes PAYWALL_REQUIRED/LIMIT_EXCEEDED, PaywallModal + usePaywall hook (React Context), integração paywall em: prospect creation, cash/financing snapshots, document upload, workspace creation. Stripe Customer Portal existente. Estados past_due/unpaid bloqueiam criação.
+* `CP-13` — 2026-01-07 — Landing page modernizada (tipografia, hero e seções com novo visual).
 
 ---
 

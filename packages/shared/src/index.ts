@@ -859,9 +859,9 @@ export const TIER_LIMITS: Record<BillingTier, TierLimits> = {
 
 // Prices in BRL (2 meses gratis no anual = 10x mensal)
 export const TIER_PRICES: Record<BillingTier, { monthly: number; yearly: number }> = {
-  starter: { monthly: 29, yearly: 290 },
-  pro: { monthly: 97, yearly: 970 },
-  growth: { monthly: 297, yearly: 2970 },
+  starter: { monthly: 39, yearly: 390 },
+  pro: { monthly: 119, yearly: 1190 },
+  growth: { monthly: 249, yearly: 2490 },
 };
 
 export const UserBillingSchema = z.object({

@@ -34,9 +34,10 @@ const concepts = [
 
 export function ConceptsSection() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-16 lg:py-24 bg-muted/30">
+    <section className="relative mx-auto max-w-6xl px-4 py-16 lg:py-24">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(50%_50%_at_80%_20%,hsl(var(--accent)/0.12),transparent)]" />
       <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-display">
           Entenda o sistema
         </h2>
         <p className="mt-4 text-muted-foreground text-lg">
@@ -44,7 +45,7 @@ export function ConceptsSection() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {concepts.map((concept) => (
           <ConceptCard
             key={concept.title}

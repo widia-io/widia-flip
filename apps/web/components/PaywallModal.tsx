@@ -27,9 +27,9 @@ interface PaywallModalProps {
 }
 
 const TIER_LABELS: Record<BillingTier, string> = {
-  starter: "Starter",
-  pro: "Pro",
-  growth: "Growth",
+  starter: "Essencial",
+  pro: "Investidor",
+  growth: "Profissional",
 };
 
 const METRIC_LABELS: Record<string, string> = {

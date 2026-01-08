@@ -1,68 +1,61 @@
-import { Search, BarChart3, CheckCircle, History } from "lucide-react";
+import { Home, Receipt, TrendingUp } from "lucide-react";
 
 const steps = [
   {
-    icon: Search,
-    title: "Importe",
-    description: "Cole URL → 30s → dados completos. Ou Quick Add para imóveis offline. Economize 30min de digitação por prospect.",
+    icon: Home,
+    title: "Cadastre o imóvel",
+    description: "Adicione os dados básicos do flip que está avaliando.",
   },
   {
-    icon: BarChart3,
-    title: "Priorize",
-    description: "Score 0-100 calculado automaticamente. Top 10% = analise primeiro. Bottom 50% = descarte imediato.",
+    icon: Receipt,
+    title: "Lance compra, obra e custos",
+    description: "Registre todos os valores: aquisição, reforma, taxas.",
   },
   {
-    icon: CheckCircle,
-    title: "Analise",
-    description: "Viabilidade cash/financiada lado a lado. ROI, lucro, margem. Todos custos inclusos. Decida em 30s, não 4h.",
-  },
-  {
-    icon: History,
-    title: "Gerencie",
-    description: "Custos, timeline, docs versionados. Snapshots mostram evolução do negócio. Nunca esqueça um custo importante.",
+    icon: TrendingUp,
+    title: "Acompanhe o lucro real",
+    description: "Veja o resultado do flip atualizado em tempo real.",
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-16 lg:py-24">
+    <section className="relative mx-auto max-w-6xl px-4 py-16 lg:py-24">
+      <div className="absolute inset-x-0 top-10 -z-10 h-32 bg-[radial-gradient(60%_80%_at_50%_0%,hsl(var(--primary)/0.12),transparent)]" />
       <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl font-display">
           Como funciona
         </h2>
-        <p className="mt-4 text-muted-foreground text-lg">
-          De prospect a lucro em 4 passos simples
-        </p>
       </div>
 
-      <div className="relative">
-        {/* Linha conectora (desktop) */}
-        <div className="hidden lg:block absolute top-12 left-[12.5%] right-[12.5%] h-0.5 bg-border" />
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {steps.map((step, index) => (
-            <div
-              key={step.title}
-              className="relative flex flex-col items-center text-center"
-            >
-              {/* Número do passo */}
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 lg:top-8 bg-background px-2 text-xs font-medium text-muted-foreground">
-                {index + 1}
-              </div>
-
-              {/* Ícone */}
-              <div className="relative z-10 rounded-full bg-primary/10 p-4 mb-4 ring-4 ring-background">
-                <step.icon className="h-6 w-6 text-primary" />
-              </div>
-
-              {/* Conteúdo */}
-              <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {step.description}
-              </p>
+      <div className="grid gap-6 sm:grid-cols-3">
+        {steps.map((step, index) => (
+          <div
+            key={step.title}
+            className="group relative overflow-hidden rounded-3xl border border-border/60 bg-background/80 p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+          >
+            <div className="absolute right-4 top-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Passo {index + 1}
             </div>
-          ))}
-        </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 transition-colors group-hover:bg-primary/20">
+              <step.icon className="h-6 w-6 text-primary" />
+            </div>
+            <h3 className="mt-6 text-lg font-semibold font-display">{step.title}</h3>
+            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+              {step.description}
+            </p>
+            <div className="mt-6 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">
+              <span>Pronto</span>
+              <span className="h-px flex-1 bg-primary/20" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-10 text-center">
+        <p className="text-muted-foreground">
+          Sem planilha. Sem gambiarra.
+        </p>
       </div>
     </section>
   );
