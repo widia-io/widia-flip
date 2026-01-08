@@ -28,6 +28,7 @@ import { PricingSection } from "@/components/landing/PricingSection";
 import { ProblemSection } from "@/components/landing/ProblemSection";
 import { ValuePropositionSection } from "@/components/landing/ValuePropositionSection";
 import { AuthoritySection } from "@/components/landing/AuthoritySection";
+import { AppScreenshots } from "@/components/landing/AppScreenshots";
 
 export default async function HomePage() {
   const session = await getServerSession();
@@ -149,6 +150,9 @@ export default async function HomePage() {
 
       {/* Value Proposition */}
       <ValuePropositionSection />
+
+      {/* App Screenshots */}
+      <AppScreenshots />
 
       {/* How It Works */}
       <section id="how-it-works" className="scroll-mt-16">
