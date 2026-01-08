@@ -104,6 +104,7 @@ func NewHandler(deps Deps) http.Handler {
 
 	var h http.Handler = mainMux
 	h = recoverMiddleware(h)
+	h = loggingMiddleware(h)
 	h = requestIDMiddleware(h)
 	return h
 }

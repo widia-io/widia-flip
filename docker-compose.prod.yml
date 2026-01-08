@@ -8,6 +8,11 @@ services:
     env_file: .env
     environment:
       - HOSTNAME=0.0.0.0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.meuflip.rule=Host(`meuflip.com`) || Host(`www.meuflip.com`)"
@@ -35,6 +40,12 @@ services:
     env_file: .env
     environment:
       - BETTER_AUTH_JWKS_URL=http://web:3000/api/auth/jwks
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - meuflip
       - supabase_default
