@@ -22,7 +22,7 @@ interface PlanOption {
 const PLANS: PlanOption[] = [
   {
     tier: "starter",
-    name: "Starter",
+    name: "Essencial",
     features: [
       "1 projeto",
       "50 prospects/mes",
@@ -33,7 +33,7 @@ const PLANS: PlanOption[] = [
   },
   {
     tier: "pro",
-    name: "Pro",
+    name: "Investidor",
     features: [
       "3 projetos",
       "300 prospects/mes",
@@ -45,7 +45,7 @@ const PLANS: PlanOption[] = [
   },
   {
     tier: "growth",
-    name: "Growth",
+    name: "Profissional",
     features: [
       "10 projetos",
       "Prospects ilimitados",

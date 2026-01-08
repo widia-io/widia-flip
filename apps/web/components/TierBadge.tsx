@@ -17,9 +17,9 @@ interface TierBadgeProps {
 }
 
 const TIER_LABELS: Record<string, string> = {
-  starter: "Starter",
-  pro: "Pro",
-  growth: "Growth",
+  starter: "Essencial",
+  pro: "Investidor",
+  growth: "Profissional",
 };
 
 export function TierBadge({ entitlements }: TierBadgeProps) {

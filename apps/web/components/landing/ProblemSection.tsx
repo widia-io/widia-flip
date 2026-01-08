@@ -1,68 +1,53 @@
-import { Clock, AlertTriangle, TrendingDown } from "lucide-react";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AlertTriangle, Minus } from "lucide-react";
 
-const problems = [
-  {
-    icon: Clock,
-    title: "4h+ por prospect",
-    description:
-      "Excel, calculadoras, chutes. Enquanto você coleta dados e calcula, o imóvel sai do ar ou vai para outro investidor.",
-  },
-  {
-    icon: AlertTriangle,
-    title: "Decisões sem dados reais",
-    description:
-      "Não sabe se ITBI está correto, se a reforma vai caber no orçamento, se financiado realmente compensa. Prejuízo de R$ 20k+ em custos ocultos.",
-  },
-  {
-    icon: TrendingDown,
-    title: "Oportunidades perdidas",
-    description:
-      "Bons negócios passam despercebidos no meio de 20 ruins. Você vê 20, analisa 5 com calma, fecha 1. Os outros 14 promissores foram embora.",
-  },
+const painPoints = [
+  "achou que ia lucrar e sobrou menos do que esperava",
+  "perdeu controle dos custos da obra",
+  "misturou flip com finanças pessoais",
+  "ficou refém de planilhas que só você entende",
 ];
 
 export function ProblemSection() {
   return (
-    <section className="border-y border-border bg-muted/50">
-      <div className="mx-auto max-w-6xl px-4 py-16 lg:py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Você está perdendo dinheiro sem perceber
+    <section className="border-y border-border bg-muted/30">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 lg:grid-cols-[1.1fr_1fr] lg:py-20">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            <AlertTriangle className="h-3 w-3" />
+            Dores do dia a dia
+          </div>
+          <h2 className="mt-5 text-2xl font-bold tracking-tight sm:text-3xl font-display">
+            Se você faz flip, já passou por pelo menos um desses:
           </h2>
-          <p className="mt-4 text-muted-foreground text-lg">
-            Análise manual = menos deals, mais erros, prejuízos ocultos
+          <p className="mt-4 text-base text-muted-foreground">
+            A maioria perde dinheiro não por falta de oportunidade, mas por falta de
+            controle. Isso se repete.
           </p>
+
+          <div className="mt-8 rounded-3xl border border-border/60 bg-background/80 p-6 shadow-[0_20px_60px_-50px_hsl(var(--primary)/0.6)]">
+            <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Resumo</p>
+            <p className="mt-3 text-lg font-medium">
+              O problema não é o flip.{" "}
+              <span className="text-primary">É a falta de gestão.</span>
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {problems.map((problem) => (
-            <Card
-              key={problem.title}
-              className="border-destructive/20 bg-destructive/5"
+        <div className="grid gap-4 sm:grid-cols-2">
+          {painPoints.map((point, index) => (
+            <div
+              key={point}
+              className="group flex h-full flex-col justify-between rounded-2xl border border-border/60 bg-background/80 p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
-              <CardHeader>
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-destructive/10">
-                  <problem.icon className="h-6 w-6 text-destructive" />
+              <div className="flex items-center justify-between">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary">
+                  {String(index + 1).padStart(2, "0")}
                 </div>
-                <CardTitle className="text-lg">{problem.title}</CardTitle>
-                <CardDescription className="text-sm">
-                  {problem.description}
-                </CardDescription>
-              </CardHeader>
-            </Card>
+                <Minus className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="mt-6 text-base capitalize">{point}</p>
+            </div>
           ))}
-        </div>
-
-        <div className="mt-8 text-center">
-          <p className="text-sm text-muted-foreground italic">
-            Sistema manual custa 15h+/semana e deixa dinheiro na mesa
-          </p>
         </div>
       </div>
     </section>

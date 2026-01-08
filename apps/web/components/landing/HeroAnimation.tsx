@@ -20,24 +20,26 @@ export function HeroAnimation() {
   }, []);
 
   return (
-    <div className="relative mx-auto max-w-sm mt-8 lg:mt-0">
-      {/* Card de preview */}
-      <div className="rounded-2xl bg-card border shadow-2xl p-6 backdrop-blur">
-        <div className="text-xs text-muted-foreground mb-4 font-medium">
-          Análise em tempo real
+    <div className="relative mx-auto max-w-sm mt-10 lg:mt-0">
+      <div className="rounded-3xl border border-border/60 bg-background/80 p-6 shadow-[0_30px_90px_-60px_hsl(var(--primary)/0.7)] backdrop-blur">
+        <div className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+          <span>Análise ao vivo</span>
+          <span className="rounded-full bg-accent/20 px-2 py-1 text-[10px] font-semibold text-accent-foreground">
+            Atualizando
+          </span>
         </div>
 
         <div className="space-y-4">
           {metrics.map((metric) => (
             <div
               key={metric.label}
-              className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+              className="flex items-center justify-between rounded-2xl border border-border/50 bg-muted/40 p-3"
             >
               <div className="flex items-center gap-3">
-                <div className="rounded-md bg-primary/10 p-2">
+                <div className="rounded-xl bg-primary/10 p-2.5">
                   <metric.icon className="h-4 w-4 text-primary" />
                 </div>
-                <span className="text-sm font-medium">{metric.label}</span>
+                <span className="text-sm font-semibold">{metric.label}</span>
               </div>
               <span
                 key={currentIndex}
@@ -51,11 +53,11 @@ export function HeroAnimation() {
           ))}
         </div>
 
-        <div className="mt-4 pt-4 border-t">
+        <div className="mt-5 border-t border-border/60 pt-4">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Flip Score</span>
             <div className="flex items-center gap-2">
-              <div className="h-2 w-24 rounded-full bg-muted overflow-hidden">
+              <div className="h-2 w-24 overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full bg-accent transition-all duration-500"
                   style={{ width: `${metrics[2].values[currentIndex]}%` }}
@@ -69,8 +71,8 @@ export function HeroAnimation() {
         </div>
       </div>
 
-      {/* Decoração de fundo */}
-      <div className="absolute -inset-4 -z-10 bg-gradient-to-r from-primary/20 via-primary/5 to-transparent rounded-3xl blur-2xl" />
+      <div className="absolute -inset-6 -z-10 rounded-[32px] bg-[radial-gradient(circle_at_20%_20%,hsl(var(--accent)/0.25),transparent_50%)] blur-2xl" />
+      <div className="absolute -bottom-10 left-6 -z-10 h-24 w-32 rounded-full bg-primary/20 blur-3xl" />
     </div>
   );
 }
