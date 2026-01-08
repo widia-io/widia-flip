@@ -3,13 +3,14 @@ package httpapi
 import (
 	"database/sql"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/widia-projects/widia-flip/services/api/internal/auth"
+	"github.com/widia-projects/widia-flip/services/api/internal/logger"
 )
 
 // Unified snapshot for workspace-wide listing
@@ -436,7 +437,10 @@ func (a *api) handleCreateAnnotation(w http.ResponseWriter, r *http.Request) {
 	).Scan(&annotation.ID, &annotation.SnapshotID, &annotation.SnapshotType, &annotation.Note, &annotation.CreatedBy, &annotation.CreatedAt, &annotation.UpdatedAt)
 
 	if err != nil {
-		log.Printf("ERROR: failed to create annotation: %v (snapshot_id=%s, workspace_id=%s, user_id=%s)", err, req.SnapshotID, workspaceID, userID)
+		logger.WithContext(r.Context()).Error("create_annotation_failed",
+			slog.String("snapshot_id", req.SnapshotID),
+			slog.String("workspace_id", workspaceID),
+			slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to create annotation", Details: []string{err.Error()}})
 		return
 	}
@@ -590,7 +594,9 @@ func (a *api) handleCompareSnapshots(w http.ResponseWriter, r *http.Request) {
 					writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "snapshot not found: " + snapshotID})
 					return
 				}
-				log.Printf("ERROR: failed to fetch cash snapshot: %v (id=%s)", err, snapshotID)
+				logger.WithContext(r.Context()).Error("fetch_cash_snapshot_failed",
+					slog.String("snapshot_id", snapshotID),
+					slog.Any("error", err))
 				writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch snapshot"})
 				return
 			}
@@ -611,7 +617,9 @@ func (a *api) handleCompareSnapshots(w http.ResponseWriter, r *http.Request) {
 					writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "snapshot not found: " + snapshotID})
 					return
 				}
-				log.Printf("ERROR: failed to fetch financing snapshot: %v (id=%s)", err, snapshotID)
+				logger.WithContext(r.Context()).Error("fetch_financing_snapshot_failed",
+					slog.String("snapshot_id", snapshotID),
+					slog.Any("error", err))
 				writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch snapshot"})
 				return
 			}

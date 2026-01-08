@@ -4,11 +4,12 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/widia-projects/widia-flip/services/api/internal/auth"
+	"github.com/widia-projects/widia-flip/services/api/internal/logger"
 )
 
 func authMiddleware(verifier *auth.JWKSVerifier, next http.Handler) http.Handler {
@@ -30,6 +31,7 @@ func authMiddleware(verifier *auth.JWKSVerifier, next http.Handler) http.Handler
 		}
 
 		ctx := auth.ContextWithUserID(r.Context(), userID)
+		ctx = logger.ContextWithUserID(ctx, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -41,8 +43,9 @@ func requestIDMiddleware(next http.Handler) http.Handler {
 			reqID = newRequestID()
 		}
 
+		ctx := logger.ContextWithRequestID(r.Context(), reqID)
 		w.Header().Set("X-Request-ID", reqID)
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
@@ -50,7 +53,11 @@ func recoverMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if v := recover(); v != nil {
-				log.Printf("panic: %v", v)
+				logger.WithContext(r.Context()).Error("panic",
+					slog.Any("error", v),
+					slog.String("method", r.Method),
+					slog.String("path", r.URL.Path),
+				)
 				writeError(w, http.StatusInternalServerError, apiError{
 					Code:    "INTERNAL_ERROR",
 					Message: "internal server error",
@@ -97,7 +104,7 @@ func adminAuthMiddleware(verifier *auth.JWKSVerifier, db *sql.DB, next http.Hand
 			return
 		}
 		if err != nil {
-			log.Printf("admin check error: %v", err)
+			logger.WithContext(r.Context()).Error("admin_check_failed", slog.Any("error", err))
 			writeError(w, http.StatusInternalServerError, apiError{
 				Code:    "INTERNAL_ERROR",
 				Message: "failed to check admin status",
@@ -123,4 +130,30 @@ func adminAuthMiddleware(verifier *auth.JWKSVerifier, db *sql.DB, next http.Hand
 
 		next.ServeHTTP(w, r)
 	}))
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+
+		logger.WithContext(r.Context()).Info("http_request",
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.Int("status", rec.status),
+			slog.Duration("duration", time.Since(start)),
+		)
+	})
 }

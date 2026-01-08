@@ -3,13 +3,14 @@ package httpapi
 import (
 	"database/sql"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/widia-projects/widia-flip/services/api/internal/auth"
+	"github.com/widia-projects/widia-flip/services/api/internal/logger"
 )
 
 // Admin stats types
@@ -112,7 +113,7 @@ func (a *api) handleAdminStats(w http.ResponseWriter, r *http.Request) {
 		GROUP BY 1
 	`)
 	if err != nil {
-		log.Printf("admin stats: users query error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_stats_users_query", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch user stats"})
 		return
 	}
@@ -121,7 +122,7 @@ func (a *api) handleAdminStats(w http.ResponseWriter, r *http.Request) {
 		var tier string
 		var count int
 		if err := rows.Scan(&tier, &count); err != nil {
-			log.Printf("admin stats: scan error: %v", err)
+			logger.WithContext(r.Context()).Error("admin_stats_scan", slog.Any("error", err))
 			continue
 		}
 		stats.Users.ByTier[tier] = count
@@ -131,13 +132,13 @@ func (a *api) handleAdminStats(w http.ResponseWriter, r *http.Request) {
 	// Workspaces total
 	err = a.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM workspaces`).Scan(&stats.Workspaces.Total)
 	if err != nil {
-		log.Printf("admin stats: workspaces query error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_stats_workspaces_query", slog.Any("error", err))
 	}
 
 	// Properties by status
 	rows, err = a.db.QueryContext(ctx, `SELECT status_pipeline, COUNT(*) FROM properties GROUP BY 1`)
 	if err != nil {
-		log.Printf("admin stats: properties query error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_stats_properties_query", slog.Any("error", err))
 	} else {
 		defer rows.Close()
 		for rows.Next() {
@@ -154,7 +155,7 @@ func (a *api) handleAdminStats(w http.ResponseWriter, r *http.Request) {
 	// Prospects by status
 	rows, err = a.db.QueryContext(ctx, `SELECT status, COUNT(*) FROM prospecting_properties WHERE deleted_at IS NULL GROUP BY 1`)
 	if err != nil {
-		log.Printf("admin stats: prospects query error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_stats_prospects_query", slog.Any("error", err))
 	} else {
 		defer rows.Close()
 		for rows.Next() {
@@ -216,7 +217,7 @@ func (a *api) handleAdminUsersCollection(w http.ResponseWriter, r *http.Request)
 		LIMIT $1 OFFSET $2
 	`, limit, offset)
 	if err != nil {
-		log.Printf("admin users: query error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_users_query", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch users"})
 		return
 	}
@@ -227,7 +228,7 @@ func (a *api) handleAdminUsersCollection(w http.ResponseWriter, r *http.Request)
 		var u adminUser
 		var createdAt time.Time
 		if err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.IsAdmin, &u.IsActive, &createdAt, &u.Tier, &u.BillingStatus, &u.WorkspaceCount); err != nil {
-			log.Printf("admin users: scan error: %v", err)
+			logger.WithContext(r.Context()).Error("admin_users_scan", slog.Any("error", err))
 			continue
 		}
 		u.CreatedAt = createdAt.Format(time.RFC3339)
@@ -304,7 +305,7 @@ func (a *api) handleAdminGetUser(w http.ResponseWriter, r *http.Request, userID 
 		return
 	}
 	if err != nil {
-		log.Printf("admin get user: query error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_get_user_query", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch user"})
 		return
 	}
@@ -373,7 +374,7 @@ func (a *api) handleAdminUpdateUserTier(w http.ResponseWriter, r *http.Request, 
 	`, userID, req.Tier)
 
 	if err != nil {
-		log.Printf("admin update tier: error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_update_tier", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to update tier"})
 		return
 	}
@@ -392,7 +393,7 @@ func (a *api) handleAdminUpdateUserStatus(w http.ResponseWriter, r *http.Request
 
 	result, err := a.db.ExecContext(r.Context(), `UPDATE "user" SET is_active = $1 WHERE id = $2`, req.IsActive, userID)
 	if err != nil {
-		log.Printf("admin update status: error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_update_status", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to update status"})
 		return
 	}
@@ -484,13 +485,13 @@ func (a *api) handleAdminDeleteUser(w http.ResponseWriter, r *http.Request, user
 	// Finally delete user
 	_, err = tx.ExecContext(ctx, `DELETE FROM "user" WHERE id = $1`, userID)
 	if err != nil {
-		log.Printf("admin delete user: error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_delete_user", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to delete user"})
 		return
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.Printf("admin delete user: commit error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_delete_user_commit", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to commit transaction"})
 		return
 	}
