@@ -73,7 +73,7 @@ export async function markChecklistStep(
   const allComplete = Object.values(updatedChecklist).every(Boolean);
 
   return updateUserPreferences({
-    onboarding_checklist: { [step]: true },
+    onboarding_checklist: updatedChecklist,
     onboarding_completed: allComplete ? true : undefined,
   });
 }

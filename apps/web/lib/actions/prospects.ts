@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 import { recomputeFlipScoreAction } from "@/lib/actions/flip-score";
+import { markChecklistStep } from "@/lib/actions/userPreferences";
 
 import {
   CreateProspectRequestSchema,
@@ -92,6 +93,8 @@ export async function createProspectAction(formData: FormData) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(parsed.data),
     });
+
+    markChecklistStep("added_prospect").catch(() => {});
 
     revalidatePath("/app/prospects");
     return { success: true };
@@ -244,6 +247,8 @@ export async function convertProspectAction(prospectId: string) {
       `/api/v1/prospects/${prospectId}/convert`,
       { method: "POST" },
     );
+
+    markChecklistStep("converted_to_property").catch(() => {});
 
     revalidatePath("/app/prospects");
     revalidatePath("/app/properties");

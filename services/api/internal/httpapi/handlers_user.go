@@ -97,7 +97,19 @@ func (a *api) handleUpdateUserPreferences(w http.ResponseWriter, r *http.Request
 		prefs.OnboardingCompleted = *req.OnboardingCompleted
 	}
 	if req.OnboardingChecklist != nil {
-		prefs.OnboardingChecklist = *req.OnboardingChecklist
+		// Merge checklist fields (only set true, never unset)
+		if req.OnboardingChecklist.CreatedWorkspace {
+			prefs.OnboardingChecklist.CreatedWorkspace = true
+		}
+		if req.OnboardingChecklist.AddedProspect {
+			prefs.OnboardingChecklist.AddedProspect = true
+		}
+		if req.OnboardingChecklist.CalculatedScore {
+			prefs.OnboardingChecklist.CalculatedScore = true
+		}
+		if req.OnboardingChecklist.ConvertedToProperty {
+			prefs.OnboardingChecklist.ConvertedToProperty = true
+		}
 	}
 	if req.FeatureTourCompleted != nil {
 		prefs.FeatureTourCompleted = *req.FeatureTourCompleted
