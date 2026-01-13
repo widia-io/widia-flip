@@ -609,6 +609,87 @@ func (a *api) handleDeleteDocument(w http.ResponseWriter, r *http.Request, docID
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// workspaceDocument extends document with property_name for workspace-level views
+type workspaceDocument struct {
+	ID                string    `json:"id"`
+	WorkspaceID       string    `json:"workspace_id"`
+	PropertyID        *string   `json:"property_id"`
+	PropertyName      string    `json:"property_name"`
+	CostItemID        *string   `json:"cost_item_id"`
+	SupplierID        *string   `json:"supplier_id"`
+	ScheduleItemID    *string   `json:"schedule_item_id"`
+	ScheduleItemTitle *string   `json:"schedule_item_title"`
+	StorageKey        string    `json:"storage_key"`
+	StorageProvider   string    `json:"storage_provider"`
+	Filename          string    `json:"filename"`
+	ContentType       *string   `json:"content_type"`
+	SizeBytes         *int64    `json:"size_bytes"`
+	Tags              []string  `json:"tags"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
+type listWorkspaceDocumentsResponse struct {
+	Items []workspaceDocument `json:"items"`
+}
+
+// handleWorkspaceDocuments handles GET /api/v1/workspaces/:id/documents
+func (a *api) handleWorkspaceDocuments(w http.ResponseWriter, r *http.Request, workspaceID string) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	// Check workspace membership
+	if ok, err := a.hasWorkspaceMembership(r.Context(), workspaceID, userID); err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check membership"})
+		return
+	} else if !ok {
+		writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "workspace not found"})
+		return
+	}
+
+	rows, err := a.db.QueryContext(
+		r.Context(),
+		`SELECT d.id, d.workspace_id, d.property_id, COALESCE(p.address, p.neighborhood, 'Sem endereço') as property_name,
+		        d.cost_item_id, d.supplier_id, d.schedule_item_id, si.title as schedule_item_title,
+		        d.storage_key, d.storage_provider, d.filename, d.content_type, d.size_bytes, d.tags, d.created_at
+		 FROM documents d
+		 JOIN properties p ON d.property_id = p.id
+		 LEFT JOIN schedule_items si ON d.schedule_item_id = si.id
+		 WHERE d.workspace_id = $1
+		 ORDER BY property_name, d.created_at DESC`,
+		workspaceID,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to query documents"})
+		return
+	}
+	defer rows.Close()
+
+	items := make([]workspaceDocument, 0)
+	for rows.Next() {
+		var doc workspaceDocument
+		var tagsArr pq.StringArray
+		err := rows.Scan(&doc.ID, &doc.WorkspaceID, &doc.PropertyID, &doc.PropertyName,
+			&doc.CostItemID, &doc.SupplierID, &doc.ScheduleItemID, &doc.ScheduleItemTitle,
+			&doc.StorageKey, &doc.StorageProvider, &doc.Filename, &doc.ContentType, &doc.SizeBytes, &tagsArr, &doc.CreatedAt)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan document"})
+			return
+		}
+		doc.Tags = tagsArr
+		items = append(items, doc)
+	}
+
+	writeJSON(w, http.StatusOK, listWorkspaceDocumentsResponse{Items: items})
+}
+
 // SetS3Client is called by the API struct to set the S3 client
 func (a *api) SetS3Client(client *storage.S3Client) {
 	a.s3Client = client

@@ -595,6 +595,17 @@ export const ListDocumentsResponseSchema = z.object({
 });
 export type ListDocumentsResponse = z.infer<typeof ListDocumentsResponseSchema>;
 
+// Workspace-level documents (centralized view)
+export const WorkspaceDocumentItemSchema = DocumentSchema.extend({
+  property_name: z.string(),
+});
+export type WorkspaceDocumentItem = z.infer<typeof WorkspaceDocumentItemSchema>;
+
+export const ListWorkspaceDocumentsResponseSchema = z.object({
+  items: z.array(WorkspaceDocumentItemSchema),
+});
+export type ListWorkspaceDocumentsResponse = z.infer<typeof ListWorkspaceDocumentsResponseSchema>;
+
 export const GetUploadUrlRequestSchema = z.object({
   workspace_id: z.string(),
   property_id: z.string().optional(),
