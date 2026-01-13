@@ -535,6 +535,19 @@ export const ListScheduleResponseSchema = z.object({
 });
 export type ListScheduleResponse = z.infer<typeof ListScheduleResponseSchema>;
 
+// Workspace-level schedule (centralized view)
+export const WorkspaceScheduleItemSchema = ScheduleItemSchema.extend({
+  property_name: z.string(),
+  property_address: z.string().nullable(),
+});
+export type WorkspaceScheduleItem = z.infer<typeof WorkspaceScheduleItemSchema>;
+
+export const ListWorkspaceScheduleResponseSchema = z.object({
+  items: z.array(WorkspaceScheduleItemSchema),
+  summary: ScheduleSummarySchema,
+});
+export type ListWorkspaceScheduleResponse = z.infer<typeof ListWorkspaceScheduleResponseSchema>;
+
 export const CreateScheduleItemRequestSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
   planned_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (YYYY-MM-DD)"),

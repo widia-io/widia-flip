@@ -6,6 +6,7 @@ import {
   UpdateScheduleItemRequestSchema,
   type ScheduleItem,
   type ListScheduleResponse,
+  type ListWorkspaceScheduleResponse,
   type CreateScheduleItemRequest,
   type UpdateScheduleItemRequest,
 } from "@widia/shared";
@@ -15,6 +16,18 @@ export async function listScheduleAction(propertyId: string) {
   try {
     const result = await apiFetch<ListScheduleResponse>(
       `/api/v1/properties/${propertyId}/schedule`
+    );
+    return { data: result };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Erro ao listar cronograma";
+    return { error: message };
+  }
+}
+
+export async function listWorkspaceScheduleAction(workspaceId: string) {
+  try {
+    const result = await apiFetch<ListWorkspaceScheduleResponse>(
+      `/api/v1/workspaces/${workspaceId}/schedule`
     );
     return { data: result };
   } catch (e) {

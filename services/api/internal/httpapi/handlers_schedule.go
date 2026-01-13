@@ -63,6 +63,18 @@ type listScheduleResponse struct {
 	Summary scheduleSummary `json:"summary"`
 }
 
+// Workspace-level schedule types
+type workspaceScheduleItem struct {
+	scheduleItem
+	PropertyName    string  `json:"property_name"`
+	PropertyAddress *string `json:"property_address"`
+}
+
+type listWorkspaceScheduleResponse struct {
+	Items   []workspaceScheduleItem `json:"items"`
+	Summary scheduleSummary         `json:"summary"`
+}
+
 type createScheduleRequest struct {
 	Title         string   `json:"title"`
 	PlannedDate   string   `json:"planned_date"`
@@ -613,4 +625,118 @@ func (a *api) syncLinkedCost(ctx context.Context, scheduleItemID, workspaceID, p
 
 	// No estimated_cost and no existing cost - nothing to do
 	return nil
+}
+
+// handleWorkspaceSchedule handles GET /api/v1/workspaces/:id/schedule
+func (a *api) handleWorkspaceSchedule(w http.ResponseWriter, r *http.Request, workspaceID string) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	// Check workspace membership
+	if ok, err := a.hasWorkspaceMembership(r.Context(), workspaceID, userID); err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check membership"})
+		return
+	} else if !ok {
+		writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "workspace not found"})
+		return
+	}
+
+	rows, err := a.db.QueryContext(
+		r.Context(),
+		`SELECT s.id, s.property_id, s.workspace_id, s.title, s.planned_date, s.done_at, s.notes, s.order_index, s.category, s.estimated_cost, c.id as linked_cost_id, s.created_at, s.updated_at,
+		        COALESCE(p.address, p.neighborhood, 'Sem endereço') as property_name, p.address as property_address
+		 FROM schedule_items s
+		 JOIN properties p ON p.id = s.property_id
+		 LEFT JOIN cost_items c ON c.schedule_item_id = s.id
+		 WHERE s.workspace_id = $1
+		 ORDER BY s.done_at NULLS FIRST, s.planned_date ASC`,
+		workspaceID,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to query schedule"})
+		return
+	}
+	defer rows.Close()
+
+	items := make([]workspaceScheduleItem, 0)
+	todayStr := time.Now().Format(dateFormatISO)
+	in7DaysStr := time.Now().AddDate(0, 0, 7).Format(dateFormatISO)
+
+	var summary scheduleSummary
+
+	for rows.Next() {
+		var item workspaceScheduleItem
+		var plannedDate time.Time
+		var doneAt sql.NullTime
+		var orderIndex sql.NullInt32
+		var estimatedCost sql.NullFloat64
+		var linkedCostID sql.NullString
+		var propertyAddress sql.NullString
+
+		err := rows.Scan(
+			&item.ID, &item.PropertyID, &item.WorkspaceID, &item.Title, &plannedDate,
+			&doneAt, &item.Notes, &orderIndex, &item.Category, &estimatedCost,
+			&linkedCostID, &item.CreatedAt, &item.UpdatedAt,
+			&item.PropertyName, &propertyAddress,
+		)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan schedule item"})
+			return
+		}
+
+		item.PlannedDate = plannedDate.Format(dateFormatISO)
+
+		if doneAt.Valid {
+			doneAtStr := doneAt.Time.Format(time.RFC3339)
+			item.DoneAt = &doneAtStr
+		}
+		if orderIndex.Valid {
+			idx := int(orderIndex.Int32)
+			item.OrderIndex = &idx
+		}
+		if estimatedCost.Valid {
+			item.EstimatedCost = &estimatedCost.Float64
+			summary.EstimatedTotal += estimatedCost.Float64
+		}
+		if linkedCostID.Valid {
+			item.LinkedCostID = &linkedCostID.String
+		}
+		if propertyAddress.Valid {
+			item.PropertyAddress = &propertyAddress.String
+		}
+
+		items = append(items, item)
+		summary.TotalItems++
+
+		// Calculate summary metrics
+		if doneAt.Valid {
+			summary.CompletedItems++
+			if estimatedCost.Valid {
+				summary.CompletedEstimated += estimatedCost.Float64
+			}
+		} else {
+			if item.PlannedDate < todayStr {
+				summary.OverdueItems++
+			} else if item.PlannedDate <= in7DaysStr {
+				summary.Upcoming7Days++
+			}
+		}
+	}
+
+	if summary.TotalItems > 0 {
+		summary.ProgressPercent = float64(summary.CompletedItems) / float64(summary.TotalItems) * 100
+	}
+
+	writeJSON(w, http.StatusOK, listWorkspaceScheduleResponse{
+		Items:   items,
+		Summary: summary,
+	})
 }
