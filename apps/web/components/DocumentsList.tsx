@@ -11,6 +11,7 @@ import {
 import { usePaywall } from "@/components/PaywallModal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -273,6 +274,11 @@ export function DocumentsList({
                     <div className="flex items-center gap-2">
                       <FileIcon contentType={doc.content_type} />
                       <span className="font-medium">{doc.filename}</span>
+                      {doc.schedule_item_title && (
+                        <Badge variant="outline" className="text-xs">
+                          📅 {doc.schedule_item_title}
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">

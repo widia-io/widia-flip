@@ -973,6 +973,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-12` — 2025-12-23 — M11 entregue: Usage tracking v1 (prospects/snapshots/docs por workspace por período), Go API endpoint GET /workspaces/:id/usage (derivação de período Stripe/calendário, contagem via queries agregadas, flags 80%/100%), Web UI UsageCard com barras de progresso e avisos de limite, Zod schemas (WorkspaceUsageResponse, UsageMetric), structured logs `usage_exceeded_soft`. Sem enforcement (soft limits only).
 * `CP-13` — 2025-12-23 — M12 entregue: Enforcement hard limits (Go handlers_enforcement.go c/ guards por endpoint), HTTP 402 + error codes PAYWALL_REQUIRED/LIMIT_EXCEEDED, PaywallModal + usePaywall hook (React Context), integração paywall em: prospect creation, cash/financing snapshots, document upload, workspace creation. Stripe Customer Portal existente. Estados past_due/unpaid bloqueiam criação.
 * `CP-13` — 2026-01-07 — Landing page modernizada (tipografia, hero e seções com novo visual).
+* `CP-13` — 2026-01-13 — PRD: proposta de Cronograma da Obra (V0/V1) adicionada ao backlog.
 
 ---
 
@@ -982,6 +983,19 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 
 * ⬜ T-FUTURE.1 Job de limpeza: hard delete de prospects com `deleted_at` > 30 dias
 * ⬜ T-FUTURE.2 Ordenação server-side: `GET /prospects?sort=flip_score:desc|created_at:desc|asking_price:asc|price_per_sqm:asc`
+* ⬜ T-FUTURE.3 Cronograma da Obra (V0 — sem backend novo)
+  * **Objetivo:** responder rápido “o que vem agora?”, “o que está atrasado?” e “quanto já foi executado (R$ e itens)”.
+  * **Fonte de verdade (existente):**
+    * Custos de reforma: `GET /api/v1/properties/:id/costs` → filtrar `cost_type=renovation`; usar `due_date` como data do cronograma e `status planned/paid` como progresso.
+    * Marcos/histórico: `GET /api/v1/properties/:id/timeline` → status changes + eventos de custo/doc/análises.
+  * **UI mínima sugerida (Property Hub → aba Cronograma/Obra):**
+    * Resumo: fase atual, início da reforma (primeiro `status_changed` para `renovation`), “dias em reforma”, `R$ pago vs planejado` (reforma), contagem de atrasados.
+    * Lista por data: seções “Atrasados”, “Próximos 7 dias”, “Futuros”; cada linha = `cost_item` (categoria, fornecedor, valor, `due_date`, status).
+    * Ações rápidas: editar `due_date`/valor/fornecedor e marcar “Pago” (reaproveita endpoints de custos).
+* ⬜ T-FUTURE.4 Cronograma da Obra (V1 — milestones manuais)
+  * **Opção A (mais simples):** adicionar `event_type` de timeline para milestones manuais (ex: `renovation_milestone_created/updated`) + endpoint `POST/PUT` para criar/editar (mantém leitura via timeline).
+  * **Opção B (mais correta):** tabela `schedule_items` com CRUD (itens de cronograma dedicados com `title`, `planned_date`, `done_at?`, `notes?`, `order?`), e timeline apenas como log.
+  * **Regras:** manter minimalista (sem Gantt pesado), sem expandir pipeline além dos status do MVP.
 
 ---
 

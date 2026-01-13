@@ -67,18 +67,20 @@ func transliterateToASCII(s string) string {
 }
 
 type document struct {
-	ID              string    `json:"id"`
-	WorkspaceID     string    `json:"workspace_id"`
-	PropertyID      *string   `json:"property_id"`
-	CostItemID      *string   `json:"cost_item_id"`
-	SupplierID      *string   `json:"supplier_id"`
-	StorageKey      string    `json:"storage_key"`
-	StorageProvider string    `json:"storage_provider"`
-	Filename        string    `json:"filename"`
-	ContentType     *string   `json:"content_type"`
-	SizeBytes       *int64    `json:"size_bytes"`
-	Tags            []string  `json:"tags"`
-	CreatedAt       time.Time `json:"created_at"`
+	ID                string    `json:"id"`
+	WorkspaceID       string    `json:"workspace_id"`
+	PropertyID        *string   `json:"property_id"`
+	CostItemID        *string   `json:"cost_item_id"`
+	SupplierID        *string   `json:"supplier_id"`
+	ScheduleItemID    *string   `json:"schedule_item_id"`
+	ScheduleItemTitle *string   `json:"schedule_item_title"`
+	StorageKey        string    `json:"storage_key"`
+	StorageProvider   string    `json:"storage_provider"`
+	Filename          string    `json:"filename"`
+	ContentType       *string   `json:"content_type"`
+	SizeBytes         *int64    `json:"size_bytes"`
+	Tags              []string  `json:"tags"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 type getUploadURLRequest struct {
@@ -95,15 +97,16 @@ type getUploadURLResponse struct {
 }
 
 type registerDocumentRequest struct {
-	WorkspaceID string   `json:"workspace_id"`
-	PropertyID  *string  `json:"property_id"`
-	CostItemID  *string  `json:"cost_item_id"`
-	SupplierID  *string  `json:"supplier_id"`
-	StorageKey  string   `json:"storage_key"`
-	Filename    string   `json:"filename"`
-	ContentType *string  `json:"content_type"`
-	SizeBytes   *int64   `json:"size_bytes"`
-	Tags        []string `json:"tags"`
+	WorkspaceID    string   `json:"workspace_id"`
+	PropertyID     *string  `json:"property_id"`
+	CostItemID     *string  `json:"cost_item_id"`
+	SupplierID     *string  `json:"supplier_id"`
+	ScheduleItemID *string  `json:"schedule_item_id"`
+	StorageKey     string   `json:"storage_key"`
+	Filename       string   `json:"filename"`
+	ContentType    *string  `json:"content_type"`
+	SizeBytes      *int64   `json:"size_bytes"`
+	Tags           []string `json:"tags"`
 }
 
 type listDocumentsResponse struct {
@@ -419,6 +422,28 @@ func (a *api) handleRegisterDocument(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// If schedule_item_id provided, verify it belongs to workspace
+	if req.ScheduleItemID != nil && *req.ScheduleItemID != "" {
+		var scheduleWorkspaceID string
+		err := a.db.QueryRowContext(
+			r.Context(),
+			`SELECT workspace_id FROM schedule_items WHERE id = $1`,
+			*req.ScheduleItemID,
+		).Scan(&scheduleWorkspaceID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "schedule_item not found"})
+				return
+			}
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check schedule_item"})
+			return
+		}
+		if scheduleWorkspaceID != req.WorkspaceID {
+			writeError(w, http.StatusForbidden, apiError{Code: "FORBIDDEN", Message: "schedule_item does not belong to workspace"})
+			return
+		}
+	}
+
 	// Insert document
 	tags := req.Tags
 	if tags == nil {
@@ -429,11 +454,11 @@ func (a *api) handleRegisterDocument(w http.ResponseWriter, r *http.Request) {
 	var tagsArr pq.StringArray
 	err = a.db.QueryRowContext(
 		r.Context(),
-		`INSERT INTO documents (workspace_id, property_id, cost_item_id, supplier_id, storage_key, storage_provider, filename, content_type, size_bytes, tags)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		 RETURNING id, workspace_id, property_id, cost_item_id, supplier_id, storage_key, storage_provider, filename, content_type, size_bytes, tags, created_at`,
-		req.WorkspaceID, req.PropertyID, req.CostItemID, req.SupplierID, req.StorageKey, a.storageProvider, req.Filename, req.ContentType, req.SizeBytes, pq.Array(tags),
-	).Scan(&doc.ID, &doc.WorkspaceID, &doc.PropertyID, &doc.CostItemID, &doc.SupplierID, &doc.StorageKey, &doc.StorageProvider, &doc.Filename, &doc.ContentType, &doc.SizeBytes, &tagsArr, &doc.CreatedAt)
+		`INSERT INTO documents (workspace_id, property_id, cost_item_id, supplier_id, schedule_item_id, storage_key, storage_provider, filename, content_type, size_bytes, tags)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		 RETURNING id, workspace_id, property_id, cost_item_id, supplier_id, schedule_item_id, storage_key, storage_provider, filename, content_type, size_bytes, tags, created_at`,
+		req.WorkspaceID, req.PropertyID, req.CostItemID, req.SupplierID, req.ScheduleItemID, req.StorageKey, a.storageProvider, req.Filename, req.ContentType, req.SizeBytes, pq.Array(tags),
+	).Scan(&doc.ID, &doc.WorkspaceID, &doc.PropertyID, &doc.CostItemID, &doc.SupplierID, &doc.ScheduleItemID, &doc.StorageKey, &doc.StorageProvider, &doc.Filename, &doc.ContentType, &doc.SizeBytes, &tagsArr, &doc.CreatedAt)
 	doc.Tags = tagsArr
 	if err != nil {
 		if strings.Contains(err.Error(), "unique") || strings.Contains(err.Error(), "duplicate") {
@@ -496,10 +521,12 @@ func (a *api) handleListDocuments(w http.ResponseWriter, r *http.Request, proper
 
 	rows, err := a.db.QueryContext(
 		r.Context(),
-		`SELECT id, workspace_id, property_id, cost_item_id, storage_key, storage_provider, filename, content_type, size_bytes, tags, created_at
-		 FROM documents
-		 WHERE property_id = $1
-		 ORDER BY created_at DESC`,
+		`SELECT d.id, d.workspace_id, d.property_id, d.cost_item_id, d.supplier_id, d.schedule_item_id, si.title as schedule_item_title,
+		        d.storage_key, d.storage_provider, d.filename, d.content_type, d.size_bytes, d.tags, d.created_at
+		 FROM documents d
+		 LEFT JOIN schedule_items si ON d.schedule_item_id = si.id
+		 WHERE d.property_id = $1
+		 ORDER BY d.created_at DESC`,
 		propertyID,
 	)
 	if err != nil {
@@ -512,7 +539,8 @@ func (a *api) handleListDocuments(w http.ResponseWriter, r *http.Request, proper
 	for rows.Next() {
 		var doc document
 		var tagsArr pq.StringArray
-		err := rows.Scan(&doc.ID, &doc.WorkspaceID, &doc.PropertyID, &doc.CostItemID, &doc.StorageKey, &doc.StorageProvider, &doc.Filename, &doc.ContentType, &doc.SizeBytes, &tagsArr, &doc.CreatedAt)
+		err := rows.Scan(&doc.ID, &doc.WorkspaceID, &doc.PropertyID, &doc.CostItemID, &doc.SupplierID, &doc.ScheduleItemID, &doc.ScheduleItemTitle,
+			&doc.StorageKey, &doc.StorageProvider, &doc.Filename, &doc.ContentType, &doc.SizeBytes, &tagsArr, &doc.CreatedAt)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan document"})
 			return
@@ -579,6 +607,87 @@ func (a *api) handleDeleteDocument(w http.ResponseWriter, r *http.Request, docID
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// workspaceDocument extends document with property_name for workspace-level views
+type workspaceDocument struct {
+	ID                string    `json:"id"`
+	WorkspaceID       string    `json:"workspace_id"`
+	PropertyID        *string   `json:"property_id"`
+	PropertyName      string    `json:"property_name"`
+	CostItemID        *string   `json:"cost_item_id"`
+	SupplierID        *string   `json:"supplier_id"`
+	ScheduleItemID    *string   `json:"schedule_item_id"`
+	ScheduleItemTitle *string   `json:"schedule_item_title"`
+	StorageKey        string    `json:"storage_key"`
+	StorageProvider   string    `json:"storage_provider"`
+	Filename          string    `json:"filename"`
+	ContentType       *string   `json:"content_type"`
+	SizeBytes         *int64    `json:"size_bytes"`
+	Tags              []string  `json:"tags"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
+type listWorkspaceDocumentsResponse struct {
+	Items []workspaceDocument `json:"items"`
+}
+
+// handleWorkspaceDocuments handles GET /api/v1/workspaces/:id/documents
+func (a *api) handleWorkspaceDocuments(w http.ResponseWriter, r *http.Request, workspaceID string) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	// Check workspace membership
+	if ok, err := a.hasWorkspaceMembership(r.Context(), workspaceID, userID); err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check membership"})
+		return
+	} else if !ok {
+		writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "workspace not found"})
+		return
+	}
+
+	rows, err := a.db.QueryContext(
+		r.Context(),
+		`SELECT d.id, d.workspace_id, d.property_id, COALESCE(p.address, p.neighborhood, 'Sem endereço') as property_name,
+		        d.cost_item_id, d.supplier_id, d.schedule_item_id, si.title as schedule_item_title,
+		        d.storage_key, d.storage_provider, d.filename, d.content_type, d.size_bytes, d.tags, d.created_at
+		 FROM documents d
+		 JOIN properties p ON d.property_id = p.id
+		 LEFT JOIN schedule_items si ON d.schedule_item_id = si.id
+		 WHERE d.workspace_id = $1
+		 ORDER BY property_name, d.created_at DESC`,
+		workspaceID,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to query documents"})
+		return
+	}
+	defer rows.Close()
+
+	items := make([]workspaceDocument, 0)
+	for rows.Next() {
+		var doc workspaceDocument
+		var tagsArr pq.StringArray
+		err := rows.Scan(&doc.ID, &doc.WorkspaceID, &doc.PropertyID, &doc.PropertyName,
+			&doc.CostItemID, &doc.SupplierID, &doc.ScheduleItemID, &doc.ScheduleItemTitle,
+			&doc.StorageKey, &doc.StorageProvider, &doc.Filename, &doc.ContentType, &doc.SizeBytes, &tagsArr, &doc.CreatedAt)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan document"})
+			return
+		}
+		doc.Tags = tagsArr
+		items = append(items, doc)
+	}
+
+	writeJSON(w, http.StatusOK, listWorkspaceDocumentsResponse{Items: items})
 }
 
 // SetS3Client is called by the API struct to set the S3 client

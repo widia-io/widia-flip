@@ -132,6 +132,12 @@ func (a *api) handlePropertiesSubroutes(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// /api/v1/properties/:id/schedule
+	if len(parts) == 2 && parts[1] == "schedule" {
+		a.handlePropertySchedule(w, r, propertyID)
+		return
+	}
+
 	// /api/v1/properties/:id/documents
 	if len(parts) == 2 && parts[1] == "documents" {
 		a.handlePropertyDocuments(w, r, propertyID)

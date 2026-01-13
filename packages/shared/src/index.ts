@@ -398,6 +398,9 @@ export const TimelineEventTypeEnum = z.enum([
   "cost_added",
   "cost_updated",
   "doc_uploaded",
+  "schedule_item_created",
+  "schedule_item_completed",
+  "schedule_item_updated",
 ]);
 export type TimelineEventType = z.infer<typeof TimelineEventTypeEnum>;
 
@@ -436,6 +439,7 @@ export const CostItemSchema = z.object({
   due_date: z.string().nullable(),
   vendor: z.string().nullable(),
   notes: z.string().nullable(),
+  schedule_item_id: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -470,6 +474,102 @@ export const UpdateCostRequestSchema = z.object({
 });
 export type UpdateCostRequest = z.infer<typeof UpdateCostRequestSchema>;
 
+// Schedule (Cronograma da Obra)
+
+export const ScheduleCategoryEnum = z.enum([
+  "demolition",
+  "structural",
+  "electrical",
+  "plumbing",
+  "flooring",
+  "painting",
+  "finishing",
+  "cleaning",
+  "other",
+]);
+export type ScheduleCategory = z.infer<typeof ScheduleCategoryEnum>;
+
+export const SCHEDULE_CATEGORY_LABELS: Record<ScheduleCategory, string> = {
+  demolition: "Demolição",
+  structural: "Estrutural",
+  electrical: "Elétrica",
+  plumbing: "Hidráulica",
+  flooring: "Piso",
+  painting: "Pintura",
+  finishing: "Acabamento",
+  cleaning: "Limpeza",
+  other: "Outro",
+};
+
+export const ScheduleItemSchema = z.object({
+  id: z.string(),
+  property_id: z.string(),
+  workspace_id: z.string(),
+  title: z.string(),
+  planned_date: z.string(),
+  done_at: z.string().nullable(),
+  notes: z.string().nullable(),
+  order_index: z.number().nullable(),
+  category: z.string().nullable(),
+  estimated_cost: z.number().nullable(),
+  linked_cost_id: z.string().nullable(),
+  document_count: z.number(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type ScheduleItem = z.infer<typeof ScheduleItemSchema>;
+
+export const ScheduleSummarySchema = z.object({
+  total_items: z.number(),
+  completed_items: z.number(),
+  overdue_items: z.number(),
+  upcoming_7_days: z.number(),
+  progress_percent: z.number(),
+  estimated_total: z.number(),
+  completed_estimated: z.number(),
+});
+export type ScheduleSummary = z.infer<typeof ScheduleSummarySchema>;
+
+export const ListScheduleResponseSchema = z.object({
+  items: z.array(ScheduleItemSchema),
+  summary: ScheduleSummarySchema,
+});
+export type ListScheduleResponse = z.infer<typeof ListScheduleResponseSchema>;
+
+// Workspace-level schedule (centralized view)
+export const WorkspaceScheduleItemSchema = ScheduleItemSchema.extend({
+  property_name: z.string(),
+  property_address: z.string().nullable(),
+});
+export type WorkspaceScheduleItem = z.infer<typeof WorkspaceScheduleItemSchema>;
+
+export const ListWorkspaceScheduleResponseSchema = z.object({
+  items: z.array(WorkspaceScheduleItemSchema),
+  summary: ScheduleSummarySchema,
+});
+export type ListWorkspaceScheduleResponse = z.infer<typeof ListWorkspaceScheduleResponseSchema>;
+
+export const CreateScheduleItemRequestSchema = z.object({
+  title: z.string().min(1, "Título é obrigatório"),
+  planned_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (YYYY-MM-DD)"),
+  notes: z.string().optional(),
+  order_index: z.number().int().optional(),
+  category: z.string().optional(),
+  estimated_cost: z.number().nonnegative().optional(),
+});
+export type CreateScheduleItemRequest = z.infer<typeof CreateScheduleItemRequestSchema>;
+
+export const UpdateScheduleItemRequestSchema = z.object({
+  title: z.string().min(1).optional(),
+  planned_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  done_at: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  order_index: z.number().int().nullable().optional(),
+  category: z.string().nullable().optional(),
+  estimated_cost: z.number().nonnegative().nullable().optional(),
+});
+export type UpdateScheduleItemRequest = z.infer<typeof UpdateScheduleItemRequestSchema>;
+
 // M4 - Documents
 
 export const DocumentSchema = z.object({
@@ -478,6 +578,8 @@ export const DocumentSchema = z.object({
   property_id: z.string().nullable(),
   cost_item_id: z.string().nullable(),
   supplier_id: z.string().nullable(),
+  schedule_item_id: z.string().nullable(),
+  schedule_item_title: z.string().nullable(),
   storage_key: z.string(),
   storage_provider: z.string(),
   filename: z.string(),
@@ -492,6 +594,17 @@ export const ListDocumentsResponseSchema = z.object({
   items: z.array(DocumentSchema),
 });
 export type ListDocumentsResponse = z.infer<typeof ListDocumentsResponseSchema>;
+
+// Workspace-level documents (centralized view)
+export const WorkspaceDocumentItemSchema = DocumentSchema.extend({
+  property_name: z.string(),
+});
+export type WorkspaceDocumentItem = z.infer<typeof WorkspaceDocumentItemSchema>;
+
+export const ListWorkspaceDocumentsResponseSchema = z.object({
+  items: z.array(WorkspaceDocumentItemSchema),
+});
+export type ListWorkspaceDocumentsResponse = z.infer<typeof ListWorkspaceDocumentsResponseSchema>;
 
 export const GetUploadUrlRequestSchema = z.object({
   workspace_id: z.string(),
@@ -513,6 +626,7 @@ export const RegisterDocumentRequestSchema = z.object({
   property_id: z.string().optional(),
   cost_item_id: z.string().optional(),
   supplier_id: z.string().optional(),
+  schedule_item_id: z.string().optional(),
   storage_key: z.string(),
   filename: z.string(),
   content_type: z.string().optional(),
