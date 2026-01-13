@@ -30,7 +30,31 @@ import { InvestmentPremisesView } from "@/components/prospect/InvestmentPremises
 import { InvestmentAnalysisFieldset } from "@/components/prospect/InvestmentAnalysisFieldset";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
+
+interface StringNumberInputProps {
+  readonly id?: string;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly placeholder?: string;
+  readonly disabled?: boolean;
+  readonly allowDecimals?: boolean;
+}
+
+function StringNumberInput({ id, value, onChange, placeholder, disabled, allowDecimals }: StringNumberInputProps) {
+  const numValue = value === "" ? null : Number.parseFloat(value);
+  return (
+    <NumberInput
+      id={id}
+      value={Number.isNaN(numValue) ? null : numValue}
+      onChange={(v) => onChange(v === null ? "" : v.toString())}
+      placeholder={placeholder}
+      disabled={disabled}
+      allowDecimals={allowDecimals}
+    />
+  );
+}
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -348,63 +372,48 @@ export function ProspectViewModal({
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-area">Área Útil (m²)</Label>
-                  <Input
+                  <StringNumberInput
                     id="edit-area"
-                    type="number"
-                    min="0"
-                    step="0.01"
                     value={formData.area_usable}
-                    onChange={(e) =>
-                      handleChange("area_usable", e.target.value)
-                    }
+                    onChange={(v) => handleChange("area_usable", v)}
+                    placeholder="85"
                     disabled={isPending}
+                    allowDecimals
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-bedrooms">Quartos</Label>
-                  <Input
+                  <StringNumberInput
                     id="edit-bedrooms"
-                    type="number"
-                    min="0"
-                    step="1"
                     value={formData.bedrooms}
-                    onChange={(e) => handleChange("bedrooms", e.target.value)}
+                    onChange={(v) => handleChange("bedrooms", v)}
                     disabled={isPending}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-suites">Suítes</Label>
-                  <Input
+                  <StringNumberInput
                     id="edit-suites"
-                    type="number"
-                    min="0"
-                    step="1"
                     value={formData.suites}
-                    onChange={(e) => handleChange("suites", e.target.value)}
+                    onChange={(v) => handleChange("suites", v)}
                     disabled={isPending}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-bathrooms">Banheiros</Label>
-                  <Input
+                  <StringNumberInput
                     id="edit-bathrooms"
-                    type="number"
-                    min="0"
-                    step="1"
                     value={formData.bathrooms}
-                    onChange={(e) => handleChange("bathrooms", e.target.value)}
+                    onChange={(v) => handleChange("bathrooms", v)}
                     disabled={isPending}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-parking">Vagas</Label>
-                  <Input
+                  <StringNumberInput
                     id="edit-parking"
-                    type="number"
-                    min="0"
-                    step="1"
                     value={formData.parking}
-                    onChange={(e) => handleChange("parking", e.target.value)}
+                    onChange={(v) => handleChange("parking", v)}
                     disabled={isPending}
                   />
                 </div>
@@ -420,11 +429,10 @@ export function ProspectViewModal({
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-floor">Andar</Label>
-                  <Input
+                  <StringNumberInput
                     id="edit-floor"
-                    type="number"
                     value={formData.floor}
-                    onChange={(e) => handleChange("floor", e.target.value)}
+                    onChange={(v) => handleChange("floor", v)}
                     disabled={isPending}
                   />
                 </div>
@@ -473,39 +481,31 @@ export function ProspectViewModal({
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="edit-price">Valor Pedido (R$)</Label>
-                  <Input
+                  <StringNumberInput
                     id="edit-price"
-                    type="number"
-                    min="0"
-                    step="1"
                     value={formData.asking_price}
-                    onChange={(e) =>
-                      handleChange("asking_price", e.target.value)
-                    }
+                    onChange={(v) => handleChange("asking_price", v)}
+                    placeholder="500.000"
                     disabled={isPending}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-condo">Condomínio (R$)</Label>
-                  <Input
+                  <StringNumberInput
                     id="edit-condo"
-                    type="number"
-                    min="0"
-                    step="1"
                     value={formData.condo_fee}
-                    onChange={(e) => handleChange("condo_fee", e.target.value)}
+                    onChange={(v) => handleChange("condo_fee", v)}
+                    placeholder="1.500"
                     disabled={isPending}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-iptu">IPTU Anual (R$)</Label>
-                  <Input
+                  <StringNumberInput
                     id="edit-iptu"
-                    type="number"
-                    min="0"
-                    step="1"
                     value={formData.iptu}
-                    onChange={(e) => handleChange("iptu", e.target.value)}
+                    onChange={(v) => handleChange("iptu", v)}
+                    placeholder="3.000"
                     disabled={isPending}
                   />
                 </div>

@@ -18,6 +18,7 @@ import { usePaywall } from "@/components/PaywallModal";
 import { StarRating } from "@/components/StarRating";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -66,7 +67,7 @@ export function SupplierFormModal({
     category: "outro" as SupplierCategory,
     notes: "",
     rating: null as number | null,
-    hourly_rate: "",
+    hourly_rate: null as number | null,
   });
 
   useEffect(() => {
@@ -78,7 +79,7 @@ export function SupplierFormModal({
         category: supplier.category,
         notes: supplier.notes ?? "",
         rating: supplier.rating,
-        hourly_rate: supplier.hourly_rate?.toString() ?? "",
+        hourly_rate: supplier.hourly_rate ?? null,
       });
     }
   }, [supplier]);
@@ -91,7 +92,7 @@ export function SupplierFormModal({
       category: "outro",
       notes: "",
       rating: null,
-      hourly_rate: "",
+      hourly_rate: null,
     });
     setError(null);
   };
@@ -109,9 +110,7 @@ export function SupplierFormModal({
         category: formData.category,
         notes: formData.notes.trim() || undefined,
         rating: formData.rating ?? undefined,
-        hourly_rate: formData.hourly_rate
-          ? parseFloat(formData.hourly_rate)
-          : undefined,
+        hourly_rate: formData.hourly_rate ?? undefined,
       };
 
       const result = isEdit
@@ -271,19 +270,18 @@ export function SupplierFormModal({
                 <DollarSign className="mr-1.5 inline h-3.5 w-3.5" />
                 Valor/Hora (R$)
               </Label>
-              <Input
+              <NumberInput
                 id="hourly_rate"
-                type="number"
-                min="0"
-                step="0.01"
                 value={formData.hourly_rate}
-                onChange={(e) =>
+                onChange={(v) =>
                   setFormData((prev) => ({
                     ...prev,
-                    hourly_rate: e.target.value,
+                    hourly_rate: v,
                   }))
                 }
-                placeholder="0,00"
+                placeholder="150,00"
+                allowDecimals
+                decimalPlaces={2}
               />
             </div>
           </div>

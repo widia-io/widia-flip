@@ -13,7 +13,8 @@ import { usePaywall } from "@/components/PaywallModal";
 import { FinancingOutputsDisplay } from "@/components/FinancingOutputs";
 import { FinancingPaymentsList } from "@/components/FinancingPaymentsList";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
+import { PercentInput } from "@/components/ui/percent-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
@@ -141,30 +142,10 @@ export function FinancingForm({
     });
   }, [debouncedInputs, propertyId]);
 
-  const handleInputChange = (field: keyof typeof inputs, value: string) => {
-    let numValue: number | null = null;
-    if (value !== "") {
-      numValue = parseFloat(value);
-      if (isNaN(numValue)) numValue = null;
-    }
+  const handleInputChange = (field: keyof typeof inputs, value: number | null) => {
     setInputs((prev) => ({
       ...prev,
-      [field]: numValue,
-    }));
-  };
-
-  const handlePercentChange = (field: keyof typeof inputs, value: string) => {
-    let numValue: number | null = null;
-    if (value !== "") {
-      // User enters as percentage (e.g., 20), we store as decimal (0.20)
-      const parsed = parseFloat(value);
-      if (!isNaN(parsed)) {
-        numValue = parsed / 100;
-      }
-    }
-    setInputs((prev) => ({
-      ...prev,
-      [field]: numValue,
+      [field]: value,
     }));
   };
 
@@ -251,36 +232,31 @@ export function FinancingForm({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="purchase_price">Preço de Compra (R$)</Label>
-              <Input
+              <NumberInput
                 id="purchase_price"
-                type="number"
-                value={inputs.purchase_price ?? ""}
-                onChange={(e) => handleInputChange("purchase_price", e.target.value)}
-                placeholder="500000"
+                value={inputs.purchase_price}
+                onChange={(v) => handleInputChange("purchase_price", v)}
+                placeholder="500.000"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="sale_price">Preço de Venda (R$)</Label>
-              <Input
+              <NumberInput
                 id="sale_price"
-                type="number"
-                value={inputs.sale_price ?? ""}
-                onChange={(e) => handleInputChange("sale_price", e.target.value)}
-                placeholder="700000"
+                value={inputs.sale_price}
+                onChange={(v) => handleInputChange("sale_price", v)}
+                placeholder="700.000"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="down_payment_percent">Entrada (%)</Label>
-              <Input
+              <PercentInput
                 id="down_payment_percent"
-                type="number"
-                value={inputs.down_payment_percent !== null ? (inputs.down_payment_percent * 100).toFixed(0) : ""}
-                onChange={(e) => handlePercentChange("down_payment_percent", e.target.value)}
+                value={inputs.down_payment_percent}
+                onChange={(v) => handleInputChange("down_payment_percent", v)}
                 placeholder="20"
-                min="0"
-                max="100"
               />
             </div>
 
@@ -303,13 +279,11 @@ export function FinancingForm({
 
             <div className="space-y-2">
               <Label htmlFor="term_months">Prazo (meses)</Label>
-              <Input
+              <NumberInput
                 id="term_months"
-                type="number"
-                value={inputs.term_months ?? ""}
-                onChange={(e) => handleInputChange("term_months", e.target.value)}
+                value={inputs.term_months}
+                onChange={(v) => handleInputChange("term_months", v)}
                 placeholder="360"
-                min="1"
               />
             </div>
 
@@ -318,27 +292,23 @@ export function FinancingForm({
                 CET (% a.a.)
                 <Info className="h-3 w-3 text-muted-foreground" />
               </Label>
-              <Input
+              <PercentInput
                 id="cet"
-                type="number"
-                value={inputs.cet !== null ? (inputs.cet * 100).toFixed(2) : ""}
-                onChange={(e) => handlePercentChange("cet", e.target.value)}
+                value={inputs.cet}
+                onChange={(v) => handleInputChange("cet", v)}
                 placeholder="12"
-                step="0.01"
-                min="0"
+                decimalPlaces={2}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="interest_rate">Juros Nominal (% a.a.)</Label>
-              <Input
+              <PercentInput
                 id="interest_rate"
-                type="number"
-                value={inputs.interest_rate !== null ? (inputs.interest_rate * 100).toFixed(2) : ""}
-                onChange={(e) => handlePercentChange("interest_rate", e.target.value)}
+                value={inputs.interest_rate}
+                onChange={(v) => handleInputChange("interest_rate", v)}
                 placeholder="10"
-                step="0.01"
-                min="0"
+                decimalPlaces={2}
               />
             </div>
           </div>
@@ -350,13 +320,11 @@ export function FinancingForm({
                 Seguro (R$)
                 <Info className="h-3 w-3 text-muted-foreground" />
               </Label>
-              <Input
+              <NumberInput
                 id="insurance"
-                type="number"
-                value={inputs.insurance ?? ""}
-                onChange={(e) => handleInputChange("insurance", e.target.value)}
-                placeholder="5000"
-                min="0"
+                value={inputs.insurance}
+                onChange={(v) => handleInputChange("insurance", v)}
+                placeholder="5.000"
               />
             </div>
 
@@ -365,25 +333,21 @@ export function FinancingForm({
                 Avaliação (R$)
                 <Info className="h-3 w-3 text-muted-foreground" />
               </Label>
-              <Input
+              <NumberInput
                 id="appraisal_fee"
-                type="number"
-                value={inputs.appraisal_fee ?? ""}
-                onChange={(e) => handleInputChange("appraisal_fee", e.target.value)}
-                placeholder="1500"
-                min="0"
+                value={inputs.appraisal_fee}
+                onChange={(v) => handleInputChange("appraisal_fee", v)}
+                placeholder="1.500"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="other_fees">Outras Taxas (R$)</Label>
-              <Input
+              <NumberInput
                 id="other_fees"
-                type="number"
-                value={inputs.other_fees ?? ""}
-                onChange={(e) => handleInputChange("other_fees", e.target.value)}
+                value={inputs.other_fees}
+                onChange={(v) => handleInputChange("other_fees", v)}
                 placeholder="500"
-                min="0"
               />
             </div>
 
@@ -392,13 +356,11 @@ export function FinancingForm({
                 Saldo Devedor (R$)
                 <Info className="h-3 w-3 text-muted-foreground" />
               </Label>
-              <Input
+              <NumberInput
                 id="remaining_debt"
-                type="number"
-                value={inputs.remaining_debt ?? ""}
-                onChange={(e) => handleInputChange("remaining_debt", e.target.value)}
-                placeholder="350000"
-                min="0"
+                value={inputs.remaining_debt}
+                onChange={(v) => handleInputChange("remaining_debt", v)}
+                placeholder="350.000"
               />
             </div>
           </div>
