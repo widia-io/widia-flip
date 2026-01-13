@@ -398,6 +398,9 @@ export const TimelineEventTypeEnum = z.enum([
   "cost_added",
   "cost_updated",
   "doc_uploaded",
+  "schedule_item_created",
+  "schedule_item_completed",
+  "schedule_item_updated",
 ]);
 export type TimelineEventType = z.infer<typeof TimelineEventTypeEnum>;
 
@@ -469,6 +472,87 @@ export const UpdateCostRequestSchema = z.object({
   notes: z.string().optional(),
 });
 export type UpdateCostRequest = z.infer<typeof UpdateCostRequestSchema>;
+
+// Schedule (Cronograma da Obra)
+
+export const ScheduleCategoryEnum = z.enum([
+  "demolition",
+  "structural",
+  "electrical",
+  "plumbing",
+  "flooring",
+  "painting",
+  "finishing",
+  "cleaning",
+  "other",
+]);
+export type ScheduleCategory = z.infer<typeof ScheduleCategoryEnum>;
+
+export const SCHEDULE_CATEGORY_LABELS: Record<ScheduleCategory, string> = {
+  demolition: "Demolição",
+  structural: "Estrutural",
+  electrical: "Elétrica",
+  plumbing: "Hidráulica",
+  flooring: "Piso",
+  painting: "Pintura",
+  finishing: "Acabamento",
+  cleaning: "Limpeza",
+  other: "Outro",
+};
+
+export const ScheduleItemSchema = z.object({
+  id: z.string(),
+  property_id: z.string(),
+  workspace_id: z.string(),
+  title: z.string(),
+  planned_date: z.string(),
+  done_at: z.string().nullable(),
+  notes: z.string().nullable(),
+  order_index: z.number().nullable(),
+  category: z.string().nullable(),
+  estimated_cost: z.number().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type ScheduleItem = z.infer<typeof ScheduleItemSchema>;
+
+export const ScheduleSummarySchema = z.object({
+  total_items: z.number(),
+  completed_items: z.number(),
+  overdue_items: z.number(),
+  upcoming_7_days: z.number(),
+  progress_percent: z.number(),
+  estimated_total: z.number(),
+  completed_estimated: z.number(),
+});
+export type ScheduleSummary = z.infer<typeof ScheduleSummarySchema>;
+
+export const ListScheduleResponseSchema = z.object({
+  items: z.array(ScheduleItemSchema),
+  summary: ScheduleSummarySchema,
+});
+export type ListScheduleResponse = z.infer<typeof ListScheduleResponseSchema>;
+
+export const CreateScheduleItemRequestSchema = z.object({
+  title: z.string().min(1, "Título é obrigatório"),
+  planned_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (YYYY-MM-DD)"),
+  notes: z.string().optional(),
+  order_index: z.number().int().optional(),
+  category: z.string().optional(),
+  estimated_cost: z.number().nonnegative().optional(),
+});
+export type CreateScheduleItemRequest = z.infer<typeof CreateScheduleItemRequestSchema>;
+
+export const UpdateScheduleItemRequestSchema = z.object({
+  title: z.string().min(1).optional(),
+  planned_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  done_at: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  order_index: z.number().int().nullable().optional(),
+  category: z.string().nullable().optional(),
+  estimated_cost: z.number().nonnegative().nullable().optional(),
+});
+export type UpdateScheduleItemRequest = z.infer<typeof UpdateScheduleItemRequestSchema>;
 
 // M4 - Documents
 

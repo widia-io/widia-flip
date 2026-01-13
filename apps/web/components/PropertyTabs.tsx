@@ -18,6 +18,7 @@ export function PropertyTabs({ propertyId, hasProspectOrigin }: PropertyTabsProp
     { href: `${basePath}/viability`, label: "À Vista" },
     { href: `${basePath}/financing`, label: "Financiamento" },
     { href: `${basePath}/rates`, label: "Taxas" },
+    { href: `${basePath}/schedule`, label: "Cronograma" },
     { href: `${basePath}/costs`, label: "Custos" },
     { href: `${basePath}/documents`, label: "Documentos" },
     { href: `${basePath}/timeline`, label: "Timeline" },

@@ -53,6 +53,9 @@ func NewHandler(deps Deps) http.Handler {
 	// M4 - Costs
 	protectedMux.HandleFunc("/api/v1/costs/", api.handleCostsSubroutes)
 
+	// Schedule (Cronograma da Obra)
+	protectedMux.HandleFunc("/api/v1/schedule/", api.handleScheduleSubroutes)
+
 	// M4 - Documents
 	protectedMux.HandleFunc("/api/v1/documents", api.handleDocumentsCollection)
 	protectedMux.HandleFunc("/api/v1/documents/", api.handleDocumentsSubroutes)
