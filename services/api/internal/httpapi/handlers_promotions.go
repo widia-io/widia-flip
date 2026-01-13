@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/widia-projects/widia-flip/services/api/internal/logger"
 )
 
 // Promotion types
@@ -67,7 +69,7 @@ func (a *api) handlePublicActiveBanner(w http.ResponseWriter, r *http.Request) {
 	// Debug: log all promotions and current time
 	var dbNow time.Time
 	a.db.QueryRowContext(ctx, `SELECT NOW()`).Scan(&dbNow)
-	log.Printf("active-banner: DB NOW() = %v", dbNow)
+	logger.WithContext(r.Context()).Debug("active_banner_check", slog.Time("db_now", dbNow))
 
 	rows, _ := a.db.QueryContext(ctx, `SELECT id, is_active, ends_at, ends_at > NOW() as valid FROM flip.promotions`)
 	if rows != nil {
@@ -77,7 +79,11 @@ func (a *api) handlePublicActiveBanner(w http.ResponseWriter, r *http.Request) {
 			var isActive, valid bool
 			var et time.Time
 			rows.Scan(&id, &isActive, &et, &valid)
-			log.Printf("active-banner: promo id=%s is_active=%v ends_at=%v valid=%v", id, isActive, et, valid)
+			logger.WithContext(r.Context()).Debug("active_banner_promo",
+				slog.String("id", id),
+				slog.Bool("is_active", isActive),
+				slog.Time("ends_at", et),
+				slog.Bool("valid", valid))
 		}
 	}
 
@@ -90,12 +96,12 @@ func (a *api) handlePublicActiveBanner(w http.ResponseWriter, r *http.Request) {
 	`).Scan(&p.ID, &p.BannerText, &p.BannerEmoji, &p.StripeCouponID, &endsAt)
 
 	if err == sql.ErrNoRows {
-		log.Printf("active-banner: no active banner found (is_active=true AND ends_at > NOW)")
+		logger.WithContext(r.Context()).Debug("active_banner_not_found")
 		writeJSON(w, http.StatusOK, map[string]interface{}{"banner": nil})
 		return
 	}
 	if err != nil {
-		log.Printf("public active banner: query error: %v", err)
+		logger.WithContext(r.Context()).Error("active_banner_query", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch banner"})
 		return
 	}
@@ -146,7 +152,7 @@ func (a *api) handleAdminListPromotions(w http.ResponseWriter, r *http.Request) 
 		ORDER BY created_at DESC
 	`)
 	if err != nil {
-		log.Printf("admin list promotions: query error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_list_promotions_query", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch promotions"})
 		return
 	}
@@ -157,7 +163,7 @@ func (a *api) handleAdminListPromotions(w http.ResponseWriter, r *http.Request) 
 		var p promotion
 		var endsAt, createdAt, updatedAt time.Time
 		if err := rows.Scan(&p.ID, &p.Name, &p.BannerText, &p.BannerEmoji, &p.StripeCouponID, &endsAt, &p.IsActive, &createdAt, &updatedAt); err != nil {
-			log.Printf("admin list promotions: scan error: %v", err)
+			logger.WithContext(r.Context()).Error("admin_list_promotions_scan", slog.Any("error", err))
 			continue
 		}
 		p.EndsAt = endsAt.Format(time.RFC3339)
@@ -211,7 +217,7 @@ func (a *api) handleAdminCreatePromotion(w http.ResponseWriter, r *http.Request)
 	if req.IsActive {
 		_, err := a.db.ExecContext(ctx, `UPDATE flip.promotions SET is_active = false WHERE is_active = true`)
 		if err != nil {
-			log.Printf("admin create promotion: deactivate error: %v", err)
+			logger.WithContext(r.Context()).Error("admin_create_promotion_deactivate", slog.Any("error", err))
 		}
 	}
 
@@ -225,7 +231,7 @@ func (a *api) handleAdminCreatePromotion(w http.ResponseWriter, r *http.Request)
 		&p.ID, &p.Name, &p.BannerText, &p.BannerEmoji, &p.StripeCouponID, &endsAt, &p.IsActive, &createdAt, &updatedAt,
 	)
 	if err != nil {
-		log.Printf("admin create promotion: insert error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_create_promotion_insert", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to create promotion"})
 		return
 	}
@@ -253,7 +259,7 @@ func (a *api) handleAdminGetPromotion(w http.ResponseWriter, r *http.Request, pr
 		return
 	}
 	if err != nil {
-		log.Printf("admin get promotion: query error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_get_promotion_query", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch promotion"})
 		return
 	}
@@ -288,7 +294,7 @@ func (a *api) handleAdminUpdatePromotion(w http.ResponseWriter, r *http.Request,
 	if req.IsActive != nil && *req.IsActive {
 		_, err := a.db.ExecContext(ctx, `UPDATE flip.promotions SET is_active = false WHERE is_active = true AND id != $1`, promotionID)
 		if err != nil {
-			log.Printf("admin update promotion: deactivate error: %v", err)
+			logger.WithContext(r.Context()).Error("admin_update_promotion_deactivate", slog.Any("error", err))
 		}
 	}
 
@@ -343,7 +349,7 @@ func (a *api) handleAdminUpdatePromotion(w http.ResponseWriter, r *http.Request,
 
 	_, err := a.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		log.Printf("admin update promotion: error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_update_promotion", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to update promotion"})
 		return
 	}
@@ -357,7 +363,7 @@ func (a *api) handleAdminDeletePromotion(w http.ResponseWriter, r *http.Request,
 
 	result, err := a.db.ExecContext(ctx, `DELETE FROM flip.promotions WHERE id = $1`, promotionID)
 	if err != nil {
-		log.Printf("admin delete promotion: error: %v", err)
+		logger.WithContext(r.Context()).Error("admin_delete_promotion", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to delete promotion"})
 		return
 	}
