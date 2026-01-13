@@ -513,6 +513,7 @@ export const ScheduleItemSchema = z.object({
   category: z.string().nullable(),
   estimated_cost: z.number().nullable(),
   linked_cost_id: z.string().nullable(),
+  document_count: z.number(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -577,6 +578,7 @@ export const DocumentSchema = z.object({
   property_id: z.string().nullable(),
   cost_item_id: z.string().nullable(),
   supplier_id: z.string().nullable(),
+  schedule_item_id: z.string().nullable(),
   storage_key: z.string(),
   storage_provider: z.string(),
   filename: z.string(),
@@ -612,6 +614,7 @@ export const RegisterDocumentRequestSchema = z.object({
   property_id: z.string().optional(),
   cost_item_id: z.string().optional(),
   supplier_id: z.string().optional(),
+  schedule_item_id: z.string().optional(),
   storage_key: z.string(),
   filename: z.string(),
   content_type: z.string().optional(),

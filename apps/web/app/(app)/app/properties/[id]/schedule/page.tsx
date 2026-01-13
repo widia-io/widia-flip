@@ -1,4 +1,5 @@
 import { listScheduleAction } from "@/lib/actions/schedule";
+import { getPropertyAction } from "@/lib/actions/properties";
 import { ScheduleList } from "@/components/ScheduleList";
 
 export default async function PropertySchedulePage({
@@ -8,7 +9,10 @@ export default async function PropertySchedulePage({
 }) {
   const { id } = await params;
 
-  const scheduleResult = await listScheduleAction(id);
+  const [scheduleResult, propertyResult] = await Promise.all([
+    listScheduleAction(id),
+    getPropertyAction(id),
+  ]);
 
   if (scheduleResult.error) {
     return (
@@ -19,11 +23,13 @@ export default async function PropertySchedulePage({
   }
 
   const schedule = scheduleResult.data;
+  const workspaceId = propertyResult.data?.workspace_id ?? "";
 
   return (
     <div className="space-y-6">
       <ScheduleList
         propertyId={id}
+        workspaceId={workspaceId}
         initialItems={schedule?.items ?? []}
         summary={schedule?.summary}
       />

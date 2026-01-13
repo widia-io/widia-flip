@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/widia-projects/widia-flip/services/api/internal/auth"
 )
 
@@ -44,6 +45,7 @@ type scheduleItem struct {
 	Category      *string   `json:"category"`
 	EstimatedCost *float64  `json:"estimated_cost"`
 	LinkedCostID  *string   `json:"linked_cost_id"`
+	DocumentCount int       `json:"document_count"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }
@@ -106,23 +108,41 @@ func (a *api) handlePropertySchedule(w http.ResponseWriter, r *http.Request, pro
 	}
 }
 
-// handleScheduleSubroutes routes /api/v1/schedule/:itemId
+// handleScheduleSubroutes routes /api/v1/schedule/:itemId and /api/v1/schedule/:itemId/documents
 func (a *api) handleScheduleSubroutes(w http.ResponseWriter, r *http.Request) {
 	rest := strings.TrimPrefix(r.URL.Path, "/api/v1/schedule/")
-	itemID := strings.TrimSpace(rest)
+	parts := strings.Split(rest, "/")
+
+	itemID := strings.TrimSpace(parts[0])
 	if itemID == "" {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	switch r.Method {
-	case http.MethodPut:
-		a.handleUpdateScheduleItem(w, r, itemID)
-	case http.MethodDelete:
-		a.handleDeleteScheduleItem(w, r, itemID)
-	default:
+	// /api/v1/schedule/:itemId/documents
+	if len(parts) == 2 && parts[1] == "documents" {
+		if r.Method == http.MethodGet {
+			a.handleListScheduleItemDocuments(w, r, itemID)
+			return
+		}
 		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
 	}
+
+	// /api/v1/schedule/:itemId
+	if len(parts) == 1 {
+		switch r.Method {
+		case http.MethodPut:
+			a.handleUpdateScheduleItem(w, r, itemID)
+		case http.MethodDelete:
+			a.handleDeleteScheduleItem(w, r, itemID)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNotFound)
 }
 
 func (a *api) handleListSchedule(w http.ResponseWriter, r *http.Request, propertyID string) {
@@ -153,7 +173,9 @@ func (a *api) handleListSchedule(w http.ResponseWriter, r *http.Request, propert
 
 	rows, err := a.db.QueryContext(
 		r.Context(),
-		`SELECT s.id, s.property_id, s.workspace_id, s.title, s.planned_date, s.done_at, s.notes, s.order_index, s.category, s.estimated_cost, c.id as linked_cost_id, s.created_at, s.updated_at
+		`SELECT s.id, s.property_id, s.workspace_id, s.title, s.planned_date, s.done_at, s.notes, s.order_index, s.category, s.estimated_cost, c.id as linked_cost_id,
+		        (SELECT COUNT(*) FROM documents d WHERE d.schedule_item_id = s.id) as document_count,
+		        s.created_at, s.updated_at
 		 FROM schedule_items s
 		 LEFT JOIN cost_items c ON c.schedule_item_id = s.id
 		 WHERE s.property_id = $1
@@ -184,7 +206,7 @@ func (a *api) handleListSchedule(w http.ResponseWriter, r *http.Request, propert
 		err := rows.Scan(
 			&s.ID, &s.PropertyID, &s.WorkspaceID, &s.Title, &plannedDate,
 			&doneAt, &s.Notes, &orderIndex, &s.Category, &estimatedCost,
-			&linkedCostID, &s.CreatedAt, &s.UpdatedAt,
+			&linkedCostID, &s.DocumentCount, &s.CreatedAt, &s.UpdatedAt,
 		)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan schedule item"})
@@ -651,7 +673,9 @@ func (a *api) handleWorkspaceSchedule(w http.ResponseWriter, r *http.Request, wo
 
 	rows, err := a.db.QueryContext(
 		r.Context(),
-		`SELECT s.id, s.property_id, s.workspace_id, s.title, s.planned_date, s.done_at, s.notes, s.order_index, s.category, s.estimated_cost, c.id as linked_cost_id, s.created_at, s.updated_at,
+		`SELECT s.id, s.property_id, s.workspace_id, s.title, s.planned_date, s.done_at, s.notes, s.order_index, s.category, s.estimated_cost, c.id as linked_cost_id,
+		        (SELECT COUNT(*) FROM documents d WHERE d.schedule_item_id = s.id) as document_count,
+		        s.created_at, s.updated_at,
 		        COALESCE(p.address, p.neighborhood, 'Sem endereço') as property_name, p.address as property_address
 		 FROM schedule_items s
 		 JOIN properties p ON p.id = s.property_id
@@ -684,7 +708,7 @@ func (a *api) handleWorkspaceSchedule(w http.ResponseWriter, r *http.Request, wo
 		err := rows.Scan(
 			&item.ID, &item.PropertyID, &item.WorkspaceID, &item.Title, &plannedDate,
 			&doneAt, &item.Notes, &orderIndex, &item.Category, &estimatedCost,
-			&linkedCostID, &item.CreatedAt, &item.UpdatedAt,
+			&linkedCostID, &item.DocumentCount, &item.CreatedAt, &item.UpdatedAt,
 			&item.PropertyName, &propertyAddress,
 		)
 		if err != nil {
@@ -739,4 +763,80 @@ func (a *api) handleWorkspaceSchedule(w http.ResponseWriter, r *http.Request, wo
 		Items:   items,
 		Summary: summary,
 	})
+}
+
+// handleListScheduleItemDocuments lists documents attached to a schedule item
+func (a *api) handleListScheduleItemDocuments(w http.ResponseWriter, r *http.Request, itemID string) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	// Check access via schedule_item and workspace membership
+	var workspaceID string
+	err := a.db.QueryRowContext(
+		r.Context(),
+		`SELECT s.workspace_id
+		 FROM schedule_items s
+		 JOIN workspace_memberships m ON m.workspace_id = s.workspace_id
+		 WHERE s.id = $1 AND m.user_id = $2`,
+		itemID, userID,
+	).Scan(&workspaceID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "schedule item not found"})
+			return
+		}
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check schedule item"})
+		return
+	}
+
+	rows, err := a.db.QueryContext(
+		r.Context(),
+		`SELECT id, workspace_id, property_id, cost_item_id, supplier_id, schedule_item_id, storage_key, storage_provider, filename, content_type, size_bytes, tags, created_at
+		 FROM documents
+		 WHERE schedule_item_id = $1
+		 ORDER BY created_at DESC`,
+		itemID,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to query documents"})
+		return
+	}
+	defer rows.Close()
+
+	type scheduleDocument struct {
+		ID              string    `json:"id"`
+		WorkspaceID     string    `json:"workspace_id"`
+		PropertyID      *string   `json:"property_id"`
+		CostItemID      *string   `json:"cost_item_id"`
+		SupplierID      *string   `json:"supplier_id"`
+		ScheduleItemID  *string   `json:"schedule_item_id"`
+		StorageKey      string    `json:"storage_key"`
+		StorageProvider string    `json:"storage_provider"`
+		Filename        string    `json:"filename"`
+		ContentType     *string   `json:"content_type"`
+		SizeBytes       *int64    `json:"size_bytes"`
+		Tags            []string  `json:"tags"`
+		CreatedAt       time.Time `json:"created_at"`
+	}
+
+	items := make([]scheduleDocument, 0)
+	for rows.Next() {
+		var doc scheduleDocument
+		var tagsArr pq.StringArray
+		err := rows.Scan(&doc.ID, &doc.WorkspaceID, &doc.PropertyID, &doc.CostItemID, &doc.SupplierID, &doc.ScheduleItemID, &doc.StorageKey, &doc.StorageProvider, &doc.Filename, &doc.ContentType, &doc.SizeBytes, &tagsArr, &doc.CreatedAt)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan document"})
+			return
+		}
+		doc.Tags = tagsArr
+		if doc.Tags == nil {
+			doc.Tags = []string{}
+		}
+		items = append(items, doc)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
 }

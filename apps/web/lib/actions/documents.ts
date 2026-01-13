@@ -60,6 +60,7 @@ export async function registerDocumentAction(
     if (propertyId) {
       revalidatePath(`/app/properties/${propertyId}/documents`);
       revalidatePath(`/app/properties/${propertyId}/timeline`);
+      revalidatePath(`/app/properties/${propertyId}/schedule`);
     }
     return { data: result };
   } catch (e) {
@@ -98,9 +99,22 @@ export async function deleteDocumentAction(docId: string, propertyId: string) {
 
     revalidatePath(`/app/properties/${propertyId}/documents`);
     revalidatePath(`/app/properties/${propertyId}/timeline`);
+    revalidatePath(`/app/properties/${propertyId}/schedule`);
     return { success: true };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Erro ao deletar documento";
+    return { error: message };
+  }
+}
+
+export async function listScheduleItemDocumentsAction(scheduleItemId: string) {
+  try {
+    const result = await apiFetch<ListDocumentsResponse>(
+      `/api/v1/schedule/${scheduleItemId}/documents`,
+    );
+    return { data: result };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Erro ao listar documentos";
     return { error: message };
   }
 }

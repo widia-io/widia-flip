@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
-import { Plus, Loader2, ChevronDown, ChevronRight, Trash2, Pencil } from "lucide-react";
-import type { ScheduleItem, ScheduleSummary, ScheduleCategory } from "@widia/shared";
+import { useState, useTransition, useMemo, useRef } from "react";
+import { Plus, Loader2, ChevronDown, ChevronRight, Trash2, Pencil, Paperclip, Upload, FileText, X } from "lucide-react";
+import type { ScheduleItem, ScheduleSummary, ScheduleCategory, Document } from "@widia/shared";
 import { SCHEDULE_CATEGORY_LABELS } from "@widia/shared";
 import {
   createScheduleItemAction,
@@ -10,6 +10,13 @@ import {
   markScheduleItemDoneAction,
   deleteScheduleItemAction,
 } from "@/lib/actions/schedule";
+import {
+  getUploadUrlAction,
+  registerDocumentAction,
+  deleteDocumentAction,
+  listScheduleItemDocumentsAction,
+} from "@/lib/actions/documents";
+import { usePaywall } from "@/components/PaywallModal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -30,6 +37,20 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const ALLOWED_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/plain",
+];
 
 function formatCurrency(value: number | null): string {
   if (value === null) return "-";
@@ -73,11 +94,12 @@ function isUpcoming7Days(plannedDate: string, doneAt: string | null): boolean {
 
 interface ScheduleListProps {
   propertyId: string;
+  workspaceId: string;
   initialItems: ScheduleItem[];
   summary?: ScheduleSummary;
 }
 
-export function ScheduleList({ propertyId, initialItems }: ScheduleListProps) {
+export function ScheduleList({ propertyId, workspaceId, initialItems }: ScheduleListProps) {
   const [items, setItems] = useState<ScheduleItem[]>(initialItems);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
@@ -267,7 +289,16 @@ export function ScheduleList({ propertyId, initialItems }: ScheduleListProps) {
           onToggleDone={handleToggleDone}
           onEdit={setEditingItem}
           onDelete={handleDelete}
+          onDocumentCountChange={(itemId, delta) => {
+            setItems((prev) =>
+              prev.map((i) =>
+                i.id === itemId ? { ...i, document_count: i.document_count + delta } : i
+              )
+            );
+          }}
           isPending={isPending}
+          propertyId={propertyId}
+          workspaceId={workspaceId}
         />
       )}
 
@@ -281,7 +312,16 @@ export function ScheduleList({ propertyId, initialItems }: ScheduleListProps) {
           onToggleDone={handleToggleDone}
           onEdit={setEditingItem}
           onDelete={handleDelete}
+          onDocumentCountChange={(itemId, delta) => {
+            setItems((prev) =>
+              prev.map((i) =>
+                i.id === itemId ? { ...i, document_count: i.document_count + delta } : i
+              )
+            );
+          }}
           isPending={isPending}
+          propertyId={propertyId}
+          workspaceId={workspaceId}
         />
       )}
 
@@ -295,7 +335,16 @@ export function ScheduleList({ propertyId, initialItems }: ScheduleListProps) {
           onToggleDone={handleToggleDone}
           onEdit={setEditingItem}
           onDelete={handleDelete}
+          onDocumentCountChange={(itemId, delta) => {
+            setItems((prev) =>
+              prev.map((i) =>
+                i.id === itemId ? { ...i, document_count: i.document_count + delta } : i
+              )
+            );
+          }}
           isPending={isPending}
+          propertyId={propertyId}
+          workspaceId={workspaceId}
         />
       )}
 
@@ -327,7 +376,16 @@ export function ScheduleList({ propertyId, initialItems }: ScheduleListProps) {
                     onToggleDone={handleToggleDone}
                     onEdit={setEditingItem}
                     onDelete={handleDelete}
+                    onDocumentCountChange={(itemId, delta) => {
+                      setItems((prev) =>
+                        prev.map((i) =>
+                          i.id === itemId ? { ...i, document_count: i.document_count + delta } : i
+                        )
+                      );
+                    }}
                     isPending={isPending}
+                    propertyId={propertyId}
+                    workspaceId={workspaceId}
                     completed
                   />
                 ))}
@@ -348,7 +406,10 @@ interface ScheduleSectionProps {
   onToggleDone: (itemId: string, done: boolean) => void;
   onEdit: (item: ScheduleItem) => void;
   onDelete: (itemId: string) => void;
+  onDocumentCountChange: (itemId: string, delta: number) => void;
   isPending: boolean;
+  propertyId: string;
+  workspaceId: string;
 }
 
 function ScheduleSection({
@@ -359,7 +420,10 @@ function ScheduleSection({
   onToggleDone,
   onEdit,
   onDelete,
+  onDocumentCountChange,
   isPending,
+  propertyId,
+  workspaceId,
 }: ScheduleSectionProps) {
   const borderColor = variant === "destructive" ? "border-l-destructive" :
                       variant === "warning" ? "border-l-yellow-500" : "border-l-border";
@@ -378,7 +442,10 @@ function ScheduleSection({
             onToggleDone={onToggleDone}
             onEdit={onEdit}
             onDelete={onDelete}
+            onDocumentCountChange={onDocumentCountChange}
             isPending={isPending}
+            propertyId={propertyId}
+            workspaceId={workspaceId}
           />
         ))}
       </div>
@@ -391,7 +458,10 @@ interface ScheduleItemRowProps {
   onToggleDone: (itemId: string, done: boolean) => void;
   onEdit: (item: ScheduleItem) => void;
   onDelete: (itemId: string) => void;
+  onDocumentCountChange: (itemId: string, delta: number) => void;
   isPending: boolean;
+  propertyId: string;
+  workspaceId: string;
   completed?: boolean;
 }
 
@@ -400,69 +470,266 @@ function ScheduleItemRow({
   onToggleDone,
   onEdit,
   onDelete,
+  onDocumentCountChange,
   isPending,
+  propertyId,
+  workspaceId,
   completed,
 }: ScheduleItemRowProps) {
+  const { showPaywall } = usePaywall();
   const isDone = !!item.done_at;
+  const [docsExpanded, setDocsExpanded] = useState(false);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadDocuments = async () => {
+    if (docsLoading) return;
+    setDocsLoading(true);
+    const result = await listScheduleItemDocumentsAction(item.id);
+    if (result.data) {
+      setDocuments(result.data.items);
+    }
+    setDocsLoading(false);
+  };
+
+  const handleToggleDocs = () => {
+    const newExpanded = !docsExpanded;
+    setDocsExpanded(newExpanded);
+    if (newExpanded && documents.length === 0 && item.document_count > 0) {
+      loadDocuments();
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+
+    if (file.size > MAX_FILE_SIZE) {
+      setError("Arquivo muito grande. Máximo: 50MB");
+      return;
+    }
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError("Tipo não permitido");
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const urlResult = await getUploadUrlAction({
+        workspace_id: workspaceId,
+        property_id: propertyId,
+        filename: file.name,
+        content_type: file.type,
+        size_bytes: file.size,
+      });
+
+      if (urlResult.error) {
+        setError(urlResult.error);
+        setUploading(false);
+        return;
+      }
+
+      const { upload_url, storage_key } = urlResult.data!;
+
+      const proxyUrl = `/api/storage/upload?url=${encodeURIComponent(upload_url)}`;
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener("progress", (event) => {
+          if (event.lengthComputable) {
+            setUploadProgress(Math.round((event.loaded / event.total) * 100));
+          }
+        });
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error(`Upload failed: ${xhr.status}`));
+        });
+        xhr.addEventListener("error", () => reject(new Error("Upload failed")));
+        xhr.open("PUT", proxyUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.send(file);
+      });
+
+      const registerResult = await registerDocumentAction(
+        {
+          workspace_id: workspaceId,
+          property_id: propertyId,
+          schedule_item_id: item.id,
+          storage_key,
+          filename: file.name,
+          content_type: file.type,
+          size_bytes: file.size,
+          tags: [],
+        },
+        propertyId,
+      );
+
+      if ("enforcement" in registerResult && registerResult.enforcement) {
+        showPaywall(registerResult.enforcement, workspaceId);
+      } else if ("error" in registerResult && registerResult.error) {
+        setError(registerResult.error);
+      } else if (registerResult.data) {
+        setDocuments((prev) => [registerResult.data!, ...prev]);
+        onDocumentCountChange(item.id, 1);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro no upload");
+    }
+
+    setUploading(false);
+    setUploadProgress(0);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+    if (!confirm("Deletar documento?")) return;
+    const result = await deleteDocumentAction(docId, propertyId);
+    if (result.success) {
+      setDocuments((prev) => prev.filter((d) => d.id !== docId));
+      onDocumentCountChange(item.id, -1);
+    }
+  };
 
   return (
-    <div className="px-4 py-3 flex items-center gap-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors group">
-      <Checkbox
-        checked={isDone}
-        onCheckedChange={(checked) => onToggleDone(item.id, !!checked)}
-        disabled={isPending}
-        className="h-5 w-5"
-      />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className={`font-medium truncate ${completed ? "line-through text-muted-foreground" : ""}`}>
-            {item.title}
-          </span>
-          {item.category && (
-            <Badge variant="outline" className="text-xs shrink-0">
-              {SCHEDULE_CATEGORY_LABELS[item.category as ScheduleCategory] || item.category}
-            </Badge>
-          )}
-          {item.linked_cost_id && (
-            <Badge variant="secondary" className="text-xs shrink-0">
-              💰
-            </Badge>
+    <div className="border-b last:border-b-0">
+      <div className="px-4 py-3 flex items-center gap-3 hover:bg-accent/30 transition-colors group">
+        <Checkbox
+          checked={isDone}
+          onCheckedChange={(checked) => onToggleDone(item.id, !!checked)}
+          disabled={isPending}
+          className="h-5 w-5"
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={`font-medium truncate ${completed ? "line-through text-muted-foreground" : ""}`}>
+              {item.title}
+            </span>
+            {item.category && (
+              <Badge variant="outline" className="text-xs shrink-0">
+                {SCHEDULE_CATEGORY_LABELS[item.category as ScheduleCategory] || item.category}
+              </Badge>
+            )}
+            {item.linked_cost_id && (
+              <Badge variant="secondary" className="text-xs shrink-0">
+                💰
+              </Badge>
+            )}
+          </div>
+          {item.notes && (
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
+              {item.notes}
+            </p>
           )}
         </div>
-        {item.notes && (
-          <p className="text-xs text-muted-foreground truncate mt-0.5">
-            {item.notes}
-          </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 gap-1"
+          onClick={handleToggleDocs}
+        >
+          <Paperclip className="h-3.5 w-3.5" />
+          {item.document_count > 0 && (
+            <span className="text-xs">{item.document_count}</span>
+          )}
+        </Button>
+        <div className="text-sm text-muted-foreground shrink-0">
+          {formatDate(item.planned_date)}
+        </div>
+        {item.estimated_cost !== null && (
+          <div className="text-sm font-mono text-muted-foreground shrink-0">
+            {formatCurrency(item.estimated_cost)}
+          </div>
         )}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => onEdit(item)}
+            disabled={isPending}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive"
+            onClick={() => onDelete(item.id)}
+            disabled={isPending}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
-      <div className="text-sm text-muted-foreground shrink-0">
-        {formatDate(item.planned_date)}
-      </div>
-      {item.estimated_cost !== null && (
-        <div className="text-sm font-mono text-muted-foreground shrink-0">
-          {formatCurrency(item.estimated_cost)}
+
+      {/* Documents section */}
+      {docsExpanded && (
+        <div className="px-4 pb-3 pl-12 space-y-2">
+          {error && (
+            <div className="text-xs text-destructive">{error}</div>
+          )}
+
+          {uploading && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Enviando... {uploadProgress}%
+            </div>
+          )}
+
+          {docsLoading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Carregando...
+            </div>
+          ) : (
+            <>
+              {documents.length === 0 && item.document_count === 0 && (
+                <div className="text-xs text-muted-foreground">Nenhum documento</div>
+              )}
+              {documents.map((doc) => (
+                <div key={doc.id} className="flex items-center gap-2 text-sm">
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="flex-1 truncate">{doc.filename}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleDeleteDocument(doc.id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </>
+          )}
+
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ALLOWED_TYPES.join(",")}
+              onChange={handleFileSelect}
+              disabled={uploading}
+              className="hidden"
+              id={`file-upload-${item.id}`}
+            />
+            <Button variant="outline" size="sm" asChild disabled={uploading}>
+              <label htmlFor={`file-upload-${item.id}`} className="cursor-pointer">
+                <Upload className="h-3.5 w-3.5 mr-1" />
+                Adicionar documento
+              </label>
+            </Button>
+          </div>
         </div>
       )}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => onEdit(item)}
-          disabled={isPending}
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-destructive hover:text-destructive"
-          onClick={() => onDelete(item.id)}
-          disabled={isPending}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-      </div>
     </div>
   );
 }
