@@ -23,18 +23,19 @@ var (
 )
 
 type costItem struct {
-	ID          string    `json:"id"`
-	PropertyID  string    `json:"property_id"`
-	WorkspaceID string    `json:"workspace_id"`
-	CostType    string    `json:"cost_type"`
-	Category    *string   `json:"category"`
-	Status      string    `json:"status"`
-	Amount      float64   `json:"amount"`
-	DueDate     *string   `json:"due_date"`
-	Vendor      *string   `json:"vendor"`
-	Notes       *string   `json:"notes"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID             string    `json:"id"`
+	PropertyID     string    `json:"property_id"`
+	WorkspaceID    string    `json:"workspace_id"`
+	CostType       string    `json:"cost_type"`
+	Category       *string   `json:"category"`
+	Status         string    `json:"status"`
+	Amount         float64   `json:"amount"`
+	DueDate        *string   `json:"due_date"`
+	Vendor         *string   `json:"vendor"`
+	Notes          *string   `json:"notes"`
+	ScheduleItemID *string   `json:"schedule_item_id"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 type createCostRequest struct {
@@ -122,7 +123,7 @@ func (a *api) handleListCosts(w http.ResponseWriter, r *http.Request, propertyID
 
 	rows, err := a.db.QueryContext(
 		r.Context(),
-		`SELECT id, property_id, workspace_id, cost_type, category, status, amount, due_date, vendor, notes, created_at, updated_at
+		`SELECT id, property_id, workspace_id, cost_type, category, status, amount, due_date, vendor, notes, schedule_item_id, created_at, updated_at
 		 FROM cost_items
 		 WHERE property_id = $1
 		 ORDER BY created_at DESC`,
@@ -140,13 +141,17 @@ func (a *api) handleListCosts(w http.ResponseWriter, r *http.Request, propertyID
 	for rows.Next() {
 		var c costItem
 		var dueDate sql.NullString
-		err := rows.Scan(&c.ID, &c.PropertyID, &c.WorkspaceID, &c.CostType, &c.Category, &c.Status, &c.Amount, &dueDate, &c.Vendor, &c.Notes, &c.CreatedAt, &c.UpdatedAt)
+		var scheduleItemID sql.NullString
+		err := rows.Scan(&c.ID, &c.PropertyID, &c.WorkspaceID, &c.CostType, &c.Category, &c.Status, &c.Amount, &dueDate, &c.Vendor, &c.Notes, &scheduleItemID, &c.CreatedAt, &c.UpdatedAt)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan cost"})
 			return
 		}
 		if dueDate.Valid {
 			c.DueDate = &dueDate.String
+		}
+		if scheduleItemID.Valid {
+			c.ScheduleItemID = &scheduleItemID.String
 		}
 		items = append(items, c)
 
@@ -273,22 +278,29 @@ func (a *api) handleUpdateCost(w http.ResponseWriter, r *http.Request, costID st
 		return
 	}
 
-	// Check access via cost
+	// Check access via cost and check if linked to schedule
 	var workspaceID, propertyID string
+	var scheduleItemID sql.NullString
 	err := a.db.QueryRowContext(
 		r.Context(),
-		`SELECT c.workspace_id, c.property_id
+		`SELECT c.workspace_id, c.property_id, c.schedule_item_id
 		 FROM cost_items c
 		 JOIN workspace_memberships m ON m.workspace_id = c.workspace_id
 		 WHERE c.id = $1 AND m.user_id = $2`,
 		costID, userID,
-	).Scan(&workspaceID, &propertyID)
+	).Scan(&workspaceID, &propertyID, &scheduleItemID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "cost not found"})
 			return
 		}
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check cost"})
+		return
+	}
+
+	// Block editing if linked to schedule
+	if scheduleItemID.Valid {
+		writeError(w, http.StatusForbidden, apiError{Code: "LINKED_TO_SCHEDULE", Message: "Este custo está vinculado ao cronograma. Edite pelo cronograma."})
 		return
 	}
 
@@ -346,22 +358,29 @@ func (a *api) handleDeleteCost(w http.ResponseWriter, r *http.Request, costID st
 		return
 	}
 
-	// Check access via cost
+	// Check access via cost and check if linked to schedule
 	var workspaceID string
+	var scheduleItemID sql.NullString
 	err := a.db.QueryRowContext(
 		r.Context(),
-		`SELECT c.workspace_id
+		`SELECT c.workspace_id, c.schedule_item_id
 		 FROM cost_items c
 		 JOIN workspace_memberships m ON m.workspace_id = c.workspace_id
 		 WHERE c.id = $1 AND m.user_id = $2`,
 		costID, userID,
-	).Scan(&workspaceID)
+	).Scan(&workspaceID, &scheduleItemID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "cost not found"})
 			return
 		}
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check cost"})
+		return
+	}
+
+	// Block deleting if linked to schedule
+	if scheduleItemID.Valid {
+		writeError(w, http.StatusForbidden, apiError{Code: "LINKED_TO_SCHEDULE", Message: "Este custo está vinculado ao cronograma. Delete pelo cronograma."})
 		return
 	}
 

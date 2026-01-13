@@ -423,6 +423,11 @@ function ScheduleItemRow({
               {SCHEDULE_CATEGORY_LABELS[item.category as ScheduleCategory] || item.category}
             </Badge>
           )}
+          {item.linked_cost_id && (
+            <Badge variant="secondary" className="text-xs shrink-0">
+              💰
+            </Badge>
+          )}
         </div>
         {item.notes && (
           <p className="text-xs text-muted-foreground truncate mt-0.5">
@@ -554,6 +559,11 @@ function ScheduleItemForm({
                 allowDecimals
                 decimalPlaces={2}
               />
+              {estimatedCost && estimatedCost > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Custo será criado automaticamente em Custos
+                </p>
+              )}
             </div>
           </div>
           <div className="mt-4 space-y-2">

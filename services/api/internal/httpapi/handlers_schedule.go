@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -42,6 +43,7 @@ type scheduleItem struct {
 	OrderIndex    *int      `json:"order_index"`
 	Category      *string   `json:"category"`
 	EstimatedCost *float64  `json:"estimated_cost"`
+	LinkedCostID  *string   `json:"linked_cost_id"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }
@@ -139,10 +141,11 @@ func (a *api) handleListSchedule(w http.ResponseWriter, r *http.Request, propert
 
 	rows, err := a.db.QueryContext(
 		r.Context(),
-		`SELECT id, property_id, workspace_id, title, planned_date, done_at, notes, order_index, category, estimated_cost, created_at, updated_at
-		 FROM schedule_items
-		 WHERE property_id = $1
-		 ORDER BY done_at NULLS FIRST, planned_date ASC`,
+		`SELECT s.id, s.property_id, s.workspace_id, s.title, s.planned_date, s.done_at, s.notes, s.order_index, s.category, s.estimated_cost, c.id as linked_cost_id, s.created_at, s.updated_at
+		 FROM schedule_items s
+		 LEFT JOIN cost_items c ON c.schedule_item_id = s.id
+		 WHERE s.property_id = $1
+		 ORDER BY s.done_at NULLS FIRST, s.planned_date ASC`,
 		propertyID,
 	)
 	if err != nil {
@@ -164,11 +167,12 @@ func (a *api) handleListSchedule(w http.ResponseWriter, r *http.Request, propert
 		var doneAt sql.NullTime
 		var orderIndex sql.NullInt32
 		var estimatedCost sql.NullFloat64
+		var linkedCostID sql.NullString
 
 		err := rows.Scan(
 			&s.ID, &s.PropertyID, &s.WorkspaceID, &s.Title, &plannedDate,
 			&doneAt, &s.Notes, &orderIndex, &s.Category, &estimatedCost,
-			&s.CreatedAt, &s.UpdatedAt,
+			&linkedCostID, &s.CreatedAt, &s.UpdatedAt,
 		)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan schedule item"})
@@ -188,6 +192,9 @@ func (a *api) handleListSchedule(w http.ResponseWriter, r *http.Request, propert
 		if estimatedCost.Valid {
 			s.EstimatedCost = &estimatedCost.Float64
 			summary.EstimatedTotal += estimatedCost.Float64
+		}
+		if linkedCostID.Valid {
+			s.LinkedCostID = &linkedCostID.String
 		}
 
 		items = append(items, s)
@@ -313,6 +320,27 @@ func (a *api) handleCreateScheduleItem(w http.ResponseWriter, r *http.Request, p
 		s.EstimatedCost = &estimatedCost.Float64
 	}
 
+	// Create linked cost_item if estimated_cost > 0
+	if req.EstimatedCost != nil && *req.EstimatedCost > 0 {
+		var costID string
+		categoryStr := ""
+		if req.Category != nil {
+			categoryStr = *req.Category
+		}
+		notesStr := "Cronograma: " + req.Title
+
+		err = a.db.QueryRowContext(
+			r.Context(),
+			`INSERT INTO cost_items (workspace_id, property_id, schedule_item_id, cost_type, category, status, amount, due_date, notes)
+			 VALUES ($1, $2, $3, 'renovation', $4, 'planned', $5, $6, $7)
+			 RETURNING id`,
+			workspaceID, propertyID, s.ID, categoryStr, *req.EstimatedCost, req.PlannedDate, notesStr,
+		).Scan(&costID)
+		if err == nil {
+			s.LinkedCostID = &costID
+		}
+	}
+
 	// Create timeline event
 	a.createTimelineEvent(r.Context(), propertyID, workspaceID, EventTypeScheduleItemCreated, map[string]any{
 		"schedule_item_id": s.ID,
@@ -423,6 +451,9 @@ func (a *api) handleUpdateScheduleItem(w http.ResponseWriter, r *http.Request, i
 		s.EstimatedCost = &estimatedCost.Float64
 	}
 
+	// Sync linked cost_item
+	s.LinkedCostID = a.syncLinkedCost(r.Context(), itemID, workspaceID, propertyID, s.Title, s.PlannedDate, s.Category, s.EstimatedCost)
+
 	// Determine timeline event type
 	wasCompleted := !prevDoneAt.Valid && doneAt.Valid
 	if wasCompleted {
@@ -514,4 +545,72 @@ func (a *api) handleDeleteScheduleItem(w http.ResponseWriter, r *http.Request, i
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// syncLinkedCost handles the sync between schedule_items and cost_items
+// Returns the linked cost ID (or nil if no cost)
+func (a *api) syncLinkedCost(ctx context.Context, scheduleItemID, workspaceID, propertyID, title, plannedDate string, category *string, estimatedCost *float64) *string {
+	// Check if there's an existing linked cost
+	var existingCostID sql.NullString
+	_ = a.db.QueryRowContext(ctx,
+		`SELECT id FROM cost_items WHERE schedule_item_id = $1`,
+		scheduleItemID,
+	).Scan(&existingCostID)
+
+	// Determine what to do based on estimated_cost
+	hasEstimatedCost := estimatedCost != nil && *estimatedCost > 0
+
+	if hasEstimatedCost && !existingCostID.Valid {
+		// Create new linked cost
+		var costID string
+		categoryStr := ""
+		if category != nil {
+			categoryStr = *category
+		}
+		notesStr := "Cronograma: " + title
+
+		err := a.db.QueryRowContext(ctx,
+			`INSERT INTO cost_items (workspace_id, property_id, schedule_item_id, cost_type, category, status, amount, due_date, notes)
+			 VALUES ($1, $2, $3, 'renovation', $4, 'planned', $5, $6, $7)
+			 RETURNING id`,
+			workspaceID, propertyID, scheduleItemID, categoryStr, *estimatedCost, plannedDate, notesStr,
+		).Scan(&costID)
+		if err == nil {
+			return &costID
+		}
+		return nil
+	}
+
+	if hasEstimatedCost && existingCostID.Valid {
+		// Update existing linked cost
+		categoryStr := ""
+		if category != nil {
+			categoryStr = *category
+		}
+		notesStr := "Cronograma: " + title
+
+		_, _ = a.db.ExecContext(ctx,
+			`UPDATE cost_items SET
+			   amount = $1,
+			   due_date = $2,
+			   category = $3,
+			   notes = $4,
+			   updated_at = now()
+			 WHERE id = $5`,
+			*estimatedCost, plannedDate, categoryStr, notesStr, existingCostID.String,
+		)
+		return &existingCostID.String
+	}
+
+	if !hasEstimatedCost && existingCostID.Valid {
+		// Delete linked cost (estimated_cost removed or set to 0)
+		_, _ = a.db.ExecContext(ctx,
+			`DELETE FROM cost_items WHERE id = $1`,
+			existingCostID.String,
+		)
+		return nil
+	}
+
+	// No estimated_cost and no existing cost - nothing to do
+	return nil
 }

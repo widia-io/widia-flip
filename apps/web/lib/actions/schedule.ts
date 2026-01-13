@@ -43,6 +43,7 @@ export async function createScheduleItemAction(
     );
     revalidatePath(`/app/properties/${propertyId}/schedule`);
     revalidatePath(`/app/properties/${propertyId}/timeline`);
+    revalidatePath(`/app/properties/${propertyId}/costs`);
     return { data: result };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Erro ao criar item";
@@ -68,6 +69,7 @@ export async function updateScheduleItemAction(
     });
     revalidatePath(`/app/properties/${propertyId}/schedule`);
     revalidatePath(`/app/properties/${propertyId}/timeline`);
+    revalidatePath(`/app/properties/${propertyId}/costs`);
     return { data: result };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Erro ao atualizar item";
@@ -89,6 +91,7 @@ export async function deleteScheduleItemAction(itemId: string, propertyId: strin
     await apiFetch(`/api/v1/schedule/${itemId}`, { method: "DELETE" });
     revalidatePath(`/app/properties/${propertyId}/schedule`);
     revalidatePath(`/app/properties/${propertyId}/timeline`);
+    revalidatePath(`/app/properties/${propertyId}/costs`);
     return { success: true };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Erro ao deletar item";

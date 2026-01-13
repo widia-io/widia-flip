@@ -439,6 +439,7 @@ export const CostItemSchema = z.object({
   due_date: z.string().nullable(),
   vendor: z.string().nullable(),
   notes: z.string().nullable(),
+  schedule_item_id: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -511,6 +512,7 @@ export const ScheduleItemSchema = z.object({
   order_index: z.number().nullable(),
   category: z.string().nullable(),
   estimated_cost: z.number().nullable(),
+  linked_cost_id: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
 });

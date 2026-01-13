@@ -236,29 +236,44 @@ export function CostsList({
                     {formatCurrency(cost.amount)}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant={cost.status === "paid" ? "default" : "secondary"}>
-                      {COST_STATUS_LABELS[cost.status]}
-                    </Badge>
+                    <div className="flex flex-col items-center gap-1">
+                      <Badge variant={cost.status === "paid" ? "default" : "secondary"}>
+                        {COST_STATUS_LABELS[cost.status]}
+                      </Badge>
+                      {cost.schedule_item_id && (
+                        <Badge variant="outline" className="text-xs">
+                          📅 Cronograma
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{formatDate(cost.due_date)}</TableCell>
                   <TableCell className="text-muted-foreground">{cost.vendor || "-"}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditingCost(cost)}
-                      className="mr-1"
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(cost.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      Deletar
-                    </Button>
+                    {cost.schedule_item_id ? (
+                      <span className="text-xs text-muted-foreground">
+                        Edite pelo Cronograma
+                      </span>
+                    ) : (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingCost(cost)}
+                          className="mr-1"
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(cost.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          Deletar
+                        </Button>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
