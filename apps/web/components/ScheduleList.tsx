@@ -12,6 +12,7 @@ import {
 } from "@/lib/actions/schedule";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -484,8 +485,8 @@ function ScheduleItemForm({
   const [plannedDate, setPlannedDate] = useState(initialData?.planned_date ?? "");
   const [notes, setNotes] = useState(initialData?.notes ?? "");
   const [category, setCategory] = useState(initialData?.category ?? "");
-  const [estimatedCost, setEstimatedCost] = useState(
-    initialData?.estimated_cost?.toString() ?? ""
+  const [estimatedCost, setEstimatedCost] = useState<number | null>(
+    initialData?.estimated_cost ?? null
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -497,7 +498,7 @@ function ScheduleItemForm({
       planned_date: plannedDate,
       notes: notes.trim() || undefined,
       category: category || undefined,
-      estimated_cost: estimatedCost ? parseFloat(estimatedCost) : undefined,
+      estimated_cost: estimatedCost ?? undefined,
     });
   };
 
@@ -546,13 +547,12 @@ function ScheduleItemForm({
             </div>
             <div className="space-y-2">
               <Label>Custo estimado (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
+              <NumberInput
                 value={estimatedCost}
-                onChange={(e) => setEstimatedCost(e.target.value)}
-                placeholder="0,00"
+                onChange={setEstimatedCost}
+                placeholder="1.500,00"
+                allowDecimals
+                decimalPlaces={2}
               />
             </div>
           </div>
