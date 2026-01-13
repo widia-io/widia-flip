@@ -67,19 +67,20 @@ func transliterateToASCII(s string) string {
 }
 
 type document struct {
-	ID              string    `json:"id"`
-	WorkspaceID     string    `json:"workspace_id"`
-	PropertyID      *string   `json:"property_id"`
-	CostItemID      *string   `json:"cost_item_id"`
-	SupplierID      *string   `json:"supplier_id"`
-	ScheduleItemID  *string   `json:"schedule_item_id"`
-	StorageKey      string    `json:"storage_key"`
-	StorageProvider string    `json:"storage_provider"`
-	Filename        string    `json:"filename"`
-	ContentType     *string   `json:"content_type"`
-	SizeBytes       *int64    `json:"size_bytes"`
-	Tags            []string  `json:"tags"`
-	CreatedAt       time.Time `json:"created_at"`
+	ID                string    `json:"id"`
+	WorkspaceID       string    `json:"workspace_id"`
+	PropertyID        *string   `json:"property_id"`
+	CostItemID        *string   `json:"cost_item_id"`
+	SupplierID        *string   `json:"supplier_id"`
+	ScheduleItemID    *string   `json:"schedule_item_id"`
+	ScheduleItemTitle *string   `json:"schedule_item_title"`
+	StorageKey        string    `json:"storage_key"`
+	StorageProvider   string    `json:"storage_provider"`
+	Filename          string    `json:"filename"`
+	ContentType       *string   `json:"content_type"`
+	SizeBytes         *int64    `json:"size_bytes"`
+	Tags              []string  `json:"tags"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 type getUploadURLRequest struct {
@@ -520,10 +521,12 @@ func (a *api) handleListDocuments(w http.ResponseWriter, r *http.Request, proper
 
 	rows, err := a.db.QueryContext(
 		r.Context(),
-		`SELECT id, workspace_id, property_id, cost_item_id, supplier_id, schedule_item_id, storage_key, storage_provider, filename, content_type, size_bytes, tags, created_at
-		 FROM documents
-		 WHERE property_id = $1
-		 ORDER BY created_at DESC`,
+		`SELECT d.id, d.workspace_id, d.property_id, d.cost_item_id, d.supplier_id, d.schedule_item_id, si.title as schedule_item_title,
+		        d.storage_key, d.storage_provider, d.filename, d.content_type, d.size_bytes, d.tags, d.created_at
+		 FROM documents d
+		 LEFT JOIN schedule_items si ON d.schedule_item_id = si.id
+		 WHERE d.property_id = $1
+		 ORDER BY d.created_at DESC`,
 		propertyID,
 	)
 	if err != nil {
@@ -536,7 +539,8 @@ func (a *api) handleListDocuments(w http.ResponseWriter, r *http.Request, proper
 	for rows.Next() {
 		var doc document
 		var tagsArr pq.StringArray
-		err := rows.Scan(&doc.ID, &doc.WorkspaceID, &doc.PropertyID, &doc.CostItemID, &doc.SupplierID, &doc.ScheduleItemID, &doc.StorageKey, &doc.StorageProvider, &doc.Filename, &doc.ContentType, &doc.SizeBytes, &tagsArr, &doc.CreatedAt)
+		err := rows.Scan(&doc.ID, &doc.WorkspaceID, &doc.PropertyID, &doc.CostItemID, &doc.SupplierID, &doc.ScheduleItemID, &doc.ScheduleItemTitle,
+			&doc.StorageKey, &doc.StorageProvider, &doc.Filename, &doc.ContentType, &doc.SizeBytes, &tagsArr, &doc.CreatedAt)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan document"})
 			return

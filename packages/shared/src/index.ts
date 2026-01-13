@@ -579,6 +579,7 @@ export const DocumentSchema = z.object({
   cost_item_id: z.string().nullable(),
   supplier_id: z.string().nullable(),
   schedule_item_id: z.string().nullable(),
+  schedule_item_title: z.string().nullable(),
   storage_key: z.string(),
   storage_provider: z.string(),
   filename: z.string(),
