@@ -25,9 +25,9 @@ const PLANS: PlanOption[] = [
     name: "Essencial",
     features: [
       "1 projeto",
-      "50 prospects/mes",
-      "5 docs/mes",
-      "5 imports URL/mes",
+      "50 prospects/mês",
+      "5 docs/mês",
+      "5 imports URL/mês",
       "100MB storage",
     ],
   },
@@ -36,9 +36,9 @@ const PLANS: PlanOption[] = [
     name: "Investidor",
     features: [
       "3 projetos",
-      "300 prospects/mes",
-      "50 docs/mes",
-      "50 imports URL/mes",
+      "300 prospects/mês",
+      "50 docs/mês",
+      "50 imports URL/mês",
       "2GB storage",
       "Flip Score v1",
     ],
@@ -49,10 +49,10 @@ const PLANS: PlanOption[] = [
     features: [
       "10 projetos",
       "Prospects ilimitados",
-      "200 docs/mes",
+      "200 docs/mês",
       "Imports URL ilimitados",
       "20GB storage",
-      "Suporte prioritario",
+      "Suporte prioritário",
     ],
   },
 ];
@@ -152,7 +152,7 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
           }
         }
       } catch {
-        setError("Erro ao processar solicitacao");
+        setError("Erro ao processar solicitação");
         setPendingTier(null);
       }
     });
@@ -212,7 +212,7 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
           {showVoucherInput && (
             <div className="flex gap-2 max-w-xs mx-auto">
               <Input
-                placeholder="Digite o codigo"
+                placeholder="Digite o código"
                 value={voucherCode}
                 onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
                 className="text-center uppercase"
@@ -246,7 +246,7 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
                   )}
                 </div>
                 <p className="text-lg font-bold text-primary">
-                  {formatPrice(plan.tier, interval)}/mes
+                  {formatPrice(plan.tier, interval)}/mês
                   {interval === "yearly" && (
                     <span className="text-xs font-normal text-muted-foreground ml-1">
                       (cobrado anualmente)
@@ -294,7 +294,7 @@ export function PlanSelector({ currentTier, hasSubscription }: PlanSelectorProps
 
       {hasSubscription && (
         <p className="text-xs text-muted-foreground text-center">
-          Mudancas de plano sao processadas pelo Stripe. Upgrades sao imediatos, downgrades aplicam no proximo ciclo.
+          Mudanças de plano são processadas pelo Stripe. Upgrades são imediatos, downgrades aplicam no próximo ciclo.
         </p>
       )}
     </div>

@@ -23,7 +23,7 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
   trialing: { label: "Teste gratuito", variant: "secondary" },
   canceled: { label: "Cancelado", variant: "outline" },
   past_due: { label: "Pagamento pendente", variant: "destructive" },
-  unpaid: { label: "Nao pago", variant: "destructive" },
+  unpaid: { label: "Não pago", variant: "destructive" },
   incomplete: { label: "Incompleto", variant: "outline" },
   incomplete_expired: { label: "Expirado", variant: "destructive" },
 };
@@ -45,7 +45,7 @@ export function BillingStatusCard({ entitlements }: BillingStatusCardProps) {
   if (!entitlements) {
     return (
       <div className="text-sm text-muted-foreground">
-        Nao foi possivel carregar informacoes de faturamento.
+        Não foi possível carregar informações de faturamento.
       </div>
     );
   }
@@ -121,7 +121,7 @@ export function BillingStatusCard({ entitlements }: BillingStatusCardProps) {
 
         {billing.current_period_end && billing.status === "active" && (
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Proxima cobranca</span>
+            <span className="text-muted-foreground">Próxima cobrança</span>
             <span>{formatDate(billing.current_period_end)}</span>
           </div>
         )}
@@ -129,7 +129,7 @@ export function BillingStatusCard({ entitlements }: BillingStatusCardProps) {
         {billing.cancel_at_period_end && (
           <div className="flex justify-between text-amber-600 dark:text-amber-400">
             <span>Cancelamento agendado</span>
-            <span>Final do periodo</span>
+            <span>Final do período</span>
           </div>
         )}
       </div>
@@ -158,7 +158,7 @@ export function BillingStatusCard({ entitlements }: BillingStatusCardProps) {
 
       {!billing.stripe_customer_id && billing.status === "trialing" && (
         <p className="text-sm text-muted-foreground">
-          Voce esta no periodo de teste gratuito de 7 dias.
+          Você está no período de teste gratuito de 7 dias.
         </p>
       )}
     </div>

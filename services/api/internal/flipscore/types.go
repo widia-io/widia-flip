@@ -4,15 +4,15 @@ import "time"
 
 // RedFlag represents a risk flag identified by the LLM
 type RedFlag struct {
-	Category   string  `json:"category"` // legal, structural, moisture, condo_rules, security, noise, access, listing_inconsistency
-	Severity   int     `json:"severity"` // 1-5
+	Category   string  `json:"category"`   // legal, structural, moisture, condo_rules, security, noise, access, listing_inconsistency
+	Severity   int     `json:"severity"`   // 1-5
 	Confidence float64 `json:"confidence"` // 0-1
 	Evidence   string  `json:"evidence"`
 }
 
 // FlipRiskAssessment represents the LLM output for risk analysis
 type FlipRiskAssessment struct {
-	RehabLevel      *string   `json:"rehab_level"` // light, medium, heavy, or nil
+	RehabLevel      *string   `json:"rehab_level"`    // light, medium, heavy, or nil
 	LLMConfidence   float64   `json:"llm_confidence"` // 0-1
 	RedFlags        []RedFlag `json:"red_flags"`
 	MissingCritical []string  `json:"missing_critical"`
@@ -20,20 +20,20 @@ type FlipRiskAssessment struct {
 
 // ProspectInputs contains the prospect data needed for score calculation
 type ProspectInputs struct {
-	AskingPrice *float64
-	AreaUsable  *float64
-	CondoFee    *float64
-	IPTU        *float64
-	Bedrooms    *int
-	Parking     *int
-	Elevator    *bool
+	AskingPrice  *float64
+	AreaUsable   *float64
+	CondoFee     *float64
+	IPTU         *float64
+	Bedrooms     *int
+	Parking      *int
+	Elevator     *bool
 	Neighborhood *string
 }
 
 // CohortStats contains statistics about the comparison cohort
 type CohortStats struct {
-	Scope         string  // "neighborhood" or "workspace"
-	N             int     // number of prospects in cohort
+	Scope          string  // "neighborhood" or "workspace"
+	N              int     // number of prospects in cohort
 	PercentileRank float64 // 0-1, where lower = cheaper = better
 }
 
@@ -72,11 +72,11 @@ type Breakdown struct {
 
 // Result is the final output of the flip score calculation
 type Result struct {
-	Score       int       `json:"score"`       // 0-100
-	Version     string    `json:"version"`     // "v0"
-	Confidence  float64   `json:"confidence"`  // 0-1
-	Breakdown   Breakdown `json:"breakdown"`
-	ComputedAt  time.Time `json:"computed_at"`
+	Score      int       `json:"score"`      // 0-100
+	Version    string    `json:"version"`    // "v0"
+	Confidence float64   `json:"confidence"` // 0-1
+	Breakdown  Breakdown `json:"breakdown"`
+	ComputedAt time.Time `json:"computed_at"`
 }
 
 // Version constants

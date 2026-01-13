@@ -11,26 +11,26 @@ import (
 )
 
 type onboardingChecklist struct {
-	CreatedWorkspace      bool `json:"created_workspace"`
-	AddedProspect         bool `json:"added_prospect"`
-	CalculatedScore       bool `json:"calculated_score"`
-	ConvertedToProperty   bool `json:"converted_to_property"`
+	CreatedWorkspace    bool `json:"created_workspace"`
+	AddedProspect       bool `json:"added_prospect"`
+	CalculatedScore     bool `json:"calculated_score"`
+	ConvertedToProperty bool `json:"converted_to_property"`
 }
 
 type userPreferences struct {
-	ID                    string              `json:"id"`
-	UserID                string              `json:"user_id"`
-	OnboardingCompleted   bool                `json:"onboarding_completed"`
-	OnboardingChecklist   onboardingChecklist `json:"onboarding_checklist"`
-	FeatureTourCompleted  bool                `json:"feature_tour_completed"`
-	CreatedAt             time.Time           `json:"created_at"`
-	UpdatedAt             time.Time           `json:"updated_at"`
+	ID                   string              `json:"id"`
+	UserID               string              `json:"user_id"`
+	OnboardingCompleted  bool                `json:"onboarding_completed"`
+	OnboardingChecklist  onboardingChecklist `json:"onboarding_checklist"`
+	FeatureTourCompleted bool                `json:"feature_tour_completed"`
+	CreatedAt            time.Time           `json:"created_at"`
+	UpdatedAt            time.Time           `json:"updated_at"`
 }
 
 type updatePreferencesRequest struct {
-	OnboardingCompleted   *bool                `json:"onboarding_completed,omitempty"`
-	OnboardingChecklist   *onboardingChecklist `json:"onboarding_checklist,omitempty"`
-	FeatureTourCompleted  *bool                `json:"feature_tour_completed,omitempty"`
+	OnboardingCompleted  *bool                `json:"onboarding_completed,omitempty"`
+	OnboardingChecklist  *onboardingChecklist `json:"onboarding_checklist,omitempty"`
+	FeatureTourCompleted *bool                `json:"feature_tour_completed,omitempty"`
 }
 
 func (a *api) handleUserPreferences(w http.ResponseWriter, r *http.Request) {

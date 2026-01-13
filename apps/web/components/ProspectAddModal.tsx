@@ -225,6 +225,11 @@ export function ProspectAddModal({ workspaceId, canAccessFlipScoreV1 = false }: 
       if (formData.other_costs_estimate) fd.set("other_costs_estimate", formData.other_costs_estimate);
     }
 
+    // Track if this was imported via URL
+    if (scrapeSuccess) {
+      fd.set("imported_via_url", "true");
+    }
+
     // Validate at least one field is filled
     const hasValue = Object.entries(formData).some(([key, val]) => {
       if (key === "elevator") return false;

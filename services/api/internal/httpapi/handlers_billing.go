@@ -14,13 +14,13 @@ import (
 
 // Tier limits matching packages/shared TIER_LIMITS
 type tierLimits struct {
-	MaxWorkspaces           int   `json:"max_workspaces"`
-	MaxProspectsPerMonth    int   `json:"max_prospects_per_month"`
-	MaxSnapshotsPerMonth    int   `json:"max_snapshots_per_month"`
-	MaxDocsPerMonth         int   `json:"max_docs_per_month"`
-	MaxURLImportsPerMonth   int   `json:"max_url_imports_per_month"`
-	MaxStorageBytes         int64 `json:"max_storage_bytes"`
-	MaxSuppliers            int   `json:"max_suppliers"` // Total per workspace (not monthly)
+	MaxWorkspaces         int   `json:"max_workspaces"`
+	MaxProspectsPerMonth  int   `json:"max_prospects_per_month"`
+	MaxSnapshotsPerMonth  int   `json:"max_snapshots_per_month"`
+	MaxDocsPerMonth       int   `json:"max_docs_per_month"`
+	MaxURLImportsPerMonth int   `json:"max_url_imports_per_month"`
+	MaxStorageBytes       int64 `json:"max_storage_bytes"`
+	MaxSuppliers          int   `json:"max_suppliers"` // Total per workspace (not monthly)
 }
 
 var tierLimitsMap = map[string]tierLimits{
@@ -47,9 +47,9 @@ var tierLimitsMap = map[string]tierLimits{
 		MaxProspectsPerMonth:  999999, // Unlimited
 		MaxSnapshotsPerMonth:  999999, // Unlimited
 		MaxDocsPerMonth:       200,
-		MaxURLImportsPerMonth: 999999, // Unlimited
+		MaxURLImportsPerMonth: 999999,                  // Unlimited
 		MaxStorageBytes:       20 * 1024 * 1024 * 1024, // 20GB
-		MaxSuppliers:          999999,                   // Unlimited
+		MaxSuppliers:          999999,                  // Unlimited
 	},
 }
 

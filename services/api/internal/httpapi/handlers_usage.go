@@ -22,11 +22,11 @@ type usageMetric struct {
 }
 
 type workspaceUsageResponse struct {
-	WorkspaceID string     `json:"workspace_id"`
-	PeriodStart string     `json:"period_start"`
-	PeriodEnd   string     `json:"period_end"`
-	PeriodType  string     `json:"period_type"` // "stripe_cycle" or "calendar_month"
-	Tier        string     `json:"tier"`
+	WorkspaceID string       `json:"workspace_id"`
+	PeriodStart string       `json:"period_start"`
+	PeriodEnd   string       `json:"period_end"`
+	PeriodType  string       `json:"period_type"` // "stripe_cycle" or "calendar_month"
+	Tier        string       `json:"tier"`
 	Metrics     usageMetrics `json:"metrics"`
 }
 
@@ -77,35 +77,31 @@ func (a *api) getBillingPeriod(ctx context.Context, userID string) (start, end t
 	return start, end, "calendar_month"
 }
 
-// countProspectsInPeriod counts prospects created within the period for a workspace
+// countProspectsCumulative counts all prospects for a workspace (cumulative)
 // Excludes soft-deleted prospects (deleted_at IS NULL)
-func (a *api) countProspectsInPeriod(ctx context.Context, workspaceID string, periodStart, periodEnd time.Time) (int, error) {
+func (a *api) countProspectsCumulative(ctx context.Context, workspaceID string) (int, error) {
 	var count int
 	err := a.db.QueryRowContext(
 		ctx,
 		`SELECT COUNT(*)
 		 FROM prospecting_properties
 		 WHERE workspace_id = $1
-		   AND created_at >= $2
-		   AND created_at < $3
 		   AND deleted_at IS NULL`,
-		workspaceID, periodStart, periodEnd,
+		workspaceID,
 	).Scan(&count)
 	return count, err
 }
 
-// countSnapshotsInPeriod counts cash + financing snapshots created within the period for a workspace
-func (a *api) countSnapshotsInPeriod(ctx context.Context, workspaceID string, periodStart, periodEnd time.Time) (int, error) {
+// countSnapshotsCumulative counts all cash + financing snapshots for a workspace (cumulative)
+func (a *api) countSnapshotsCumulative(ctx context.Context, workspaceID string) (int, error) {
 	var cashCount, financingCount int
 
 	err := a.db.QueryRowContext(
 		ctx,
 		`SELECT COUNT(*)
 		 FROM analysis_cash_snapshots
-		 WHERE workspace_id = $1
-		   AND created_at >= $2
-		   AND created_at < $3`,
-		workspaceID, periodStart, periodEnd,
+		 WHERE workspace_id = $1`,
+		workspaceID,
 	).Scan(&cashCount)
 	if err != nil {
 		return 0, err
@@ -115,10 +111,8 @@ func (a *api) countSnapshotsInPeriod(ctx context.Context, workspaceID string, pe
 		ctx,
 		`SELECT COUNT(*)
 		 FROM analysis_financing_snapshots
-		 WHERE workspace_id = $1
-		   AND created_at >= $2
-		   AND created_at < $3`,
-		workspaceID, periodStart, periodEnd,
+		 WHERE workspace_id = $1`,
+		workspaceID,
 	).Scan(&financingCount)
 	if err != nil {
 		return 0, err
@@ -127,17 +121,15 @@ func (a *api) countSnapshotsInPeriod(ctx context.Context, workspaceID string, pe
 	return cashCount + financingCount, nil
 }
 
-// countDocumentsInPeriod counts documents created within the period for a workspace
-func (a *api) countDocumentsInPeriod(ctx context.Context, workspaceID string, periodStart, periodEnd time.Time) (int, error) {
+// countDocumentsCumulative counts all documents for a workspace (cumulative)
+func (a *api) countDocumentsCumulative(ctx context.Context, workspaceID string) (int, error) {
 	var count int
 	err := a.db.QueryRowContext(
 		ctx,
 		`SELECT COUNT(*)
 		 FROM documents
-		 WHERE workspace_id = $1
-		   AND created_at >= $2
-		   AND created_at < $3`,
-		workspaceID, periodStart, periodEnd,
+		 WHERE workspace_id = $1`,
+		workspaceID,
 	).Scan(&count)
 	return count, err
 }
@@ -170,6 +162,20 @@ func (a *api) getWorkspaceStorageUsed(ctx context.Context, workspaceID string) (
 		workspaceID,
 	).Scan(&storageUsed)
 	return storageUsed, err
+}
+
+// countPropertiesCumulative counts ALL properties (carteira) for a workspace
+// Properties are cumulative - not filtered by billing period
+func (a *api) countPropertiesCumulative(ctx context.Context, workspaceID string) (int, error) {
+	var count int
+	err := a.db.QueryRowContext(
+		ctx,
+		`SELECT COUNT(*)
+		 FROM properties
+		 WHERE workspace_id = $1`,
+		workspaceID,
+	).Scan(&count)
+	return count, err
 }
 
 // buildUsageMetric creates a usageMetric with threshold flags
@@ -235,8 +241,8 @@ type userUsageResponse struct {
 	Metrics     usageMetrics `json:"metrics"`
 }
 
-// countUserProspectsInPeriod counts prospects across ALL user's workspaces
-func (a *api) countUserProspectsInPeriod(ctx context.Context, userID string, periodStart, periodEnd time.Time) (int, error) {
+// countUserProspectsCumulative counts all prospects across ALL user's workspaces (cumulative)
+func (a *api) countUserProspectsCumulative(ctx context.Context, userID string) (int, error) {
 	var count int
 	err := a.db.QueryRowContext(
 		ctx,
@@ -244,16 +250,14 @@ func (a *api) countUserProspectsInPeriod(ctx context.Context, userID string, per
 		 FROM prospecting_properties pp
 		 JOIN workspaces w ON w.id = pp.workspace_id
 		 WHERE w.created_by_user_id = $1
-		   AND pp.created_at >= $2
-		   AND pp.created_at < $3
 		   AND pp.deleted_at IS NULL`,
-		userID, periodStart, periodEnd,
+		userID,
 	).Scan(&count)
 	return count, err
 }
 
-// countUserSnapshotsInPeriod counts snapshots across ALL user's workspaces
-func (a *api) countUserSnapshotsInPeriod(ctx context.Context, userID string, periodStart, periodEnd time.Time) (int, error) {
+// countUserSnapshotsCumulative counts all snapshots across ALL user's workspaces (cumulative)
+func (a *api) countUserSnapshotsCumulative(ctx context.Context, userID string) (int, error) {
 	var cashCount, financingCount int
 
 	err := a.db.QueryRowContext(
@@ -261,10 +265,8 @@ func (a *api) countUserSnapshotsInPeriod(ctx context.Context, userID string, per
 		`SELECT COUNT(*)
 		 FROM analysis_cash_snapshots acs
 		 JOIN workspaces w ON w.id = acs.workspace_id
-		 WHERE w.created_by_user_id = $1
-		   AND acs.created_at >= $2
-		   AND acs.created_at < $3`,
-		userID, periodStart, periodEnd,
+		 WHERE w.created_by_user_id = $1`,
+		userID,
 	).Scan(&cashCount)
 	if err != nil {
 		return 0, err
@@ -275,10 +277,8 @@ func (a *api) countUserSnapshotsInPeriod(ctx context.Context, userID string, per
 		`SELECT COUNT(*)
 		 FROM analysis_financing_snapshots afs
 		 JOIN workspaces w ON w.id = afs.workspace_id
-		 WHERE w.created_by_user_id = $1
-		   AND afs.created_at >= $2
-		   AND afs.created_at < $3`,
-		userID, periodStart, periodEnd,
+		 WHERE w.created_by_user_id = $1`,
+		userID,
 	).Scan(&financingCount)
 	if err != nil {
 		return 0, err
@@ -287,18 +287,16 @@ func (a *api) countUserSnapshotsInPeriod(ctx context.Context, userID string, per
 	return cashCount + financingCount, nil
 }
 
-// countUserDocumentsInPeriod counts documents across ALL user's workspaces
-func (a *api) countUserDocumentsInPeriod(ctx context.Context, userID string, periodStart, periodEnd time.Time) (int, error) {
+// countUserDocumentsCumulative counts all documents across ALL user's workspaces (cumulative)
+func (a *api) countUserDocumentsCumulative(ctx context.Context, userID string) (int, error) {
 	var count int
 	err := a.db.QueryRowContext(
 		ctx,
 		`SELECT COUNT(*)
 		 FROM documents d
 		 JOIN workspaces w ON w.id = d.workspace_id
-		 WHERE w.created_by_user_id = $1
-		   AND d.created_at >= $2
-		   AND d.created_at < $3`,
-		userID, periodStart, periodEnd,
+		 WHERE w.created_by_user_id = $1`,
+		userID,
 	).Scan(&count)
 	return count, err
 }
@@ -334,6 +332,21 @@ func (a *api) getUserTotalStorageUsed(ctx context.Context, userID string) (int64
 	return storageUsed, err
 }
 
+// countUserPropertiesCumulative counts ALL properties (carteira) across user's workspaces
+// Properties are cumulative - not filtered by billing period
+func (a *api) countUserPropertiesCumulative(ctx context.Context, userID string) (int, error) {
+	var count int
+	err := a.db.QueryRowContext(
+		ctx,
+		`SELECT COUNT(*)
+		 FROM properties p
+		 JOIN workspaces w ON w.id = p.workspace_id
+		 WHERE w.created_by_user_id = $1`,
+		userID,
+	).Scan(&count)
+	return count, err
+}
+
 // handleGetUserUsage handles GET /api/v1/billing/me/usage
 // Returns aggregated usage across all user's workspaces
 func (a *api) handleGetUserUsage(w http.ResponseWriter, r *http.Request) {
@@ -367,25 +380,34 @@ func (a *api) handleGetUserUsage(w http.ResponseWriter, r *http.Request) {
 		limits = tierLimitsMap["starter"]
 	}
 
-	// Count aggregated usage across all workspaces
-	prospectsCount, err := a.countUserProspectsInPeriod(r.Context(), userID, periodStart, periodEnd)
+	// Count aggregated usage across all workspaces (cumulative, except URL imports)
+	prospectsCount, err := a.countUserProspectsCumulative(r.Context(), userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count prospects"})
 		return
 	}
 
-	snapshotsCount, err := a.countUserSnapshotsInPeriod(r.Context(), userID, periodStart, periodEnd)
+	propertiesCount, err := a.countUserPropertiesCumulative(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count properties"})
+		return
+	}
+
+	totalImoveis := prospectsCount + propertiesCount
+
+	snapshotsCount, err := a.countUserSnapshotsCumulative(r.Context(), userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count snapshots"})
 		return
 	}
 
-	documentsCount, err := a.countUserDocumentsInPeriod(r.Context(), userID, periodStart, periodEnd)
+	documentsCount, err := a.countUserDocumentsCumulative(r.Context(), userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count documents"})
 		return
 	}
 
+	// URL imports is the only metric that resets per billing cycle
 	urlImportsCount, err := a.countUserURLImportsInPeriod(r.Context(), userID, periodStart, periodEnd)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count url imports"})
@@ -406,7 +428,7 @@ func (a *api) handleGetUserUsage(w http.ResponseWriter, r *http.Request) {
 		PeriodType:  periodType,
 		Tier:        billing.Tier,
 		Metrics: usageMetrics{
-			Prospects:    buildUsageMetric("prospects", prospectsCount, limits.MaxProspectsPerMonth),
+			Prospects:    buildUsageMetric("prospects", totalImoveis, limits.MaxProspectsPerMonth),
 			Snapshots:    buildUsageMetric("snapshots", snapshotsCount, limits.MaxSnapshotsPerMonth),
 			Documents:    buildUsageMetric("documents", documentsCount, limits.MaxDocsPerMonth),
 			URLImports:   buildUsageMetric("url_imports", urlImportsCount, limits.MaxURLImportsPerMonth),
@@ -473,25 +495,34 @@ func (a *api) handleGetWorkspaceUsage(w http.ResponseWriter, r *http.Request, wo
 		limits = tierLimitsMap["starter"]
 	}
 
-	// Count usage for each metric
-	prospectsCount, err := a.countProspectsInPeriod(r.Context(), workspaceID, periodStart, periodEnd)
+	// Count usage for each metric (cumulative, except URL imports)
+	prospectsCount, err := a.countProspectsCumulative(r.Context(), workspaceID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count prospects"})
 		return
 	}
 
-	snapshotsCount, err := a.countSnapshotsInPeriod(r.Context(), workspaceID, periodStart, periodEnd)
+	propertiesCount, err := a.countPropertiesCumulative(r.Context(), workspaceID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count properties"})
+		return
+	}
+
+	totalImoveis := prospectsCount + propertiesCount
+
+	snapshotsCount, err := a.countSnapshotsCumulative(r.Context(), workspaceID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count snapshots"})
 		return
 	}
 
-	documentsCount, err := a.countDocumentsInPeriod(r.Context(), workspaceID, periodStart, periodEnd)
+	documentsCount, err := a.countDocumentsCumulative(r.Context(), workspaceID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count documents"})
 		return
 	}
 
+	// URL imports is the only metric that resets per billing cycle
 	urlImportsCount, err := a.countURLImportsInPeriod(r.Context(), workspaceID, periodStart, periodEnd)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count url imports"})
@@ -505,7 +536,7 @@ func (a *api) handleGetWorkspaceUsage(w http.ResponseWriter, r *http.Request, wo
 	}
 
 	// Build metrics with threshold flags
-	prospectsMetric := buildUsageMetric("prospects", prospectsCount, limits.MaxProspectsPerMonth)
+	prospectsMetric := buildUsageMetric("prospects", totalImoveis, limits.MaxProspectsPerMonth)
 	snapshotsMetric := buildUsageMetric("snapshots", snapshotsCount, limits.MaxSnapshotsPerMonth)
 	documentsMetric := buildUsageMetric("documents", documentsCount, limits.MaxDocsPerMonth)
 	urlImportsMetric := buildUsageMetric("url_imports", urlImportsCount, limits.MaxURLImportsPerMonth)
@@ -514,9 +545,9 @@ func (a *api) handleGetWorkspaceUsage(w http.ResponseWriter, r *http.Request, wo
 	// Log soft limit events (observability)
 	// Note: In production, consider rate-limiting these logs per workspace+period+metric
 	if prospectsMetric.AtOrOver100 {
-		logUsageExceededSoft(requestID, workspaceID, userID, billing.Tier, "prospects", prospectsCount, limits.MaxProspectsPerMonth, periodStart, periodEnd, "100")
+		logUsageExceededSoft(requestID, workspaceID, userID, billing.Tier, "imoveis", totalImoveis, limits.MaxProspectsPerMonth, periodStart, periodEnd, "100")
 	} else if prospectsMetric.At80Percent {
-		logUsageExceededSoft(requestID, workspaceID, userID, billing.Tier, "prospects", prospectsCount, limits.MaxProspectsPerMonth, periodStart, periodEnd, "80")
+		logUsageExceededSoft(requestID, workspaceID, userID, billing.Tier, "imoveis", totalImoveis, limits.MaxProspectsPerMonth, periodStart, periodEnd, "80")
 	}
 
 	if snapshotsMetric.AtOrOver100 {

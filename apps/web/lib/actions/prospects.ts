@@ -77,6 +77,8 @@ export async function createProspectAction(formData: FormData) {
     broker_phone: getString("broker_phone"),
     // Notes
     comments: getString("comments"),
+    // URL import tracking
+    imported_via_url: getBool("imported_via_url"),
   };
 
   const parsed = CreateProspectRequestSchema.safeParse(data);

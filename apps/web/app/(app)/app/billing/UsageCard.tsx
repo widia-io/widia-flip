@@ -1,7 +1,7 @@
 "use client";
 
 import { type UserUsageResponse, type UsageMetric } from "@widia/shared";
-import { Users, Camera, FileText, AlertTriangle, Link2, HardDrive } from "lucide-react";
+import { Home, Camera, FileText, AlertTriangle, Link2, HardDrive } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function formatBytes(bytes: number): string {
@@ -84,14 +84,14 @@ export function UsageCard({ usage }: UsageCardProps) {
   if (!usage) {
     return (
       <div className="text-sm text-muted-foreground">
-        Nao foi possivel carregar dados de uso.
+        Não foi possível carregar dados de uso.
       </div>
     );
   }
 
   const periodLabel = usage.period_type === "stripe_cycle"
-    ? "Ciclo de cobranca Stripe"
-    : "Mes corrente (calendario)";
+    ? "Ciclo de cobrança Stripe"
+    : "Mês corrente (calendário)";
 
   return (
     <div className="space-y-6">
@@ -104,11 +104,16 @@ export function UsageCard({ usage }: UsageCardProps) {
 
       {/* Usage bars */}
       <div className="space-y-5">
-        <UsageBar
-          metric={usage.metrics.prospects}
-          label="Prospects"
-          icon={Users}
-        />
+        <div>
+          <UsageBar
+            metric={usage.metrics.prospects}
+            label="Imóveis"
+            icon={Home}
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Inclui prospecção e imóveis adquiridos
+          </p>
+        </div>
         <UsageBar
           metric={usage.metrics.snapshots}
           label="Snapshots"
@@ -121,7 +126,7 @@ export function UsageCard({ usage }: UsageCardProps) {
         />
         <UsageBar
           metric={usage.metrics.url_imports}
-          label="Importacoes URL"
+          label="Importações URL"
           icon={Link2}
         />
         <UsageBar
@@ -134,7 +139,7 @@ export function UsageCard({ usage }: UsageCardProps) {
 
       {/* Info text */}
       <p className="text-xs text-muted-foreground">
-        Prospects, snapshots, docs e importacoes reiniciam a cada ciclo. Storage e cumulativo.
+        Importações URL reiniciam a cada ciclo. Demais métricas são cumulativas.
       </p>
     </div>
   );
