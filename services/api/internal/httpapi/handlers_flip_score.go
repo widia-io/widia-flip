@@ -22,12 +22,12 @@ type recomputeFlipScoreResponse struct {
 }
 
 type flipScoreProspect struct {
-	ID                   string           `json:"id"`
-	FlipScore            *int             `json:"flip_score"`
-	FlipScoreVersion     *string          `json:"flip_score_version"`
-	FlipScoreConfidence  *float64         `json:"flip_score_confidence"`
-	FlipScoreBreakdown   *json.RawMessage `json:"flip_score_breakdown"`
-	FlipScoreUpdatedAt   *time.Time       `json:"flip_score_updated_at"`
+	ID                  string           `json:"id"`
+	FlipScore           *int             `json:"flip_score"`
+	FlipScoreVersion    *string          `json:"flip_score_version"`
+	FlipScoreConfidence *float64         `json:"flip_score_confidence"`
+	FlipScoreBreakdown  *json.RawMessage `json:"flip_score_breakdown"`
+	FlipScoreUpdatedAt  *time.Time       `json:"flip_score_updated_at"`
 }
 
 func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, prospectID string) {
@@ -224,12 +224,12 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 
 	writeJSON(w, http.StatusOK, recomputeFlipScoreResponse{
 		Prospect: flipScoreProspect{
-			ID:                   prospectID,
-			FlipScore:            &finalScore,
-			FlipScoreVersion:     &scoreVersion,
-			FlipScoreConfidence:  &scoreConfidence,
-			FlipScoreBreakdown:   &breakdownRaw,
-			FlipScoreUpdatedAt:   &computedAt,
+			ID:                  prospectID,
+			FlipScore:           &finalScore,
+			FlipScoreVersion:    &scoreVersion,
+			FlipScoreConfidence: &scoreConfidence,
+			FlipScoreBreakdown:  &breakdownRaw,
+			FlipScoreUpdatedAt:  &computedAt,
 		},
 	})
 }

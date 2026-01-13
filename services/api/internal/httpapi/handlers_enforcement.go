@@ -171,7 +171,7 @@ func (a *api) checkWorkspaceCreationLimit(ctx context.Context, userID string, bi
 	return count < limits.MaxWorkspaces, count, limits.MaxWorkspaces, billing.Tier
 }
 
-// checkProspectCreationLimit checks if workspace can create a new prospect
+// checkProspectCreationLimit checks if workspace can create a new prospect (cumulative)
 func (a *api) checkProspectCreationLimit(ctx context.Context, userID string, workspaceID string, billing userBilling) (bool, int, int, string, time.Time, time.Time) {
 	limits := tierLimitsMap[billing.Tier]
 	if limits.MaxProspectsPerMonth == 0 {
@@ -179,7 +179,7 @@ func (a *api) checkProspectCreationLimit(ctx context.Context, userID string, wor
 	}
 
 	periodStart, periodEnd, _ := a.getBillingPeriod(ctx, userID)
-	count, err := a.countProspectsInPeriod(ctx, workspaceID, periodStart, periodEnd)
+	count, err := a.countProspectsCumulative(ctx, workspaceID)
 	if err != nil {
 		slog.Error("enforcement: failed to count prospects", slog.String("workspace_id", workspaceID), slog.Any("error", err))
 		return true, 0, limits.MaxProspectsPerMonth, billing.Tier, periodStart, periodEnd
@@ -188,7 +188,7 @@ func (a *api) checkProspectCreationLimit(ctx context.Context, userID string, wor
 	return count < limits.MaxProspectsPerMonth, count, limits.MaxProspectsPerMonth, billing.Tier, periodStart, periodEnd
 }
 
-// checkSnapshotCreationLimit checks if workspace can create a new snapshot
+// checkSnapshotCreationLimit checks if workspace can create a new snapshot (cumulative)
 func (a *api) checkSnapshotCreationLimit(ctx context.Context, userID string, workspaceID string, billing userBilling) (bool, int, int, string, time.Time, time.Time) {
 	limits := tierLimitsMap[billing.Tier]
 	if limits.MaxSnapshotsPerMonth == 0 {
@@ -196,7 +196,7 @@ func (a *api) checkSnapshotCreationLimit(ctx context.Context, userID string, wor
 	}
 
 	periodStart, periodEnd, _ := a.getBillingPeriod(ctx, userID)
-	count, err := a.countSnapshotsInPeriod(ctx, workspaceID, periodStart, periodEnd)
+	count, err := a.countSnapshotsCumulative(ctx, workspaceID)
 	if err != nil {
 		slog.Error("enforcement: failed to count snapshots", slog.String("workspace_id", workspaceID), slog.Any("error", err))
 		return true, 0, limits.MaxSnapshotsPerMonth, billing.Tier, periodStart, periodEnd
@@ -205,7 +205,7 @@ func (a *api) checkSnapshotCreationLimit(ctx context.Context, userID string, wor
 	return count < limits.MaxSnapshotsPerMonth, count, limits.MaxSnapshotsPerMonth, billing.Tier, periodStart, periodEnd
 }
 
-// checkDocumentCreationLimit checks if workspace can create a new document
+// checkDocumentCreationLimit checks if workspace can create a new document (cumulative)
 func (a *api) checkDocumentCreationLimit(ctx context.Context, userID string, workspaceID string, billing userBilling) (bool, int, int, string, time.Time, time.Time) {
 	limits := tierLimitsMap[billing.Tier]
 	if limits.MaxDocsPerMonth == 0 {
@@ -213,7 +213,7 @@ func (a *api) checkDocumentCreationLimit(ctx context.Context, userID string, wor
 	}
 
 	periodStart, periodEnd, _ := a.getBillingPeriod(ctx, userID)
-	count, err := a.countDocumentsInPeriod(ctx, workspaceID, periodStart, periodEnd)
+	count, err := a.countDocumentsCumulative(ctx, workspaceID)
 	if err != nil {
 		slog.Error("enforcement: failed to count documents", slog.String("workspace_id", workspaceID), slog.Any("error", err))
 		return true, 0, limits.MaxDocsPerMonth, billing.Tier, periodStart, periodEnd

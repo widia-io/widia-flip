@@ -17,7 +17,7 @@ export function TierLimitsCard({ entitlements }: TierLimitsCardProps) {
   if (!entitlements) {
     return (
       <div className="text-sm text-muted-foreground">
-        Nao foi possivel carregar limites do plano.
+        Não foi possível carregar limites do plano.
       </div>
     );
   }
@@ -35,25 +35,25 @@ export function TierLimitsCard({ entitlements }: TierLimitsCardProps) {
       icon: Users,
       label: "Prospects",
       value: limits.max_prospects_per_month >= 999999 ? "Ilimitado" : limits.max_prospects_per_month,
-      suffix: limits.max_prospects_per_month >= 999999 ? "" : "por mes",
+      suffix: limits.max_prospects_per_month >= 999999 ? "" : "por mês",
     },
     {
       icon: Camera,
       label: "Snapshots",
       value: limits.max_snapshots_per_month >= 999999 ? "Ilimitado" : limits.max_snapshots_per_month,
-      suffix: limits.max_snapshots_per_month >= 999999 ? "" : "por mes",
+      suffix: limits.max_snapshots_per_month >= 999999 ? "" : "por mês",
     },
     {
       icon: FileText,
       label: "Documentos",
       value: limits.max_docs_per_month,
-      suffix: "por mes",
+      suffix: "por mês",
     },
     {
       icon: Link2,
-      label: "Importacoes URL",
+      label: "Importações URL",
       value: limits.max_url_imports_per_month >= 999999 ? "Ilimitado" : limits.max_url_imports_per_month,
-      suffix: limits.max_url_imports_per_month >= 999999 ? "" : "por mes",
+      suffix: limits.max_url_imports_per_month >= 999999 ? "" : "por mês",
     },
     {
       icon: HardDrive,
@@ -84,7 +84,7 @@ export function TierLimitsCard({ entitlements }: TierLimitsCardProps) {
               <p className="text-sm font-medium">{item.label}</p>
               <p className="text-xs text-muted-foreground">
                 {typeof item.value === "number" ? (
-                  <>Ate <span className="font-semibold text-foreground">{item.value}</span> {item.suffix}</>
+                  <>Até <span className="font-semibold text-foreground">{item.value}</span> {item.suffix}</>
                 ) : (
                   <span className="font-semibold text-foreground">{item.value}</span>
                 )}
@@ -96,7 +96,7 @@ export function TierLimitsCard({ entitlements }: TierLimitsCardProps) {
 
       {/* Feature Access */}
       <div className="border-t pt-4">
-        <p className="mb-2 text-sm font-medium">Recursos Avancados</p>
+        <p className="mb-2 text-sm font-medium">Recursos Avançados</p>
         <div className="flex flex-wrap gap-2">
           {features.map((feature) => (
             <span

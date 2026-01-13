@@ -32,43 +32,43 @@ const (
 )
 
 type prospect struct {
-	ID           string    `json:"id"`
-	WorkspaceID  string    `json:"workspace_id"`
-	Status       string    `json:"status"`
-	Link         *string   `json:"link"`
-	Neighborhood *string   `json:"neighborhood"`
-	Address      *string   `json:"address"`
-	AreaUsable   *float64  `json:"area_usable"`
-	Bedrooms     *int      `json:"bedrooms"`
-	Suites       *int      `json:"suites"`
-	Bathrooms    *int      `json:"bathrooms"`
-	Gas          *string   `json:"gas"`
-	Floor        *int      `json:"floor"`
-	Elevator     *bool     `json:"elevator"`
-	Face         *string   `json:"face"`
-	Parking      *int      `json:"parking"`
-	CondoFee     *float64  `json:"condo_fee"`
-	IPTU         *float64  `json:"iptu"`
-	AskingPrice  *float64  `json:"asking_price"`
-	Agency       *string   `json:"agency"`
-	BrokerName   *string   `json:"broker_name"`
-	BrokerPhone  *string   `json:"broker_phone"`
-	Comments     *string   `json:"comments"`
-	Tags         []string  `json:"tags"`
-	PricePerSqm  *float64  `json:"price_per_sqm"`
+	ID           string   `json:"id"`
+	WorkspaceID  string   `json:"workspace_id"`
+	Status       string   `json:"status"`
+	Link         *string  `json:"link"`
+	Neighborhood *string  `json:"neighborhood"`
+	Address      *string  `json:"address"`
+	AreaUsable   *float64 `json:"area_usable"`
+	Bedrooms     *int     `json:"bedrooms"`
+	Suites       *int     `json:"suites"`
+	Bathrooms    *int     `json:"bathrooms"`
+	Gas          *string  `json:"gas"`
+	Floor        *int     `json:"floor"`
+	Elevator     *bool    `json:"elevator"`
+	Face         *string  `json:"face"`
+	Parking      *int     `json:"parking"`
+	CondoFee     *float64 `json:"condo_fee"`
+	IPTU         *float64 `json:"iptu"`
+	AskingPrice  *float64 `json:"asking_price"`
+	Agency       *string  `json:"agency"`
+	BrokerName   *string  `json:"broker_name"`
+	BrokerPhone  *string  `json:"broker_phone"`
+	Comments     *string  `json:"comments"`
+	Tags         []string `json:"tags"`
+	PricePerSqm  *float64 `json:"price_per_sqm"`
 	// M8 - Flip Score fields
-	ListingText          *string          `json:"listing_text,omitempty"`
-	FlipScore            *int             `json:"flip_score,omitempty"`
-	FlipScoreVersion     *string          `json:"flip_score_version,omitempty"`
-	FlipScoreConfidence  *float64         `json:"flip_score_confidence,omitempty"`
-	FlipScoreBreakdown   *json.RawMessage `json:"flip_score_breakdown,omitempty"`
-	FlipScoreUpdatedAt   *time.Time       `json:"flip_score_updated_at,omitempty"`
+	ListingText         *string          `json:"listing_text,omitempty"`
+	FlipScore           *int             `json:"flip_score,omitempty"`
+	FlipScoreVersion    *string          `json:"flip_score_version,omitempty"`
+	FlipScoreConfidence *float64         `json:"flip_score_confidence,omitempty"`
+	FlipScoreBreakdown  *json.RawMessage `json:"flip_score_breakdown,omitempty"`
+	FlipScoreUpdatedAt  *time.Time       `json:"flip_score_updated_at,omitempty"`
 	// M9 - Flip Score v1 inputs
-	OfferPrice             *float64 `json:"offer_price,omitempty"`
-	ExpectedSalePrice      *float64 `json:"expected_sale_price,omitempty"`
-	RenovationCostEstimate *float64 `json:"renovation_cost_estimate,omitempty"`
-	HoldMonths             *int     `json:"hold_months,omitempty"`
-	OtherCostsEstimate     *float64 `json:"other_costs_estimate,omitempty"`
+	OfferPrice             *float64  `json:"offer_price,omitempty"`
+	ExpectedSalePrice      *float64  `json:"expected_sale_price,omitempty"`
+	RenovationCostEstimate *float64  `json:"renovation_cost_estimate,omitempty"`
+	HoldMonths             *int      `json:"hold_months,omitempty"`
+	OtherCostsEstimate     *float64  `json:"other_costs_estimate,omitempty"`
 	CreatedAt              time.Time `json:"created_at"`
 	UpdatedAt              time.Time `json:"updated_at"`
 }
@@ -106,6 +106,8 @@ type createProspectRequest struct {
 	RenovationCostEstimate *float64 `json:"renovation_cost_estimate"`
 	HoldMonths             *int     `json:"hold_months"`
 	OtherCostsEstimate     *float64 `json:"other_costs_estimate"`
+	// URL import tracking
+	ImportedViaURL *bool `json:"imported_via_url"`
 }
 
 type updateProspectRequest struct {
@@ -375,9 +377,10 @@ func (a *api) handleCreateProspect(w http.ResponseWriter, r *http.Request) {
 			(workspace_id, link, neighborhood, address, area_usable, bedrooms, suites, bathrooms,
 			 gas, floor, elevator, face, parking, condo_fee, iptu, asking_price, agency, broker_name, broker_phone,
 			 comments, tags,
-			 offer_price, expected_sale_price, renovation_cost_estimate, hold_months, other_costs_estimate)
+			 offer_price, expected_sale_price, renovation_cost_estimate, hold_months, other_costs_estimate,
+			 imported_via_url)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
-		         $22, $23, $24, $25, $26)
+		         $22, $23, $24, $25, $26, $27)
 		 RETURNING id, workspace_id, status, link, neighborhood, address,
 		           area_usable, bedrooms, suites, bathrooms, gas, floor, elevator, face, parking,
 		           condo_fee, iptu, asking_price, agency, broker_name, broker_phone,
@@ -388,6 +391,7 @@ func (a *api) handleCreateProspect(w http.ResponseWriter, r *http.Request) {
 		req.CondoFee, req.IPTU, req.AskingPrice, req.Agency, req.BrokerName, req.BrokerPhone,
 		req.Comments, pq.Array(req.Tags),
 		req.OfferPrice, req.ExpectedSalePrice, req.RenovationCostEstimate, req.HoldMonths, req.OtherCostsEstimate,
+		req.ImportedViaURL,
 	).Scan(
 		&p.ID, &p.WorkspaceID, &p.Status, &p.Link, &p.Neighborhood, &p.Address,
 		&p.AreaUsable, &p.Bedrooms, &p.Suites, &p.Bathrooms, &p.Gas, &p.Floor, &p.Elevator, &p.Face, &p.Parking,

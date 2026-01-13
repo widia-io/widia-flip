@@ -129,6 +129,8 @@ export const CreateProspectRequestSchema = z.object({
   renovation_cost_estimate: z.number().nonnegative().optional(),
   hold_months: z.number().int().positive().optional(),
   other_costs_estimate: z.number().nonnegative().optional(),
+  // URL import tracking
+  imported_via_url: z.boolean().optional(),
 });
 export type CreateProspectRequest = z.infer<typeof CreateProspectRequestSchema>;
 

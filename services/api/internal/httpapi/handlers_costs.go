@@ -384,5 +384,3 @@ func (a *api) handleDeleteCost(w http.ResponseWriter, r *http.Request, costID st
 
 	w.WriteHeader(http.StatusNoContent)
 }
-
-

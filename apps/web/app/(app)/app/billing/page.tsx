@@ -78,7 +78,7 @@ export default async function UserBillingPage() {
         <CardHeader>
           <CardTitle>Uso neste Ciclo</CardTitle>
           <CardDescription>
-            Consumo de recursos neste periodo
+            Consumo de recursos neste período
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -91,7 +91,7 @@ export default async function UserBillingPage() {
         <CardHeader>
           <CardTitle>Limites do Plano</CardTitle>
           <CardDescription>
-            Recursos disponiveis no seu plano
+            Recursos disponíveis no seu plano
           </CardDescription>
         </CardHeader>
         <CardContent>

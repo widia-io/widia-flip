@@ -134,5 +134,3 @@ func (c *S3Client) DeleteObject(ctx context.Context, key string) error {
 func (c *S3Client) Bucket() string {
 	return c.bucket
 }
-
-
