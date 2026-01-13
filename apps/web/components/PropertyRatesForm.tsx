@@ -10,7 +10,7 @@ import type {
 import { TAX_RATE_PRESETS } from "@widia/shared";
 import { updatePropertyRatesAction } from "@/lib/actions/propertyRates";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { PercentInput } from "@/components/ui/percent-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,21 +101,12 @@ export function PropertyRatesForm({ propertyId, initialRates }: PropertyRatesFor
     }));
   };
 
-  const handleRateChange = (field: RateField, value: string) => {
-    const numValue = value === "" ? null : parseFloat(value) / 100;
-    if (numValue !== null && (numValue < 0 || numValue > 1)) return;
+  const handleRateChange = (field: RateField, value: number | null) => {
+    if (value !== null && (value < 0 || value > 1)) return;
     setCustom((prev) => ({
       ...prev,
-      [field]: numValue,
+      [field]: value,
     }));
-  };
-
-  const getDisplayValue = (field: RateField): string => {
-    const customValue = custom[field];
-    if (customValue !== null) {
-      return (customValue * 100).toFixed(1);
-    }
-    return "";
   };
 
   const getPlaceholder = (field: RateField): string => {
@@ -188,15 +179,12 @@ export function PropertyRatesForm({ propertyId, initialRates }: PropertyRatesFor
                     </Badge>
                   </div>
                   <div className="flex gap-2">
-                    <Input
+                    <PercentInput
                       id={field}
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="100"
-                      value={getDisplayValue(field)}
-                      onChange={(e) => handleRateChange(field, e.target.value)}
+                      value={custom[field]}
+                      onChange={(v) => handleRateChange(field, v)}
                       placeholder={getPlaceholder(field)}
+                      decimalPlaces={1}
                       className={!isCustom(field) ? "text-muted-foreground" : ""}
                     />
                     {isCustom(field) && (

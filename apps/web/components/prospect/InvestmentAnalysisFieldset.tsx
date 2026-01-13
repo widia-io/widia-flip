@@ -5,8 +5,30 @@ import { Lock, TrendingUp, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+
+interface StringNumberInputProps {
+  readonly id?: string;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly placeholder?: string;
+  readonly disabled?: boolean;
+}
+
+function StringNumberInput({ id, value, onChange, placeholder, disabled }: StringNumberInputProps) {
+  const numValue = value === "" ? null : Number.parseFloat(value);
+  return (
+    <NumberInput
+      id={id}
+      value={Number.isNaN(numValue) ? null : numValue}
+      onChange={(v) => onChange(v === null ? "" : v.toString())}
+      placeholder={placeholder}
+      disabled={disabled}
+    />
+  );
+}
 
 interface InvestmentFormData {
   offer_price: string;
@@ -124,14 +146,11 @@ export function InvestmentAnalysisFieldset({
             <Label htmlFor={id("expected_sale_price")}>
               Preco de Venda Esperado (R$)
             </Label>
-            <Input
+            <StringNumberInput
               id={id("expected_sale_price")}
-              type="number"
-              min="0"
-              step="1"
               value={formData.expected_sale_price}
-              onChange={(e) => onChange("expected_sale_price", e.target.value)}
-              placeholder="ARV - After Repair Value"
+              onChange={(v) => onChange("expected_sale_price", v)}
+              placeholder="700.000"
               disabled={disabled}
             />
           </div>
@@ -139,25 +158,20 @@ export function InvestmentAnalysisFieldset({
             <Label htmlFor={id("renovation_cost_estimate")}>
               Custo de Reforma (R$)
             </Label>
-            <Input
+            <StringNumberInput
               id={id("renovation_cost_estimate")}
-              type="number"
-              min="0"
-              step="1"
               value={formData.renovation_cost_estimate}
-              onChange={(e) => onChange("renovation_cost_estimate", e.target.value)}
+              onChange={(v) => onChange("renovation_cost_estimate", v)}
+              placeholder="50.000"
               disabled={disabled}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor={id("hold_months")}>Prazo (meses)</Label>
-            <Input
+            <StringNumberInput
               id={id("hold_months")}
-              type="number"
-              min="1"
-              step="1"
               value={formData.hold_months}
-              onChange={(e) => onChange("hold_months", e.target.value)}
+              onChange={(v) => onChange("hold_months", v)}
               placeholder="6"
               disabled={disabled}
             />
@@ -183,14 +197,11 @@ export function InvestmentAnalysisFieldset({
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor={id("offer_price")}>Valor da Proposta (R$)</Label>
-            <Input
+            <StringNumberInput
               id={id("offer_price")}
-              type="number"
-              min="0"
-              step="1"
               value={formData.offer_price}
-              onChange={(e) => onChange("offer_price", e.target.value)}
-              placeholder="Deixe vazio para usar preco pedido"
+              onChange={(v) => onChange("offer_price", v)}
+              placeholder="500.000"
               disabled={disabled}
             />
           </div>
@@ -198,14 +209,11 @@ export function InvestmentAnalysisFieldset({
             <Label htmlFor={id("other_costs_estimate")}>
               Outros Custos (R$)
             </Label>
-            <Input
+            <StringNumberInput
               id={id("other_costs_estimate")}
-              type="number"
-              min="0"
-              step="1"
               value={formData.other_costs_estimate}
-              onChange={(e) => onChange("other_costs_estimate", e.target.value)}
-              placeholder="Taxas, despesas, etc."
+              onChange={(v) => onChange("other_costs_estimate", v)}
+              placeholder="10.000"
               disabled={disabled}
             />
           </div>

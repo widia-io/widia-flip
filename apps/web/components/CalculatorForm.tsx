@@ -8,7 +8,7 @@ import type { CashOutputs } from "@widia/shared";
 import { CalculatorOutputs } from "@/components/CalculatorOutputs";
 import { AuthModal } from "@/components/AuthModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
@@ -121,11 +121,10 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
     });
   }, [debouncedInputs]);
 
-  const handleInputChange = (field: keyof CalculatorInputs, value: string) => {
-    const numValue = value === "" ? null : Number.parseFloat(value);
+  const handleInputChange = (field: keyof CalculatorInputs, value: number | null) => {
     setInputs((prev) => ({
       ...prev,
-      [field]: numValue,
+      [field]: value,
     }));
   };
 
@@ -201,53 +200,41 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="purchase_price">Preço de Compra (R$) *</Label>
-                <Input
+                <NumberInput
                   id="purchase_price"
-                  type="number"
-                  value={inputs.purchase_price ?? ""}
-                  onChange={(e) =>
-                    handleInputChange("purchase_price", e.target.value)
-                  }
-                  placeholder="500000"
+                  value={inputs.purchase_price}
+                  onChange={(v) => handleInputChange("purchase_price", v)}
+                  placeholder="500.000"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="renovation_cost">Custo de Reforma (R$)</Label>
-                <Input
+                <NumberInput
                   id="renovation_cost"
-                  type="number"
-                  value={inputs.renovation_cost ?? ""}
-                  onChange={(e) =>
-                    handleInputChange("renovation_cost", e.target.value)
-                  }
-                  placeholder="50000"
+                  value={inputs.renovation_cost}
+                  onChange={(v) => handleInputChange("renovation_cost", v)}
+                  placeholder="50.000"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="other_costs">Outros Custos (R$)</Label>
-                <Input
+                <NumberInput
                   id="other_costs"
-                  type="number"
-                  value={inputs.other_costs ?? ""}
-                  onChange={(e) =>
-                    handleInputChange("other_costs", e.target.value)
-                  }
-                  placeholder="10000"
+                  value={inputs.other_costs}
+                  onChange={(v) => handleInputChange("other_costs", v)}
+                  placeholder="10.000"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="sale_price">Preço de Venda (R$) *</Label>
-                <Input
+                <NumberInput
                   id="sale_price"
-                  type="number"
-                  value={inputs.sale_price ?? ""}
-                  onChange={(e) =>
-                    handleInputChange("sale_price", e.target.value)
-                  }
-                  placeholder="700000"
+                  value={inputs.sale_price}
+                  onChange={(v) => handleInputChange("sale_price", v)}
+                  placeholder="700.000"
                 />
               </div>
             </div>

@@ -6,6 +6,7 @@ import type { CostItem, CostType, CostStatus } from "@widia/shared";
 import { createCostAction, updateCostAction, deleteCostAction } from "@/lib/actions/costs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -286,7 +287,7 @@ interface CostFormProps {
 
 function CostForm({ initialData, onSubmit, onCancel, isPending }: CostFormProps) {
   const [costType, setCostType] = useState<CostType>(initialData?.cost_type ?? "renovation");
-  const [amount, setAmount] = useState(initialData?.amount?.toString() ?? "");
+  const [amount, setAmount] = useState<number | null>(initialData?.amount ?? null);
   const [status, setStatus] = useState<CostStatus>(initialData?.status ?? "planned");
   const [category, setCategory] = useState(initialData?.category ?? "");
   const [dueDate, setDueDate] = useState(initialData?.due_date?.split("T")[0] ?? "");
@@ -296,12 +297,11 @@ function CostForm({ initialData, onSubmit, onCancel, isPending }: CostFormProps)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount < 0) return;
+    if (amount === null || amount < 0) return;
 
     onSubmit({
       cost_type: costType,
-      amount: parsedAmount,
+      amount,
       status,
       category: category || undefined,
       due_date: dueDate || undefined,
@@ -332,14 +332,12 @@ function CostForm({ initialData, onSubmit, onCancel, isPending }: CostFormProps)
             </div>
             <div className="space-y-2">
               <Label>Valor (R$) *</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
+              <NumberInput
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0,00"
-                required
+                onChange={setAmount}
+                placeholder="1.500,00"
+                allowDecimals
+                decimalPlaces={2}
               />
             </div>
             <div className="space-y-2">
@@ -413,7 +411,7 @@ function CostForm({ initialData, onSubmit, onCancel, isPending }: CostFormProps)
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isPending || !amount}>
+            <Button type="submit" disabled={isPending || amount === null}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {initialData ? "Atualizar" : "Salvar"}
             </Button>

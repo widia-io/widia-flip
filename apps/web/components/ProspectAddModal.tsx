@@ -10,7 +10,29 @@ import { usePaywall } from "@/components/PaywallModal";
 import { InvestmentAnalysisFieldset } from "@/components/prospect/InvestmentAnalysisFieldset";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
+
+interface StringNumberInputProps {
+  readonly id?: string;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly placeholder?: string;
+  readonly disabled?: boolean;
+}
+
+function StringNumberInput({ id, value, onChange, placeholder, disabled }: StringNumberInputProps) {
+  const numValue = value === "" ? null : Number.parseFloat(value);
+  return (
+    <NumberInput
+      id={id}
+      value={Number.isNaN(numValue) ? null : numValue}
+      onChange={(v) => onChange(v === null ? "" : v.toString())}
+      placeholder={placeholder}
+      disabled={disabled}
+    />
+  );
+}
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -517,40 +539,31 @@ export function ProspectAddModal({ workspaceId, canAccessFlipScoreV1 = false }: 
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="asking_price">Valor Pedido (R$)</Label>
-                <Input
+                <StringNumberInput
                   id="asking_price"
-                  type="number"
-                  min="0"
-                  step="1"
                   value={formData.asking_price}
-                  onChange={(e) => handleChange("asking_price", e.target.value)}
-                  placeholder="500000"
+                  onChange={(v) => handleChange("asking_price", v)}
+                  placeholder="500.000"
                   disabled={isPending}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="condo_fee">Condomínio (R$)</Label>
-                <Input
+                <StringNumberInput
                   id="condo_fee"
-                  type="number"
-                  min="0"
-                  step="1"
                   value={formData.condo_fee}
-                  onChange={(e) => handleChange("condo_fee", e.target.value)}
+                  onChange={(v) => handleChange("condo_fee", v)}
                   placeholder="800"
                   disabled={isPending}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="iptu">IPTU Anual (R$)</Label>
-                <Input
+                <StringNumberInput
                   id="iptu"
-                  type="number"
-                  min="0"
-                  step="1"
                   value={formData.iptu}
-                  onChange={(e) => handleChange("iptu", e.target.value)}
-                  placeholder="1200"
+                  onChange={(v) => handleChange("iptu", v)}
+                  placeholder="1.200"
                   disabled={isPending}
                 />
               </div>
