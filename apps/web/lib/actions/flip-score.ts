@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { apiFetch, EnforcementBlockedError } from "@/lib/apiFetch";
+import { markChecklistStep } from "@/lib/actions/userPreferences";
 import type { RecomputeFlipScoreResponse, EnforcementErrorResponse } from "@widia/shared";
 
 export async function recomputeFlipScoreAction(
@@ -21,6 +22,8 @@ export async function recomputeFlipScoreAction(
     const result = await apiFetch<RecomputeFlipScoreResponse>(url, {
       method: "POST",
     });
+
+    markChecklistStep("calculated_score").catch(() => {});
 
     revalidatePath("/app/prospects");
     return { success: true, data: result };

@@ -10,6 +10,7 @@ import {
 } from "@widia/shared";
 
 import { apiFetch, EnforcementBlockedError } from "@/lib/apiFetch";
+import { markChecklistStep } from "@/lib/actions/userPreferences";
 
 export async function createWorkspaceAction(name: string) {
   const parsed = CreateWorkspaceRequestSchema.safeParse({ name });
@@ -25,6 +26,8 @@ export async function createWorkspaceAction(name: string) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(parsed.data),
     });
+
+    markChecklistStep("created_workspace").catch(() => {});
 
     revalidatePath("/app");
     revalidatePath("/app/workspaces");
