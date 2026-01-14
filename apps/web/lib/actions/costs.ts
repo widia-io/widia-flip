@@ -99,6 +99,25 @@ export async function deleteCostAction(costId: string, propertyId: string) {
   }
 }
 
+// Mark cost as paid (quick action)
+export async function markCostAsPaidAction(propertyId: string, costId: string) {
+  try {
+    const result = await apiFetch<CostItem>(`/api/v1/costs/${costId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "paid" }),
+    });
+
+    revalidatePath(`/app/properties/${propertyId}/costs`);
+    revalidatePath(`/app/properties/${propertyId}/timeline`);
+    revalidatePath(`/app/costs`);
+    return { data: result };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Erro ao marcar como pago";
+    return { error: message };
+  }
+}
+
 // Workspace-level costs (Custos centralizado)
 export async function listWorkspaceCostsAction(workspaceId: string) {
   try {
