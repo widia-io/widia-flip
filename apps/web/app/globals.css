@@ -146,3 +146,132 @@
     color: hsl(var(--destructive));
   }
 }
+
+/* Schedule Calendar styles */
+.schedule-calendar .rbc-calendar {
+  font-family: inherit;
+}
+
+.schedule-calendar .rbc-header {
+  padding: 8px 4px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.schedule-calendar .rbc-month-view {
+  border: none;
+}
+
+.schedule-calendar .rbc-month-row {
+  border: none;
+}
+
+.schedule-calendar .rbc-day-bg {
+  border-left: 1px solid hsl(var(--border));
+}
+
+.schedule-calendar .rbc-day-bg:first-child {
+  border-left: none;
+}
+
+.schedule-calendar .rbc-off-range-bg {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.schedule-calendar .rbc-today {
+  background-color: hsl(var(--accent) / 0.1);
+}
+
+.schedule-calendar .rbc-date-cell {
+  padding: 4px 8px;
+  text-align: right;
+  font-size: 0.875rem;
+}
+
+.schedule-calendar .rbc-date-cell.rbc-now {
+  font-weight: 600;
+  color: hsl(var(--accent));
+}
+
+.schedule-calendar .rbc-event {
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+}
+
+.schedule-calendar .rbc-event:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.schedule-calendar .rbc-event-content {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schedule-calendar .rbc-show-more {
+  color: hsl(var(--primary));
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: transparent;
+  margin-top: 2px;
+}
+
+.schedule-calendar .rbc-toolbar {
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.schedule-calendar .rbc-toolbar button {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  border-radius: 6px;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  transition: all 0.15s;
+}
+
+.schedule-calendar .rbc-toolbar button:hover {
+  background-color: hsl(var(--accent) / 0.1);
+}
+
+.schedule-calendar .rbc-toolbar button.rbc-active {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+.schedule-calendar .rbc-toolbar-label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.schedule-calendar .rbc-agenda-view table {
+  border-collapse: collapse;
+}
+
+.schedule-calendar .rbc-agenda-table thead {
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.schedule-calendar .rbc-agenda-table th,
+.schedule-calendar .rbc-agenda-table td {
+  padding: 8px 12px;
+  border: none;
+}
+
+.schedule-calendar .rbc-agenda-date-cell,
+.schedule-calendar .rbc-agenda-time-cell {
+  white-space: nowrap;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+}
+
+.schedule-calendar .rbc-agenda-event-cell {
+  font-size: 0.875rem;
+}
