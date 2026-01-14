@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   DollarSign,
@@ -11,7 +11,9 @@ import {
   Building2,
   Filter,
   Calendar,
+  Undo2,
 } from "lucide-react";
+import { markCostPaidAction } from "@/lib/actions/costs";
 import type {
   WorkspaceCostItem,
   WorkspaceCostsSummary,
@@ -33,6 +35,7 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -71,13 +74,40 @@ interface WorkspaceCostsDashboardProps {
 }
 
 export function WorkspaceCostsDashboard({
-  items,
-  summary,
+  items: initialItems,
+  summary: initialSummary,
   upcoming,
 }: WorkspaceCostsDashboardProps) {
+  const [items, setItems] = useState(initialItems);
+  const [summary, setSummary] = useState(initialSummary);
   const [filterProperty, setFilterProperty] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [isPending, startTransition] = useTransition();
+
+  const handleMarkPaid = async (cost: WorkspaceCostItem) => {
+    startTransition(async () => {
+      const result = await markCostPaidAction(cost.id, cost.property_id);
+      if (result.data) {
+        const newStatus = result.data.status;
+        const oldStatus = cost.status;
+
+        setItems((prev) =>
+          prev.map((c) => (c.id === cost.id ? { ...c, status: newStatus } : c))
+        );
+
+        setSummary((prev) => {
+          let planned = prev.total_planned;
+          let paid = prev.total_paid;
+          if (oldStatus === "planned") planned -= cost.amount;
+          if (oldStatus === "paid") paid -= cost.amount;
+          if (newStatus === "planned") planned += cost.amount;
+          if (newStatus === "paid") paid += cost.amount;
+          return { ...prev, total_planned: planned, total_paid: paid, total_all: planned + paid };
+        });
+      }
+    });
+  };
 
   const properties = useMemo(() => {
     const map = new Map<string, { id: string; name: string }>();
@@ -426,13 +456,14 @@ export function WorkspaceCostsDashboard({
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                   <TableHead>Vencimento</TableHead>
-                  <TableHead className="pr-6">Fornecedor</TableHead>
+                  <TableHead>Fornecedor</TableHead>
+                  <TableHead className="pr-6 text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
                       Nenhum custo encontrado com os filtros selecionados.
                     </TableCell>
                   </TableRow>
@@ -481,8 +512,32 @@ export function WorkspaceCostsDashboard({
                       <TableCell className="text-muted-foreground">
                         {formatDate(cost.due_date)}
                       </TableCell>
-                      <TableCell className="pr-6 text-muted-foreground">
+                      <TableCell className="text-muted-foreground">
                         {cost.vendor || "—"}
+                      </TableCell>
+                      <TableCell className="pr-6 text-right">
+                        {cost.status === "planned" ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleMarkPaid(cost)}
+                            disabled={isPending}
+                            className="text-primary"
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            Marcar Pago
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleMarkPaid(cost)}
+                            disabled={isPending}
+                          >
+                            <Undo2 className="h-4 w-4 mr-1" />
+                            Desfazer
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))

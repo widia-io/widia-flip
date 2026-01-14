@@ -99,6 +99,24 @@ export async function deleteCostAction(costId: string, propertyId: string) {
   }
 }
 
+// Mark cost as paid (toggle status planned <-> paid)
+// Works for all costs including schedule-linked ones
+export async function markCostPaidAction(costId: string, propertyId: string) {
+  try {
+    const result = await apiFetch<CostItem>(`/api/v1/costs/${costId}/mark-paid`, {
+      method: "PATCH",
+    });
+
+    revalidatePath(`/app/properties/${propertyId}/costs`);
+    revalidatePath(`/app/properties/${propertyId}/timeline`);
+    revalidatePath(`/app/costs`);
+    return { data: result };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Erro ao marcar como pago";
+    return { error: message };
+  }
+}
+
 // Workspace-level costs (Custos centralizado)
 export async function listWorkspaceCostsAction(workspaceId: string) {
   try {
