@@ -109,6 +109,12 @@ func (a *api) handleWorkspacesSubroutes(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Workspace dashboard (aggregated stats)
+	if len(parts) == 2 && parts[1] == "dashboard" {
+		a.handleWorkspaceDashboard(w, r, workspaceID)
+		return
+	}
+
 	w.WriteHeader(http.StatusNotFound)
 }
 

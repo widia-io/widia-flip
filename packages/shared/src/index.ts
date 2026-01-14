@@ -1494,3 +1494,60 @@ export const ListPromotionsResponseSchema = z.object({
   items: z.array(PromotionSchema),
 });
 export type ListPromotionsResponse = z.infer<typeof ListPromotionsResponseSchema>;
+
+// Dashboard
+
+export const PropertyStatsSchema = z.object({
+  total: z.number(),
+  by_status: z.record(z.string(), z.number()),
+});
+export type PropertyStats = z.infer<typeof PropertyStatsSchema>;
+
+export const CostStatsSchema = z.object({
+  total_planned: z.number(),
+  total_paid: z.number(),
+  overdue_count: z.number(),
+  overdue_amount: z.number(),
+  upcoming_7_days: z.number(),
+});
+export type CostStats = z.infer<typeof CostStatsSchema>;
+
+export const ScheduleStatsSchema = z.object({
+  total_items: z.number(),
+  completed_items: z.number(),
+  overdue_items: z.number(),
+  upcoming_7_days: z.number(),
+  progress_percent: z.number(),
+});
+export type ScheduleStats = z.infer<typeof ScheduleStatsSchema>;
+
+export const DashboardTimelineEventSchema = z.object({
+  id: z.string(),
+  property_id: z.string(),
+  property_name: z.string(),
+  event_type: z.string(),
+  payload: z.any().optional(),
+  created_at: z.string(),
+});
+export type DashboardTimelineEvent = z.infer<typeof DashboardTimelineEventSchema>;
+
+export const UpcomingItemSchema = z.object({
+  id: z.string(),
+  type: z.enum(["cost", "schedule"]),
+  property_id: z.string(),
+  property_name: z.string(),
+  title: z.string(),
+  amount: z.number().optional(),
+  due_date: z.string(),
+  days_until: z.number(), // negative = overdue
+});
+export type UpcomingItem = z.infer<typeof UpcomingItemSchema>;
+
+export const DashboardResponseSchema = z.object({
+  properties: PropertyStatsSchema,
+  costs: CostStatsSchema,
+  schedule: ScheduleStatsSchema,
+  upcoming_items: z.array(UpcomingItemSchema),
+  recent_events: z.array(DashboardTimelineEventSchema),
+});
+export type DashboardResponse = z.infer<typeof DashboardResponseSchema>;
