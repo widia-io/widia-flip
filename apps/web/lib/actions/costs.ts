@@ -7,6 +7,7 @@ import {
   UpdateCostRequestSchema,
   type CostItem,
   type ListCostsResponse,
+  type ListWorkspaceCostsResponse,
   type CreateCostRequest,
   type UpdateCostRequest,
 } from "@widia/shared";
@@ -98,4 +99,15 @@ export async function deleteCostAction(costId: string, propertyId: string) {
   }
 }
 
-
+// Workspace-level costs (Custos centralizado)
+export async function listWorkspaceCostsAction(workspaceId: string) {
+  try {
+    const result = await apiFetch<ListWorkspaceCostsResponse>(
+      `/api/v1/workspaces/${workspaceId}/costs`,
+    );
+    return { data: result };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Erro ao listar custos";
+    return { error: message };
+  }
+}
