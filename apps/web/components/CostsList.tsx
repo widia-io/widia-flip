@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, CheckCircle2, Undo2 } from "lucide-react";
 import type { CostItem, CostType, CostStatus } from "@widia/shared";
-import { createCostAction, updateCostAction, deleteCostAction } from "@/lib/actions/costs";
+import { createCostAction, updateCostAction, deleteCostAction, markCostPaidAction } from "@/lib/actions/costs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -155,6 +155,30 @@ export function CostsList({
     });
   };
 
+  const handleMarkPaid = async (costId: string) => {
+    const oldCost = costs.find((c) => c.id === costId);
+    startTransition(async () => {
+      const result = await markCostPaidAction(costId, propertyId);
+      if (result.data) {
+        setCosts((prev) =>
+          prev.map((c) => (c.id === costId ? result.data! : c)),
+        );
+        if (oldCost) {
+          const newCost = result.data;
+          setTotals((prev) => {
+            let planned = prev.planned;
+            let paid = prev.paid;
+            if (oldCost.status === "planned") planned -= oldCost.amount;
+            if (oldCost.status === "paid") paid -= oldCost.amount;
+            if (newCost.status === "planned") planned += newCost.amount;
+            if (newCost.status === "paid") paid += newCost.amount;
+            return { planned, paid };
+          });
+        }
+      }
+    });
+  };
+
   return (
     <div className="space-y-4">
       {/* Summary */}
@@ -251,9 +275,30 @@ export function CostsList({
                   <TableCell className="text-muted-foreground">{cost.vendor || "-"}</TableCell>
                   <TableCell className="text-right">
                     {cost.schedule_item_id ? (
-                      <span className="text-xs text-muted-foreground">
-                        Edite pelo Cronograma
-                      </span>
+                      <div className="flex items-center justify-end gap-2">
+                        {cost.status === "planned" ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleMarkPaid(cost.id)}
+                            disabled={isPending}
+                            className="text-primary"
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            Marcar Pago
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleMarkPaid(cost.id)}
+                            disabled={isPending}
+                          >
+                            <Undo2 className="h-4 w-4 mr-1" />
+                            Desfazer
+                          </Button>
+                        )}
+                      </div>
                     ) : (
                       <>
                         <Button

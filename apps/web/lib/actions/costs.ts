@@ -99,13 +99,12 @@ export async function deleteCostAction(costId: string, propertyId: string) {
   }
 }
 
-// Mark cost as paid (quick action)
-export async function markCostAsPaidAction(propertyId: string, costId: string) {
+// Mark cost as paid (toggle status planned <-> paid)
+// Works for all costs including schedule-linked ones
+export async function markCostPaidAction(costId: string, propertyId: string) {
   try {
-    const result = await apiFetch<CostItem>(`/api/v1/costs/${costId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "paid" }),
+    const result = await apiFetch<CostItem>(`/api/v1/costs/${costId}/mark-paid`, {
+      method: "PATCH",
     });
 
     revalidatePath(`/app/properties/${propertyId}/costs`);

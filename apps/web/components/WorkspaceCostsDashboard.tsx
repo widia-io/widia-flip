@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   DollarSign,
@@ -14,7 +14,9 @@ import {
   X,
   AlertCircle,
   ArrowUpRight,
+  Undo2,
 } from "lucide-react";
+import { markCostPaidAction } from "@/lib/actions/costs";
 import type {
   WorkspaceCostItem,
   WorkspaceCostsSummary,
@@ -76,14 +78,40 @@ interface WorkspaceCostsDashboardProps {
 }
 
 export function WorkspaceCostsDashboard({
-  items,
-  summary,
+  items: initialItems,
+  summary: initialSummary,
   upcoming,
 }: WorkspaceCostsDashboardProps) {
+  const [items, setItems] = useState(initialItems);
+  const [summary, setSummary] = useState(initialSummary);
   const [filterProperty, setFilterProperty] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [markingAsPaid, setMarkingAsPaid] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const handleMarkPaid = async (cost: WorkspaceCostItem) => {
+    startTransition(async () => {
+      const result = await markCostPaidAction(cost.id, cost.property_id);
+      if (result.data) {
+        const newStatus = result.data.status;
+        const oldStatus = cost.status;
+
+        setItems((prev) =>
+          prev.map((c) => (c.id === cost.id ? { ...c, status: newStatus } : c))
+        );
+
+        setSummary((prev) => {
+          let planned = prev.total_planned;
+          let paid = prev.total_paid;
+          if (oldStatus === "planned") planned -= cost.amount;
+          if (oldStatus === "paid") paid -= cost.amount;
+          if (newStatus === "planned") planned += cost.amount;
+          if (newStatus === "paid") paid += cost.amount;
+          return { ...prev, total_planned: planned, total_paid: paid, total_all: planned + paid };
+        });
+      }
+    });
+  };
 
   const properties = useMemo(() => {
     const map = new Map<string, { id: string; name: string }>();
@@ -847,104 +875,91 @@ export function WorkspaceCostsDashboard({
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                   <TableHead>Vencimento</TableHead>
-                  <TableHead className="pr-6">Acao</TableHead>
+                  <TableHead>Fornecedor</TableHead>
+                  <TableHead className="pr-6 text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
                       Nenhum custo encontrado com os filtros selecionados.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredItems.map((cost) => {
-                    const daysInfo = getDaysInfo(cost);
-                    return (
-                      <TableRow key={cost.id} className="group">
-                        <TableCell className="pl-6">
-                          <Link
-                            href={`/app/properties/${cost.property_id}/costs`}
-                            className="font-medium text-foreground hover:text-primary hover:underline underline-offset-4 transition-colors"
-                          >
-                            {cost.property_name.length > 30
-                              ? cost.property_name.substring(0, 30) + "..."
-                              : cost.property_name}
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
+                  filteredItems.map((cost) => (
+                    <TableRow key={cost.id} className="group">
+                      <TableCell className="pl-6">
+                        <Link
+                          href={`/app/properties/${cost.property_id}/costs`}
+                          className="font-medium text-foreground hover:text-primary hover:underline underline-offset-4 transition-colors"
+                        >
+                          {cost.property_name.length > 30
+                            ? cost.property_name.substring(0, 30) + "..."
+                            : cost.property_name}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className="font-normal"
+                          style={{
+                            borderColor: COST_TYPE_COLORS[cost.cost_type] + "40",
+                            color: COST_TYPE_COLORS[cost.cost_type],
+                          }}
+                        >
+                          {COST_TYPE_LABELS[cost.cost_type]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {cost.category || "—"}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-medium">
+                        {formatCurrency(cost.amount)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant={cost.status === "paid" ? "default" : "secondary"}
+                          className={cost.status === "paid"
+                            ? "bg-primary/10 text-primary hover:bg-primary/20 border-0"
+                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border-0"
+                          }
+                        >
+                          {cost.status === "paid" ? "Pago" : "Planejado"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(cost.due_date)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {cost.vendor || "—"}
+                      </TableCell>
+                      <TableCell className="pr-6 text-right">
+                        {cost.status === "planned" ? (
+                          <Button
                             variant="outline"
-                            className="font-normal"
-                            style={{
-                              borderColor: COST_TYPE_COLORS[cost.cost_type] + "40",
-                              color: COST_TYPE_COLORS[cost.cost_type],
-                            }}
+                            size="sm"
+                            onClick={() => handleMarkPaid(cost)}
+                            disabled={isPending}
+                            className="text-primary"
                           >
-                            {COST_TYPE_LABELS[cost.cost_type]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {cost.category || "—"}
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-medium">
-                          {formatCurrency(cost.amount)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <Badge
-                              variant={cost.status === "paid" ? "default" : "secondary"}
-                              className={cost.status === "paid"
-                                ? "bg-green-500/10 text-green-600 hover:bg-green-500/20 border-0"
-                                : daysInfo?.isOverdue
-                                ? "bg-destructive/10 text-destructive hover:bg-destructive/20 border-0"
-                                : daysInfo?.isUrgent
-                                ? "bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 border-0"
-                                : "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-0"
-                              }
-                            >
-                              {cost.status === "paid" ? "Pago" : "Planejado"}
-                            </Badge>
-                            {daysInfo && (
-                              <span className={`text-xs ${daysInfo.isOverdue ? "text-destructive" : daysInfo.isUrgent ? "text-yellow-600" : "text-muted-foreground"}`}>
-                                {daysInfo.label}
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(cost.due_date)}
-                        </TableCell>
-                        <TableCell className="pr-6">
-                          {cost.status === "planned" && !cost.schedule_item_id ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 px-2 text-xs text-muted-foreground hover:text-green-600"
-                              onClick={() => handleMarkAsPaid(cost)}
-                              disabled={markingAsPaid === cost.id}
-                            >
-                              {markingAsPaid === cost.id ? (
-                                <span className="animate-pulse">...</span>
-                              ) : (
-                                <>
-                                  <CheckCircle2 className="h-4 w-4 mr-1" />
-                                  Pagar
-                                </>
-                              )}
-                            </Button>
-                          ) : cost.schedule_item_id ? (
-                            <span className="text-xs text-muted-foreground">via cronograma</span>
-                          ) : (
-                            <span className="text-xs text-green-600">
-                              <CheckCircle2 className="h-4 w-4 inline mr-1" />
-                              Pago
-                            </span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            Marcar Pago
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleMarkPaid(cost)}
+                            disabled={isPending}
+                          >
+                            <Undo2 className="h-4 w-4 mr-1" />
+                            Desfazer
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>
