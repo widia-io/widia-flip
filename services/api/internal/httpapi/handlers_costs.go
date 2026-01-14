@@ -12,8 +12,9 @@ import (
 
 // Timeline event types for costs
 const (
-	EventTypeCostAdded   = "cost_added"
-	EventTypeCostUpdated = "cost_updated"
+	EventTypeCostAdded      = "cost_added"
+	EventTypeCostUpdated    = "cost_updated"
+	EventTypeCostMarkedPaid = "cost_marked_paid"
 )
 
 // Valid cost types and statuses
@@ -76,15 +77,32 @@ func (a *api) handlePropertyCosts(w http.ResponseWriter, r *http.Request, proper
 	}
 }
 
-// handleCostsSubroutes routes /api/v1/costs/:costId
+// handleCostsSubroutes routes /api/v1/costs/:costId and /api/v1/costs/:costId/mark-paid
 func (a *api) handleCostsSubroutes(w http.ResponseWriter, r *http.Request) {
 	rest := strings.TrimPrefix(r.URL.Path, "/api/v1/costs/")
-	costID := strings.TrimSpace(rest)
-	if costID == "" {
+	rest = strings.TrimSpace(rest)
+	if rest == "" {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
+	// Handle /api/v1/costs/:costId/mark-paid
+	if strings.HasSuffix(rest, "/mark-paid") {
+		costID := strings.TrimSuffix(rest, "/mark-paid")
+		if costID == "" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if r.Method == http.MethodPatch {
+			a.handleMarkCostPaid(w, r, costID)
+			return
+		}
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Handle /api/v1/costs/:costId
+	costID := rest
 	switch r.Method {
 	case http.MethodPut:
 		a.handleUpdateCost(w, r, costID)
@@ -402,6 +420,73 @@ func (a *api) handleDeleteCost(w http.ResponseWriter, r *http.Request, costID st
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleMarkCostPaid toggles cost status between planned and paid
+// Works for all costs including schedule-linked ones
+func (a *api) handleMarkCostPaid(w http.ResponseWriter, r *http.Request, costID string) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	// Check access and get current status
+	var workspaceID, propertyID, currentStatus string
+	err := a.db.QueryRowContext(
+		r.Context(),
+		`SELECT c.workspace_id, c.property_id, c.status
+		 FROM cost_items c
+		 JOIN workspace_memberships m ON m.workspace_id = c.workspace_id
+		 WHERE c.id = $1 AND m.user_id = $2`,
+		costID, userID,
+	).Scan(&workspaceID, &propertyID, &currentStatus)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "cost not found"})
+			return
+		}
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check cost"})
+		return
+	}
+
+	// Toggle status
+	newStatus := "paid"
+	if currentStatus == "paid" {
+		newStatus = "planned"
+	}
+
+	// Update cost status
+	var c costItem
+	var dueDate, scheduleItemID sql.NullString
+	err = a.db.QueryRowContext(
+		r.Context(),
+		`UPDATE cost_items SET status = $1, updated_at = now()
+		 WHERE id = $2
+		 RETURNING id, property_id, workspace_id, cost_type, category, status, amount, due_date, vendor, notes, schedule_item_id, created_at, updated_at`,
+		newStatus, costID,
+	).Scan(&c.ID, &c.PropertyID, &c.WorkspaceID, &c.CostType, &c.Category, &c.Status, &c.Amount, &dueDate, &c.Vendor, &c.Notes, &scheduleItemID, &c.CreatedAt, &c.UpdatedAt)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to update cost status", Details: []string{err.Error()}})
+		return
+	}
+	if dueDate.Valid {
+		c.DueDate = &dueDate.String
+	}
+	if scheduleItemID.Valid {
+		c.ScheduleItemID = &scheduleItemID.String
+	}
+
+	// Create timeline event
+	a.createTimelineEvent(r.Context(), propertyID, workspaceID, EventTypeCostMarkedPaid, map[string]any{
+		"cost_id":     c.ID,
+		"old_status":  currentStatus,
+		"new_status":  newStatus,
+		"amount":      c.Amount,
+		"is_schedule": scheduleItemID.Valid,
+	}, userID)
+
+	writeJSON(w, http.StatusOK, c)
 }
 
 // ========== Workspace-level costs (Custos centralizado) ==========
