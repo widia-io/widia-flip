@@ -2,7 +2,24 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition, useMemo, useEffect } from "react";
-import { Loader2, Search, Filter, X, ArrowUpDown, HelpCircle, ChevronDown, ChevronUp, SlidersHorizontal, Lightbulb, LayoutGrid, TableIcon } from "lucide-react";
+import {
+  Loader2,
+  Search,
+  Filter,
+  X,
+  ArrowUpDown,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal,
+  Lightbulb,
+  LayoutGrid,
+  TableIcon,
+  Users,
+  Zap,
+  Target,
+  ArrowRightCircle,
+} from "lucide-react";
 
 import type { Prospect } from "@widia/shared";
 
@@ -13,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -46,6 +64,12 @@ const statusLabels: Record<string, string> = {
   active: "Ativos",
   discarded: "Descartados",
   converted: "Convertidos",
+};
+
+const PROSPECT_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  active: { label: "Ativos", color: "bg-green-500" },
+  discarded: { label: "Descartados", color: "bg-slate-400" },
+  converted: { label: "Convertidos", color: "bg-blue-500" },
 };
 
 export function ProspectGrid({
@@ -157,6 +181,35 @@ export function ProspectGrid({
     return sorted;
   }, [prospects, sortBy]);
 
+  // KPI metrics computation
+  const metrics = useMemo(() => {
+    const total = prospects.length;
+    const active = prospects.filter((p) => p.status === "active").length;
+    const converted = prospects.filter((p) => p.status === "converted").length;
+    const withScore = prospects.filter((p) => p.flip_score != null);
+    const avgScore =
+      withScore.length > 0
+        ? withScore.reduce((sum, p) => sum + (p.flip_score ?? 0), 0) / withScore.length
+        : null;
+    const conversionRate = total > 0 ? (converted / total) * 100 : 0;
+    return { total, active, converted, avgScore, conversionRate, withScoreCount: withScore.length };
+  }, [prospects]);
+
+  // Pipeline data for status visualization
+  const pipelineData = useMemo(() => {
+    const total = prospects.length;
+    return (["active", "discarded", "converted"] as const).map((status) => {
+      const count = prospects.filter((p) => p.status === status).length;
+      return {
+        status,
+        label: PROSPECT_STATUS_CONFIG[status].label,
+        color: PROSPECT_STATUS_CONFIG[status].color,
+        count,
+        percentage: total > 0 ? (count / total) * 100 : 0,
+      };
+    });
+  }, [prospects]);
+
   // Filter controls component (used in both desktop and mobile)
   const FilterControls = ({ inSheet = false }: { inSheet?: boolean }) => (
     <div className={inSheet ? "space-y-4" : "flex flex-wrap items-center gap-3"}>
@@ -168,7 +221,10 @@ export function ProspectGrid({
           onValueChange={handleFilterChange}
           disabled={isPending}
         >
-          <SelectTrigger className={inSheet ? "w-full" : "w-[160px]"} aria-label="Filtrar por status">
+          <SelectTrigger
+            className={`${inSheet ? "w-full" : "w-[160px]"} ${localStatus !== "all" ? "border-primary" : ""}`}
+            aria-label="Filtrar por status"
+          >
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -273,6 +329,129 @@ export function ProspectGrid({
         </Collapsible>
       </div>
 
+      {/* KPI Cards + Pipeline */}
+      {prospects.length > 0 && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* KPI Cards */}
+          <div className="grid gap-4 grid-cols-2">
+            {/* Total Leads */}
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
+                    <Users className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Total Leads
+                    </p>
+                    <p className="text-3xl font-bold tabular-nums">{metrics.total}</p>
+                  </div>
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">em prospecao</p>
+              </CardContent>
+            </Card>
+
+            {/* Active Leads */}
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-500/10">
+                    <Zap className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Ativos
+                    </p>
+                    <p className="text-3xl font-bold tabular-nums text-green-600">{metrics.active}</p>
+                  </div>
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {metrics.total > 0 ? `${((metrics.active / metrics.total) * 100).toFixed(0)}% do total` : "—"}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Avg Flip Score */}
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10">
+                    <Target className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Flip Score
+                    </p>
+                    <p className="text-3xl font-bold tabular-nums text-purple-600">
+                      {metrics.avgScore != null ? metrics.avgScore.toFixed(0) : "—"}
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {metrics.withScoreCount > 0 ? `media de ${metrics.withScoreCount} leads` : "sem scores"}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Conversion Rate */}
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
+                    <ArrowRightCircle className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Conversao
+                    </p>
+                    <p className="text-3xl font-bold tabular-nums text-amber-600">
+                      {metrics.conversionRate.toFixed(0)}%
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {metrics.converted} convertido{metrics.converted !== 1 ? "s" : ""}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Pipeline */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium">Pipeline de Leads</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {pipelineData.map((item) => (
+                <button
+                  key={item.status}
+                  onClick={() => handleFilterChange(item.status)}
+                  className="block w-full group text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-24 flex-shrink-0">
+                      <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                        {item.label}
+                      </span>
+                    </div>
+                    <div className="flex-1 h-6 bg-muted/50 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all group-hover:opacity-80 ${item.color}`}
+                        style={{ width: `${Math.max(item.percentage, item.count > 0 ? 10 : 0)}%` }}
+                      />
+                    </div>
+                    <div className="w-8 text-right">
+                      <span className="text-sm font-medium tabular-nums">{item.count}</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* View Switcher Tabs (Desktop only) */}
       <div className="hidden lg:block">
         <Tabs value={view} onValueChange={(v) => setView(v as "board" | "table")}>
@@ -331,6 +510,17 @@ export function ProspectGrid({
         {/* Desktop: Full filters bar */}
         <div className="hidden lg:flex lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
+            {activeFiltersCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllFilters}
+                className="h-9 px-2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Limpar ({activeFiltersCount})
+              </Button>
+            )}
             <FilterControls />
 
             <form onSubmit={handleSearchSubmit} className="flex gap-2">
