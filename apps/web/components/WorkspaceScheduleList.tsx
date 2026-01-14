@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Building2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Building2, CheckCircle2, AlertCircle, Clock, List, CalendarDays } from "lucide-react";
 import type { WorkspaceScheduleItem, ScheduleSummary, ScheduleCategory } from "@widia/shared";
 import { SCHEDULE_CATEGORY_LABELS } from "@widia/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { WorkspaceScheduleCalendar } from "@/components/WorkspaceScheduleCalendar";
 
 function formatCurrency(value: number | null): string {
   if (value === null) return "-";
@@ -54,6 +56,8 @@ interface GroupedByProperty {
 }
 
 export function WorkspaceScheduleList({ items, summary }: WorkspaceScheduleListProps) {
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+
   const grouped = useMemo(() => {
     const map = new Map<string, GroupedByProperty>();
 
@@ -100,26 +104,36 @@ export function WorkspaceScheduleList({ items, summary }: WorkspaceScheduleListP
       {/* Summary */}
       <Card>
         <CardContent className="py-4">
-          <div className="flex flex-wrap items-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Total:</span>
-              <span className="font-medium">{summary.total_items}</span>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Total:</span>
+                <span className="font-medium">{summary.total_items}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <span className="text-muted-foreground">Concluídos:</span>
+                <span className="font-medium text-primary">{summary.completed_items}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+                <span className="text-muted-foreground">Atrasados:</span>
+                <span className="font-medium text-destructive">{summary.overdue_items}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Custo estimado:</span>
+                <span className="font-medium">{formatCurrency(summary.estimated_total)}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              <span className="text-muted-foreground">Concluídos:</span>
-              <span className="font-medium text-primary">{summary.completed_items}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-destructive" />
-              <span className="text-muted-foreground">Atrasados:</span>
-              <span className="font-medium text-destructive">{summary.overdue_items}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Custo estimado:</span>
-              <span className="font-medium">{formatCurrency(summary.estimated_total)}</span>
-            </div>
+            <ToggleGroup type="single" value={viewMode} onValueChange={(v: string) => v && setViewMode(v as "list" | "calendar")}>
+              <ToggleGroupItem value="list" aria-label="Ver como lista" size="sm">
+                <List className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="calendar" aria-label="Ver como calendário" size="sm">
+                <CalendarDays className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
           <div className="mt-3">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
@@ -131,8 +145,13 @@ export function WorkspaceScheduleList({ items, summary }: WorkspaceScheduleListP
         </CardContent>
       </Card>
 
-      {/* Grouped by property */}
-      {grouped.map((group) => (
+      {/* Calendar View */}
+      {viewMode === "calendar" && (
+        <WorkspaceScheduleCalendar items={items} />
+      )}
+
+      {/* List View - Grouped by property */}
+      {viewMode === "list" && grouped.map((group) => (
         <Card key={group.propertyId}>
           <CardHeader className="pb-2">
             <div className="flex items-start justify-between">
