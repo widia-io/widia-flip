@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Building2, FileText, ImageIcon, FileSpreadsheet, File } from "lucide-react";
+import { Building2, FileText, ImageIcon, FileSpreadsheet, File, List, CalendarDays } from "lucide-react";
 import type { WorkspaceDocumentItem } from "@widia/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { DocumentsCalendar } from "@/components/DocumentsCalendar";
 
 function formatFileSize(bytes: number | null): string {
   if (!bytes) return "-";
@@ -56,6 +58,8 @@ interface GroupedByProperty {
 }
 
 export function WorkspaceDocumentList({ items }: WorkspaceDocumentListProps) {
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+
   const grouped = useMemo(() => {
     const map = new Map<string, GroupedByProperty>();
 
@@ -98,27 +102,42 @@ export function WorkspaceDocumentList({ items }: WorkspaceDocumentListProps) {
       {/* Summary */}
       <Card>
         <CardContent className="py-4">
-          <div className="flex flex-wrap items-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Total:</span>
-              <span className="font-medium">{totalDocs} documento{totalDocs !== 1 ? "s" : ""}</span>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Total:</span>
+                <span className="font-medium">{totalDocs} documento{totalDocs !== 1 ? "s" : ""}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Tamanho:</span>
+                <span className="font-medium">{formatFileSize(totalSize)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Imóveis:</span>
+                <span className="font-medium">{grouped.length}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Tamanho:</span>
-              <span className="font-medium">{formatFileSize(totalSize)}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Imóveis:</span>
-              <span className="font-medium">{grouped.length}</span>
-            </div>
+            <ToggleGroup type="single" value={viewMode} onValueChange={(v: string) => v && setViewMode(v as "list" | "calendar")}>
+              <ToggleGroupItem value="list" aria-label="Ver como lista" size="sm">
+                <List className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="calendar" aria-label="Ver como calendário" size="sm">
+                <CalendarDays className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
         </CardContent>
       </Card>
 
-      {/* Grouped by property */}
-      {grouped.map((group) => (
+      {/* Calendar View */}
+      {viewMode === "calendar" && (
+        <DocumentsCalendar items={items} />
+      )}
+
+      {/* List View - Grouped by property */}
+      {viewMode === "list" && grouped.map((group) => (
         <Card key={group.propertyId}>
           <CardHeader className="pb-2">
             <div className="flex items-start justify-between">
