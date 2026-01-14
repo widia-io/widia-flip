@@ -103,6 +103,12 @@ func (a *api) handleWorkspacesSubroutes(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Workspace-level costs (Custos centralizado)
+	if len(parts) == 2 && parts[1] == "costs" {
+		a.handleWorkspaceCosts(w, r, workspaceID)
+		return
+	}
+
 	w.WriteHeader(http.StatusNotFound)
 }
 

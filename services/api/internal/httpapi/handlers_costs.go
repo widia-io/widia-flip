@@ -403,3 +403,230 @@ func (a *api) handleDeleteCost(w http.ResponseWriter, r *http.Request, costID st
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// ========== Workspace-level costs (Custos centralizado) ==========
+
+type workspaceCostItem struct {
+	ID              string    `json:"id"`
+	PropertyID      string    `json:"property_id"`
+	WorkspaceID     string    `json:"workspace_id"`
+	CostType        string    `json:"cost_type"`
+	Category        *string   `json:"category"`
+	Status          string    `json:"status"`
+	Amount          float64   `json:"amount"`
+	DueDate         *string   `json:"due_date"`
+	Vendor          *string   `json:"vendor"`
+	Notes           *string   `json:"notes"`
+	ScheduleItemID  *string   `json:"schedule_item_id"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	PropertyName    string    `json:"property_name"`
+	PropertyAddress *string   `json:"property_address"`
+}
+
+type costsByTypeAggregation struct {
+	CostType     string  `json:"cost_type"`
+	TotalPlanned float64 `json:"total_planned"`
+	TotalPaid    float64 `json:"total_paid"`
+}
+
+type costsByPropertyAggregation struct {
+	PropertyID      string  `json:"property_id"`
+	PropertyName    string  `json:"property_name"`
+	PropertyAddress *string `json:"property_address"`
+	TotalPlanned    float64 `json:"total_planned"`
+	TotalPaid       float64 `json:"total_paid"`
+}
+
+type upcomingCost struct {
+	workspaceCostItem
+	DaysUntilDue int `json:"days_until_due"`
+}
+
+type workspaceCostsSummary struct {
+	TotalPlanned  float64                      `json:"total_planned"`
+	TotalPaid     float64                      `json:"total_paid"`
+	TotalAll      float64                      `json:"total_all"`
+	ByType        []costsByTypeAggregation     `json:"by_type"`
+	ByProperty    []costsByPropertyAggregation `json:"by_property"`
+	UpcomingCount int                          `json:"upcoming_count"`
+}
+
+type listWorkspaceCostsResponse struct {
+	Items    []workspaceCostItem   `json:"items"`
+	Summary  workspaceCostsSummary `json:"summary"`
+	Upcoming []upcomingCost        `json:"upcoming"`
+}
+
+// handleWorkspaceCosts handles GET /api/v1/workspaces/:id/costs
+func (a *api) handleWorkspaceCosts(w http.ResponseWriter, r *http.Request, workspaceID string) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	// Check workspace membership
+	if hasMembership, err := a.hasWorkspaceMembership(r.Context(), workspaceID, userID); err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check membership"})
+		return
+	} else if !hasMembership {
+		writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "workspace not found"})
+		return
+	}
+
+	// Query all costs with property info
+	rows, err := a.db.QueryContext(
+		r.Context(),
+		`SELECT c.id, c.property_id, c.workspace_id, c.cost_type, c.category, c.status, c.amount,
+		        c.due_date, c.vendor, c.notes, c.schedule_item_id, c.created_at, c.updated_at,
+		        COALESCE(p.address, p.neighborhood, 'Sem endereço') as property_name, p.address as property_address
+		 FROM cost_items c
+		 JOIN properties p ON p.id = c.property_id
+		 WHERE c.workspace_id = $1
+		 ORDER BY c.created_at DESC`,
+		workspaceID,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to query costs"})
+		return
+	}
+	defer rows.Close()
+
+	items := make([]workspaceCostItem, 0)
+	var totalPlanned, totalPaid float64
+	typeAgg := make(map[string]*costsByTypeAggregation)
+	propAgg := make(map[string]*costsByPropertyAggregation)
+
+	for rows.Next() {
+		var c workspaceCostItem
+		var dueDate, scheduleItemID, propAddr sql.NullString
+		err := rows.Scan(
+			&c.ID, &c.PropertyID, &c.WorkspaceID, &c.CostType, &c.Category, &c.Status, &c.Amount,
+			&dueDate, &c.Vendor, &c.Notes, &scheduleItemID, &c.CreatedAt, &c.UpdatedAt,
+			&c.PropertyName, &propAddr,
+		)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan cost"})
+			return
+		}
+		if dueDate.Valid {
+			c.DueDate = &dueDate.String
+		}
+		if scheduleItemID.Valid {
+			c.ScheduleItemID = &scheduleItemID.String
+		}
+		if propAddr.Valid {
+			c.PropertyAddress = &propAddr.String
+		}
+		items = append(items, c)
+
+		// Aggregate totals
+		if c.Status == "planned" {
+			totalPlanned += c.Amount
+		} else if c.Status == "paid" {
+			totalPaid += c.Amount
+		}
+
+		// Aggregate by type
+		if _, exists := typeAgg[c.CostType]; !exists {
+			typeAgg[c.CostType] = &costsByTypeAggregation{CostType: c.CostType}
+		}
+		if c.Status == "planned" {
+			typeAgg[c.CostType].TotalPlanned += c.Amount
+		} else if c.Status == "paid" {
+			typeAgg[c.CostType].TotalPaid += c.Amount
+		}
+
+		// Aggregate by property
+		if _, exists := propAgg[c.PropertyID]; !exists {
+			propAgg[c.PropertyID] = &costsByPropertyAggregation{
+				PropertyID:      c.PropertyID,
+				PropertyName:    c.PropertyName,
+				PropertyAddress: c.PropertyAddress,
+			}
+		}
+		if c.Status == "planned" {
+			propAgg[c.PropertyID].TotalPlanned += c.Amount
+		} else if c.Status == "paid" {
+			propAgg[c.PropertyID].TotalPaid += c.Amount
+		}
+	}
+
+	// Convert aggregation maps to slices
+	byType := make([]costsByTypeAggregation, 0, len(typeAgg))
+	for _, v := range typeAgg {
+		byType = append(byType, *v)
+	}
+	byProperty := make([]costsByPropertyAggregation, 0, len(propAgg))
+	for _, v := range propAgg {
+		byProperty = append(byProperty, *v)
+	}
+
+	// Query upcoming costs (next 30 days)
+	upcomingRows, err := a.db.QueryContext(
+		r.Context(),
+		`SELECT c.id, c.property_id, c.workspace_id, c.cost_type, c.category, c.status, c.amount,
+		        c.due_date, c.vendor, c.notes, c.schedule_item_id, c.created_at, c.updated_at,
+		        COALESCE(p.address, p.neighborhood, 'Sem endereço') as property_name, p.address as property_address,
+		        (c.due_date::date - CURRENT_DATE) as days_until_due
+		 FROM cost_items c
+		 JOIN properties p ON p.id = c.property_id
+		 WHERE c.workspace_id = $1
+		   AND c.due_date IS NOT NULL
+		   AND c.due_date::date >= CURRENT_DATE
+		   AND c.due_date::date <= CURRENT_DATE + INTERVAL '30 days'
+		   AND c.status = 'planned'
+		 ORDER BY c.due_date ASC
+		 LIMIT 10`,
+		workspaceID,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to query upcoming costs"})
+		return
+	}
+	defer upcomingRows.Close()
+
+	upcoming := make([]upcomingCost, 0)
+	for upcomingRows.Next() {
+		var uc upcomingCost
+		var dueDate, scheduleItemID, propAddr sql.NullString
+		err := upcomingRows.Scan(
+			&uc.ID, &uc.PropertyID, &uc.WorkspaceID, &uc.CostType, &uc.Category, &uc.Status, &uc.Amount,
+			&dueDate, &uc.Vendor, &uc.Notes, &scheduleItemID, &uc.CreatedAt, &uc.UpdatedAt,
+			&uc.PropertyName, &propAddr, &uc.DaysUntilDue,
+		)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan upcoming cost"})
+			return
+		}
+		if dueDate.Valid {
+			uc.DueDate = &dueDate.String
+		}
+		if scheduleItemID.Valid {
+			uc.ScheduleItemID = &scheduleItemID.String
+		}
+		if propAddr.Valid {
+			uc.PropertyAddress = &propAddr.String
+		}
+		upcoming = append(upcoming, uc)
+	}
+
+	writeJSON(w, http.StatusOK, listWorkspaceCostsResponse{
+		Items: items,
+		Summary: workspaceCostsSummary{
+			TotalPlanned:  totalPlanned,
+			TotalPaid:     totalPaid,
+			TotalAll:      totalPlanned + totalPaid,
+			ByType:        byType,
+			ByProperty:    byProperty,
+			UpcomingCount: len(upcoming),
+		},
+		Upcoming: upcoming,
+	})
+}

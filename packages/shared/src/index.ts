@@ -474,6 +474,52 @@ export const UpdateCostRequestSchema = z.object({
 });
 export type UpdateCostRequest = z.infer<typeof UpdateCostRequestSchema>;
 
+// Workspace-level costs (Custos centralizado)
+
+export const WorkspaceCostItemSchema = CostItemSchema.extend({
+  property_name: z.string(),
+  property_address: z.string().nullable(),
+});
+export type WorkspaceCostItem = z.infer<typeof WorkspaceCostItemSchema>;
+
+export const CostsByTypeAggregationSchema = z.object({
+  cost_type: CostTypeEnum,
+  total_planned: z.number(),
+  total_paid: z.number(),
+});
+export type CostsByTypeAggregation = z.infer<typeof CostsByTypeAggregationSchema>;
+
+export const CostsByPropertyAggregationSchema = z.object({
+  property_id: z.string(),
+  property_name: z.string(),
+  property_address: z.string().nullable(),
+  total_planned: z.number(),
+  total_paid: z.number(),
+});
+export type CostsByPropertyAggregation = z.infer<typeof CostsByPropertyAggregationSchema>;
+
+export const UpcomingCostSchema = WorkspaceCostItemSchema.extend({
+  days_until_due: z.number(),
+});
+export type UpcomingCost = z.infer<typeof UpcomingCostSchema>;
+
+export const WorkspaceCostsSummarySchema = z.object({
+  total_planned: z.number(),
+  total_paid: z.number(),
+  total_all: z.number(),
+  by_type: z.array(CostsByTypeAggregationSchema),
+  by_property: z.array(CostsByPropertyAggregationSchema),
+  upcoming_count: z.number(),
+});
+export type WorkspaceCostsSummary = z.infer<typeof WorkspaceCostsSummarySchema>;
+
+export const ListWorkspaceCostsResponseSchema = z.object({
+  items: z.array(WorkspaceCostItemSchema),
+  summary: WorkspaceCostsSummarySchema,
+  upcoming: z.array(UpcomingCostSchema),
+});
+export type ListWorkspaceCostsResponse = z.infer<typeof ListWorkspaceCostsResponseSchema>;
+
 // Schedule (Cronograma da Obra)
 
 export const ScheduleCategoryEnum = z.enum([

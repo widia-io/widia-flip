@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo, useRef } from "react";
-import { Plus, Loader2, ChevronDown, ChevronRight, Trash2, Pencil, Paperclip, Upload, FileText, X } from "lucide-react";
+import { Plus, Loader2, ChevronDown, ChevronRight, Trash2, Pencil, Paperclip, Upload, FileText, X, List, CalendarDays } from "lucide-react";
 import type { ScheduleItem, ScheduleSummary, ScheduleCategory, Document } from "@widia/shared";
 import { SCHEDULE_CATEGORY_LABELS } from "@widia/shared";
 import {
@@ -37,6 +37,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ScheduleCalendar } from "@/components/ScheduleCalendar";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_TYPES = [
@@ -105,6 +107,8 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [isPending, startTransition] = useTransition();
   const [completedOpen, setCompletedOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [defaultDate, setDefaultDate] = useState<string>("");
 
   // Group items
   const { overdue, upcoming, future, completed } = useMemo(() => {
@@ -162,8 +166,20 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
           a.planned_date.localeCompare(b.planned_date)
         ));
         setShowForm(false);
+        setDefaultDate("");
       }
     });
+  };
+
+  const handleCalendarSlotSelect = (date: Date) => {
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    setDefaultDate(dateStr);
+    setShowForm(true);
+  };
+
+  const handleFormCancel = () => {
+    setShowForm(false);
+    setDefaultDate("");
   };
 
   const handleUpdate = async (
@@ -243,10 +259,20 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
                 )}
               </div>
             </div>
-            <Button onClick={() => setShowForm(true)} size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Adicionar item
-            </Button>
+            <div className="flex items-center gap-2">
+              <ToggleGroup type="single" value={viewMode} onValueChange={(v: string) => v && setViewMode(v as "list" | "calendar")}>
+                <ToggleGroupItem value="list" aria-label="Ver como lista" size="sm">
+                  <List className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="calendar" aria-label="Ver como calendário" size="sm">
+                  <CalendarDays className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <Button onClick={() => setShowForm(true)} size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar item
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -255,8 +281,9 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
       {showForm && (
         <ScheduleItemForm
           onSubmit={handleCreate}
-          onCancel={() => setShowForm(false)}
+          onCancel={handleFormCancel}
           isPending={isPending}
+          defaultDate={defaultDate}
         />
       )}
 
@@ -270,129 +297,143 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
         />
       )}
 
-      {/* Empty State */}
-      {items.length === 0 && !showForm && (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            Nenhum item no cronograma
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Overdue Section */}
-      {overdue.length > 0 && (
-        <ScheduleSection
-          title="Atrasados"
-          count={overdue.length}
-          items={overdue}
-          variant="destructive"
-          onToggleDone={handleToggleDone}
-          onEdit={setEditingItem}
-          onDelete={handleDelete}
-          onDocumentCountChange={(itemId, delta) => {
-            setItems((prev) =>
-              prev.map((i) =>
-                i.id === itemId ? { ...i, document_count: i.document_count + delta } : i
-              )
-            );
-          }}
-          isPending={isPending}
-          propertyId={propertyId}
-          workspaceId={workspaceId}
+      {/* Calendar View */}
+      {viewMode === "calendar" && (
+        <ScheduleCalendar
+          items={items}
+          onEventClick={setEditingItem}
+          onSlotSelect={handleCalendarSlotSelect}
         />
       )}
 
-      {/* Upcoming Section */}
-      {upcoming.length > 0 && (
-        <ScheduleSection
-          title="Próximos 7 dias"
-          count={upcoming.length}
-          items={upcoming}
-          variant="warning"
-          onToggleDone={handleToggleDone}
-          onEdit={setEditingItem}
-          onDelete={handleDelete}
-          onDocumentCountChange={(itemId, delta) => {
-            setItems((prev) =>
-              prev.map((i) =>
-                i.id === itemId ? { ...i, document_count: i.document_count + delta } : i
-              )
-            );
-          }}
-          isPending={isPending}
-          propertyId={propertyId}
-          workspaceId={workspaceId}
-        />
-      )}
+      {/* List View */}
+      {viewMode === "list" && (
+        <>
+          {/* Empty State */}
+          {items.length === 0 && !showForm && (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                Nenhum item no cronograma
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Future Section */}
-      {future.length > 0 && (
-        <ScheduleSection
-          title="Futuros"
-          count={future.length}
-          items={future}
-          variant="default"
-          onToggleDone={handleToggleDone}
-          onEdit={setEditingItem}
-          onDelete={handleDelete}
-          onDocumentCountChange={(itemId, delta) => {
-            setItems((prev) =>
-              prev.map((i) =>
-                i.id === itemId ? { ...i, document_count: i.document_count + delta } : i
-              )
-            );
-          }}
-          isPending={isPending}
-          propertyId={propertyId}
-          workspaceId={workspaceId}
-        />
-      )}
+          {/* Overdue Section */}
+          {overdue.length > 0 && (
+            <ScheduleSection
+              title="Atrasados"
+              count={overdue.length}
+              items={overdue}
+              variant="destructive"
+              onToggleDone={handleToggleDone}
+              onEdit={setEditingItem}
+              onDelete={handleDelete}
+              onDocumentCountChange={(itemId, delta) => {
+                setItems((prev) =>
+                  prev.map((i) =>
+                    i.id === itemId ? { ...i, document_count: i.document_count + delta } : i
+                  )
+                );
+              }}
+              isPending={isPending}
+              propertyId={propertyId}
+              workspaceId={workspaceId}
+            />
+          )}
 
-      {/* Completed Section (Collapsible) */}
-      {completed.length > 0 && (
-        <Collapsible open={completedOpen} onOpenChange={setCompletedOpen}>
-          <Card>
-            <CollapsibleTrigger asChild>
-              <button className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-accent/50 transition-colors">
-                <div className="flex items-center gap-2">
-                  {completedOpen ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span className="font-medium text-muted-foreground">Concluídos</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {completed.length}
-                  </Badge>
-                </div>
-              </button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="border-t">
-                {completed.map((item) => (
-                  <ScheduleItemRow
-                    key={item.id}
-                    item={item}
-                    onToggleDone={handleToggleDone}
-                    onEdit={setEditingItem}
-                    onDelete={handleDelete}
-                    onDocumentCountChange={(itemId, delta) => {
-                      setItems((prev) =>
-                        prev.map((i) =>
-                          i.id === itemId ? { ...i, document_count: i.document_count + delta } : i
-                        )
-                      );
-                    }}
-                    isPending={isPending}
-                    propertyId={propertyId}
-                    workspaceId={workspaceId}
-                    completed
-                  />
-                ))}
-              </div>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+          {/* Upcoming Section */}
+          {upcoming.length > 0 && (
+            <ScheduleSection
+              title="Próximos 7 dias"
+              count={upcoming.length}
+              items={upcoming}
+              variant="warning"
+              onToggleDone={handleToggleDone}
+              onEdit={setEditingItem}
+              onDelete={handleDelete}
+              onDocumentCountChange={(itemId, delta) => {
+                setItems((prev) =>
+                  prev.map((i) =>
+                    i.id === itemId ? { ...i, document_count: i.document_count + delta } : i
+                  )
+                );
+              }}
+              isPending={isPending}
+              propertyId={propertyId}
+              workspaceId={workspaceId}
+            />
+          )}
+
+          {/* Future Section */}
+          {future.length > 0 && (
+            <ScheduleSection
+              title="Futuros"
+              count={future.length}
+              items={future}
+              variant="default"
+              onToggleDone={handleToggleDone}
+              onEdit={setEditingItem}
+              onDelete={handleDelete}
+              onDocumentCountChange={(itemId, delta) => {
+                setItems((prev) =>
+                  prev.map((i) =>
+                    i.id === itemId ? { ...i, document_count: i.document_count + delta } : i
+                  )
+                );
+              }}
+              isPending={isPending}
+              propertyId={propertyId}
+              workspaceId={workspaceId}
+            />
+          )}
+
+          {/* Completed Section (Collapsible) */}
+          {completed.length > 0 && (
+            <Collapsible open={completedOpen} onOpenChange={setCompletedOpen}>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-accent/50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      {completedOpen ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <span className="font-medium text-muted-foreground">Concluídos</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {completed.length}
+                      </Badge>
+                    </div>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="border-t">
+                    {completed.map((item) => (
+                      <ScheduleItemRow
+                        key={item.id}
+                        item={item}
+                        onToggleDone={handleToggleDone}
+                        onEdit={setEditingItem}
+                        onDelete={handleDelete}
+                        onDocumentCountChange={(itemId, delta) => {
+                          setItems((prev) =>
+                            prev.map((i) =>
+                              i.id === itemId ? { ...i, document_count: i.document_count + delta } : i
+                            )
+                          );
+                        }}
+                        isPending={isPending}
+                        propertyId={propertyId}
+                        workspaceId={workspaceId}
+                        completed
+                      />
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
+        </>
       )}
     </div>
   );
@@ -745,6 +786,7 @@ interface ScheduleItemFormProps {
   }) => void;
   onCancel: () => void;
   isPending: boolean;
+  defaultDate?: string;
 }
 
 function ScheduleItemForm({
@@ -752,9 +794,10 @@ function ScheduleItemForm({
   onSubmit,
   onCancel,
   isPending,
+  defaultDate,
 }: ScheduleItemFormProps) {
   const [title, setTitle] = useState(initialData?.title ?? "");
-  const [plannedDate, setPlannedDate] = useState(initialData?.planned_date ?? "");
+  const [plannedDate, setPlannedDate] = useState(initialData?.planned_date ?? defaultDate ?? "");
   const [notes, setNotes] = useState(initialData?.notes ?? "");
   const [category, setCategory] = useState(initialData?.category ?? "");
   const [estimatedCost, setEstimatedCost] = useState<number | null>(
