@@ -298,7 +298,7 @@ export function PropertyTable({
               onValueChange={handleFilterChange}
               disabled={isPending}
             >
-              <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectTrigger className={`w-full sm:w-[160px] ${localStatus !== "all" ? "border-primary" : ""}`}>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
