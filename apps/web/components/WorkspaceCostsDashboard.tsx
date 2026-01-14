@@ -55,7 +55,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
-import { markCostAsPaidAction } from "@/lib/actions/costs";
 
 const COST_TYPE_LABELS: Record<CostType, string> = {
   renovation: "Reforma",
@@ -266,20 +265,6 @@ export function WorkspaceCostsDashboard({
   };
 
   const budgetColor = getBudgetColor(metrics.budgetExecution);
-
-  // Handle mark as paid
-  const handleMarkAsPaid = async (cost: WorkspaceCostItem) => {
-    if (cost.status === "paid" || cost.schedule_item_id) return;
-    setMarkingAsPaid(cost.id);
-    try {
-      await markCostAsPaidAction(cost.property_id, cost.id);
-      // Page will revalidate automatically
-    } catch (error) {
-      console.error("Failed to mark as paid:", error);
-    } finally {
-      setMarkingAsPaid(null);
-    }
-  };
 
   // Calculate days info for table status
   const getDaysInfo = (cost: WorkspaceCostItem) => {
