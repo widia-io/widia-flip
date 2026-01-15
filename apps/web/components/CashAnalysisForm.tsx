@@ -2,7 +2,15 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save } from "lucide-react";
+import {
+  Loader2,
+  Save,
+  Calculator,
+  TrendingDown,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 
 import type { CashInputs, CashOutputs, CashAnalysisResponse } from "@widia/shared";
 import { updateCashAnalysisAction, createCashSnapshotAction } from "@/lib/actions/properties";
@@ -136,65 +144,127 @@ export function CashAnalysisForm({
     <div className="space-y-6">
       {/* Inputs */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Viabilidade à Vista</CardTitle>
-          {isPending && (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          )}
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-3 text-base font-semibold">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <Calculator className="h-4 w-4 text-primary" />
+              </div>
+              Viabilidade à Vista
+            </CardTitle>
+            {isPending && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-xs">Calculando...</span>
+              </div>
+            )}
+          </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="space-y-6">
+          {/* Error message */}
           {error && (
-            <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
+            <div className="flex items-center gap-3 rounded-lg border border-destructive/50 bg-destructive/5 p-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+              </div>
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 
+          {/* Success message */}
           {success && (
-            <div className="mb-4 rounded-lg border border-primary/50 bg-primary/10 p-3 text-sm text-primary">
-              {success}
+            <div className="flex items-center gap-3 rounded-lg border border-green-500/50 bg-green-500/5 p-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              </div>
+              <p className="text-sm text-green-600">{success}</p>
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="purchase_price">Preço de Compra (R$)</Label>
-              <NumberInput
-                id="purchase_price"
-                value={inputs.purchase_price}
-                onChange={(v) => handleInputChange("purchase_price", v)}
-                placeholder="500.000"
-              />
+          {/* Custos de Entrada */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded bg-amber-500/10">
+                <TrendingDown className="h-3.5 w-3.5 text-amber-600" />
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">
+                Custos de Entrada
+              </span>
             </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 pl-8">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="purchase_price"
+                  className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                >
+                  Preço de Compra (R$)
+                </Label>
+                <NumberInput
+                  id="purchase_price"
+                  value={inputs.purchase_price}
+                  onChange={(v) => handleInputChange("purchase_price", v)}
+                  placeholder="500.000"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="renovation_cost">Custo de Reforma (R$)</Label>
-              <NumberInput
-                id="renovation_cost"
-                value={inputs.renovation_cost}
-                onChange={(v) => handleInputChange("renovation_cost", v)}
-                placeholder="50.000"
-              />
+              <div className="space-y-2">
+                <Label
+                  htmlFor="renovation_cost"
+                  className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                >
+                  Custo de Reforma (R$)
+                </Label>
+                <NumberInput
+                  id="renovation_cost"
+                  value={inputs.renovation_cost}
+                  onChange={(v) => handleInputChange("renovation_cost", v)}
+                  placeholder="50.000"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="other_costs"
+                  className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                >
+                  Outros Custos (R$)
+                </Label>
+                <NumberInput
+                  id="other_costs"
+                  value={inputs.other_costs}
+                  onChange={(v) => handleInputChange("other_costs", v)}
+                  placeholder="10.000"
+                />
+              </div>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="other_costs">Outros Custos (R$)</Label>
-              <NumberInput
-                id="other_costs"
-                value={inputs.other_costs}
-                onChange={(v) => handleInputChange("other_costs", v)}
-                placeholder="10.000"
-              />
+          {/* Venda Esperada */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded bg-green-500/10">
+                <TrendingUp className="h-3.5 w-3.5 text-green-600" />
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">
+                Venda Esperada
+              </span>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sale_price">Preço de Venda (R$)</Label>
-              <NumberInput
-                id="sale_price"
-                value={inputs.sale_price}
-                onChange={(v) => handleInputChange("sale_price", v)}
-                placeholder="700.000"
-              />
+            <div className="pl-8 max-w-xs">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="sale_price"
+                  className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                >
+                  Preço de Venda (R$)
+                </Label>
+                <NumberInput
+                  id="sale_price"
+                  value={inputs.sale_price}
+                  onChange={(v) => handleInputChange("sale_price", v)}
+                  placeholder="700.000"
+                />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -204,15 +274,17 @@ export function CashAnalysisForm({
       {outputs && <CashAnalysisOutputs outputs={outputs} rates={rates} />}
 
       {/* Save Snapshot Button */}
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-2">
         <Button
           onClick={handleSaveSnapshot}
           disabled={isSavingSnapshot || !canSaveSnapshot}
+          size="lg"
+          className="gap-2"
         >
           {isSavingSnapshot ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Save className="mr-2 h-4 w-4" />
+            <Save className="h-4 w-4" />
           )}
           Salvar Análise
         </Button>
