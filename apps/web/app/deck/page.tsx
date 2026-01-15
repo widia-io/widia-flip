@@ -5,10 +5,63 @@ import Image from "next/image";
 
 const TOTAL_SLIDES = 10;
 
+// Icons
+const Icons = {
+  rocket: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09zM12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  trendUp: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M23 6l-9.5 9.5-5-5L1 18" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M17 6h6v6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  users: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  target: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" />
+    </svg>
+  ),
+  shield: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" />
+      <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  zap: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  ),
+  heart: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  ),
+  whatsapp: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+  ),
+};
+
 export default function PartnershipDeckPage() {
   const [currentSlide, setCurrentSlide] = useState(1);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => {
       const sections = document.querySelectorAll("[data-slide]");
       const scrollPosition = window.scrollY + window.innerHeight / 3;
@@ -32,55 +85,123 @@ export default function PartnershipDeckPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      {/* Sticky Progress Indicator */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-500 tracking-wide uppercase">
-            Meuflip • <span className="text-emerald-600">Amanda Portilho</span>
-          </span>
-          <span className="text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-            {currentSlide}/{TOTAL_SLIDES}
-          </span>
-        </div>
-        {/* Progress bar */}
-        <div className="h-1 bg-gray-100">
-          <div
-            className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500 ease-out"
-            style={{ width: `${(currentSlide / TOTAL_SLIDES) * 100}%` }}
-          />
+    <div className="min-h-screen bg-[#FAFAFA] text-gray-900 overflow-x-hidden">
+      {/* Custom Styles */}
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap');
+
+        .font-display { font-family: 'Instrument Serif', Georgia, serif; }
+        .font-body { font-family: 'Inter', system-ui, sans-serif; }
+
+        .text-gradient-emerald {
+          color: #059669;
+        }
+
+        .glass-card {
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(16px);
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        @keyframes reveal {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-reveal {
+          animation: reveal 0.8s ease-out forwards;
+        }
+
+        @keyframes scroll {
+          0%, 100% { transform: translateY(0); opacity: 1; }
+          50% { transform: translateY(4px); opacity: 0.5; }
+        }
+
+        .animate-scroll {
+          animation: scroll 2s ease-in-out infinite;
+        }
+      `}</style>
+
+      {/* Sticky Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 glass-card">
+        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Meuflip <span className="text-emerald-600 font-semibold">× Amanda Portilho</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="font-display text-sm text-emerald-600">{String(currentSlide).padStart(2, '0')}</span>
+            <div className="w-16 h-0.5 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500"
+                style={{ width: `${(currentSlide / TOTAL_SLIDES) * 100}%` }}
+              />
+            </div>
+            <span className="text-xs text-gray-400">{TOTAL_SLIDES}</span>
+          </div>
         </div>
       </header>
 
-      {/* Slide 1: Opening Thesis */}
+      {/* Slide 1: Opening - Growth Together */}
       <section
         data-slide="1"
-        className="min-h-screen flex items-center justify-center px-6 pt-20 bg-gradient-to-b from-white via-white to-gray-50"
+        className="min-h-screen flex items-center justify-center px-6 pt-16 relative"
       >
-        {/*
-          SPEAKER NOTES:
-          - Comece com uma provocação: "Você ensina o antes/depois visual. Mas e o financeiro?"
-          - Objetivo: criar conexão mostrando que vocês complementam
-          - Deixe ela concordar ou reagir antes de avançar
-        */}
-        <div className="max-w-3xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600 mb-6">
-            Para Amanda Portilho
-          </p>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-8">
-            <span className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent">
+        <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/50 via-transparent to-teal-50/30" />
+
+        <div className={`max-w-4xl text-center relative z-10 ${mounted ? 'animate-reveal' : 'opacity-0'}`}>
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 bg-white rounded-full px-5 py-2 mb-8 border border-emerald-200 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-xs text-emerald-600 font-medium uppercase tracking-wider">Proposta</span>
+            </div>
+            <div className="w-px h-4 bg-gray-200" />
+            <span className="text-sm text-gray-500">
+              Parceria de crescimento • Janeiro 2026
+            </span>
+          </div>
+
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] mb-6 tracking-tight">
+            <span className="block text-gray-800">
               Você transforma imóveis.
             </span>
-            <br />
-            <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-              Eu transformo análise em decisão.
+            <span className="block text-gradient-emerald mt-2">
+              E se pudesse entregar a ferramenta também?
             </span>
           </h1>
-          <p className="text-lg sm:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto">
-            Amanda, você mostra o antes e depois visual que encanta. Eu quero te
-            mostrar o antes e depois financeiro que protege. Juntos, podemos
-            garantir que seus seguidores não só sonhem — executem com segurança.
+
+          <p className="text-lg sm:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto mb-10">
+            Amanda, você mostra o <span className="text-emerald-600 font-semibold">antes e depois visual</span> que encanta.
+            Eu construo o antes e depois <span className="text-gray-800 font-medium">financeiro</span> que protege.
+            Juntos, podemos crescer num mercado competitivo com um diferencial real.
           </p>
+
+          {/* Growth Potential Highlight */}
+          <div className="inline-flex flex-col sm:flex-row items-center gap-5 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl px-8 py-5 border border-emerald-200/60 shadow-sm">
+            <div className="flex items-center gap-4">
+              <span className="text-emerald-500 scale-125">{Icons.rocket}</span>
+              <div className="text-left">
+                <p className="text-base font-medium text-gray-700">Potencial de crescimento conjunto</p>
+                <p className="text-sm text-gray-500">100 assinantes = ~R$ 46K/ano • 50/50</p>
+              </div>
+            </div>
+            <div className="hidden sm:block w-px h-10 bg-emerald-200" />
+            <div className="text-center sm:text-left">
+              <p className="font-display text-2xl font-bold text-gradient-emerald">Vamos construir juntos</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+          <span className="text-xs text-gray-400 tracking-widest uppercase">Role para explorar</span>
+          <div className="w-6 h-10 rounded-full border border-gray-300 flex justify-center pt-2">
+            <div className="w-1.5 h-2 bg-emerald-500 rounded-full animate-scroll" />
+          </div>
         </div>
       </section>
 
@@ -544,70 +665,68 @@ export default function PartnershipDeckPage() {
         <hr className="border-gray-200" />
       </div>
 
-      {/* Slide 8: Partnership Model */}
+      {/* Slide 8: Partnership Model - 50/50 Growth */}
       <section
         data-slide="8"
-        className="min-h-screen flex items-center justify-center px-6"
+        className="min-h-screen flex items-center justify-center px-6 py-16"
       >
-        {/*
-          SPEAKER NOTES:
-          - Seja honesto sobre o estágio: "Estou validando"
-          - Enfatize que não é publi: é construção conjunta
-          - Deixe claro que a fase 1 é sem compromisso financeiro
-        */}
-        <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500 mb-6">
-            Como eu imagino
+        <div className="max-w-5xl w-full">
+          <p className="text-emerald-600 text-xs font-semibold tracking-widest uppercase mb-4 text-center">
+            A Oportunidade
           </p>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-10">
-            Não é publi.
-            <br />
-            <span className="text-gray-400">É co-criação.</span>
+          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-center mb-12">
+            <span className="text-gray-800">Crescer juntos com </span>
+            <span className="text-gradient-emerald">revenue share 50/50</span>
           </h2>
-          <div className="space-y-6">
-            <div className="relative bg-gradient-to-r from-emerald-500 to-teal-500 p-[2px] rounded-xl">
-              <div className="bg-white rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white flex items-center justify-center text-sm font-bold">1</span>
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
-                    Fase 1 — Validação
-                  </p>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Revenue Model Card */}
+            <div className="relative rounded-2xl p-6 overflow-hidden bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200">
+              <div className="relative">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <p className="font-display text-xl font-bold text-emerald-600 mb-1">Revenue Share 50/50</p>
+                    <p className="text-sm text-gray-500">Crescemos juntos, dividimos os ganhos</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-display text-3xl font-bold text-gradient-emerald">~R$ 460</p>
+                    <p className="text-xs text-gray-400">por assinante/ano (sua parte)</p>
+                  </div>
                 </div>
-                <p className="text-lg text-gray-700">
-                  Amanda, você usa em casos reais, me dá feedback honesto. Sem compromisso, sem pressão.
-                  Objetivo: entender se faz sentido pro seu mundo.
+                <div className="bg-white rounded-xl p-4 border border-emerald-100">
+                  <div className="flex items-center justify-between text-base">
+                    <span className="text-gray-600">Se conseguirmos 100 assinantes:</span>
+                    <span className="font-display text-xl font-bold text-gradient-emerald">~R$ 46.000/ano</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-3">
+                  Ticket médio anual: ~R$ 920 (mix mensal + anual) • Você fica com 50%
                 </p>
               </div>
             </div>
-            <div className="relative bg-gradient-to-r from-gray-300 to-gray-400 p-[2px] rounded-xl">
-              <div className="bg-white rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="w-8 h-8 rounded-full bg-gradient-to-r from-gray-400 to-gray-500 text-white flex items-center justify-center text-sm font-bold">2</span>
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
-                    Fase 2 — Parceria de crescimento
-                  </p>
+
+            {/* Benefits */}
+            <div className="space-y-4">
+              {[
+                { title: 'Diferencial competitivo', desc: 'Ferramenta exclusiva que outros perfis não têm.' },
+                { title: 'Autoridade técnica', desc: 'Mostra que você se preocupa com resultado, não só visual.' },
+                { title: 'Receita recorrente', desc: 'Ganha enquanto dorme com assinaturas ativas.' },
+                { title: 'Crescimento conjunto', desc: 'Quanto mais cresce, mais a gente ganha junto.' },
+              ].map((item, i) => (
+                <div key={i} className="glass-card rounded-xl p-4 flex items-start gap-4">
+                  <span className="text-emerald-500 mt-0.5 scale-110">{Icons.target}</span>
+                  <div>
+                    <p className="text-base font-semibold text-gray-800">{item.title}</p>
+                    <p className="text-sm text-gray-500">{item.desc}</p>
+                  </div>
                 </div>
-                <p className="text-lg text-gray-700">
-                  Se fizer sentido, estruturamos: código de desconto, link de afiliado, revenue share.
-                  Você indica, eu entrego. Ganha-ganha.
-                </p>
-              </div>
-            </div>
-            <div className="relative bg-gradient-to-r from-gray-200 to-gray-300 p-[2px] rounded-xl">
-              <div className="bg-white rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="w-8 h-8 rounded-full bg-gradient-to-r from-gray-300 to-gray-400 text-white flex items-center justify-center text-sm font-bold">3</span>
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-400">
-                    Fase 3 — Se houver fit
-                  </p>
-                </div>
-                <p className="text-lg text-gray-700">
-                  Conversa aberta sobre parceria mais profunda. Talvez co-criação de features,
-                  talvez algo maior. Sem pressa, sem forçar.
-                </p>
-              </div>
+              ))}
             </div>
           </div>
+
+          <p className="text-center text-sm text-gray-400 mt-8">
+            Modelo flexível — podemos ajustar conforme fizer sentido pra ambos.
+          </p>
         </div>
       </section>
 
@@ -616,80 +735,74 @@ export default function PartnershipDeckPage() {
         <hr className="border-gray-200" />
       </div>
 
-      {/* Slide 9: What Each Side Brings */}
+      {/* Slide 9: Growth Partnership */}
       <section
         data-slide="9"
-        className="min-h-screen flex items-center justify-center px-6 bg-gradient-to-b from-gray-50 to-white"
+        className="min-h-screen flex items-center justify-center px-6 py-16 bg-gradient-to-b from-emerald-50/30 to-white"
       >
-        {/*
-          SPEAKER NOTES:
-          - Seja respeitoso: valorize o que ela traz
-          - Não diminua nenhum lado — é troca justa
-          - Pergunte: "Faz sentido essa divisão?"
-        */}
-        <div className="max-w-4xl w-full">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600 mb-6 text-center">
-            Troca Justa
+        <div className="max-w-5xl w-full">
+          <p className="text-emerald-600 text-xs font-semibold tracking-widest uppercase mb-4 text-center">
+            Parceria 50/50
           </p>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-12 text-center">
-            Amanda traz expertise e audiência.
-            <br />
-            <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-              Eu trago tecnologia e execução.
-            </span>
+          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-center mb-12">
+            <span className="text-gray-800">Você divulga. </span>
+            <span className="text-gradient-emerald">Eu construo. A gente cresce junto.</span>
           </h2>
+
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Her side */}
-            <div className="relative bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-8 border border-emerald-100">
-              <div className="absolute -top-3 left-6 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                AMANDA
-              </div>
-              <div className="pt-2">
-                <ul className="space-y-4 text-gray-700">
-                  <li className="flex items-start gap-3">
-                    <span className="text-emerald-500 mt-1 font-bold">→</span>
-                    <span><strong>Olho de arquiteta</strong> que enxerga potencial onde outros veem problema</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-emerald-500 mt-1 font-bold">→</span>
-                    <span><strong>Domínio do mercado BH</strong> — conhece os bairros, os valores, as oportunidades</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-emerald-500 mt-1 font-bold">→</span>
-                    <span><strong>Cases reais</strong> de transformação que inspiram e ensinam</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-emerald-500 mt-1 font-bold">→</span>
-                    <span><strong>Audiência engajada</strong> que confia no seu julgamento</span>
-                  </li>
+            {/* Amanda's side */}
+            <div className="relative">
+              <div className="absolute -inset-[1px] bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-400 rounded-2xl opacity-60" />
+              <div className="relative bg-white rounded-2xl p-6">
+                <div className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-400 to-teal-500 text-white text-xs font-bold px-3 py-1 rounded-full mb-5">
+                  AMANDA
+                </div>
+                <ul className="space-y-4">
+                  {[
+                    { bold: 'Olho de arquiteta', text: 'vê potencial onde outros veem problema' },
+                    { bold: 'Conhecimento local', text: 'domina o mercado de BH' },
+                    { bold: 'Cases reais', text: 'transforma e inspira' },
+                    { bold: 'Comunidade', text: 'engajada e crescendo' },
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3 text-base text-gray-600">
+                      <span className="text-emerald-500 mt-0.5 text-lg">→</span>
+                      <span><strong className="text-gray-800">{item.bold}</strong> {item.text}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
-            {/* My side */}
-            <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 text-white rounded-2xl p-8">
-              <div className="absolute -top-3 left-6 bg-white text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
-                BRUNO / MEUFLIP
-              </div>
-              <div className="pt-2">
-                <ul className="space-y-4 text-gray-200">
-                  <li className="flex items-start gap-3">
-                    <span className="text-emerald-400 mt-1 font-bold">→</span>
-                    <span><strong className="text-white">Produto funcional</strong> que já resolve análise de viabilidade</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-emerald-400 mt-1 font-bold">→</span>
-                    <span><strong className="text-white">Velocidade técnica</strong> para implementar features sob medida</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-emerald-400 mt-1 font-bold">→</span>
-                    <span><strong className="text-white">Suporte dedicado</strong> para sua audiência ter sucesso</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-emerald-400 mt-1 font-bold">→</span>
-                    <span><strong className="text-white">Abertura total</strong> para co-criar o que fizer sentido</span>
-                  </li>
+
+            {/* Bruno's side */}
+            <div className="relative">
+              <div className="absolute -inset-[1px] bg-gradient-to-br from-gray-600 via-gray-700 to-gray-600 rounded-2xl opacity-60" />
+              <div className="relative bg-gray-800 rounded-2xl p-6">
+                <div className="inline-flex items-center gap-2 bg-white text-gray-800 text-xs font-bold px-3 py-1 rounded-full mb-5">
+                  BRUNO / MEUFLIP
+                </div>
+                <ul className="space-y-4">
+                  {[
+                    { bold: 'Produto', text: 'funcional e em evolução' },
+                    { bold: 'Tecnologia', text: 'features sob medida pra você' },
+                    { bold: 'Suporte', text: 'dedicado para seus seguidores' },
+                    { bold: 'Skin in the game', text: '50/50 = risco e ganho junto' },
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3 text-base text-gray-300">
+                      <span className="text-emerald-400 mt-0.5 text-lg">→</span>
+                      <span><strong className="text-white">{item.bold}</strong> {item.text}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
+            </div>
+          </div>
+
+          <div className="mt-10 text-center">
+            <div className="inline-flex items-center gap-3 bg-white rounded-full px-6 py-3 border border-emerald-200 shadow-sm">
+              <span className="text-emerald-500 scale-110">{Icons.heart}</span>
+              <p className="text-base text-gray-600">
+                <strong className="text-gray-800">Não é sobre tamanho de audiência</strong> — é sobre construir algo juntos
+              </p>
             </div>
           </div>
         </div>
@@ -700,64 +813,55 @@ export default function PartnershipDeckPage() {
         <hr className="border-gray-200" />
       </div>
 
-      {/* Slide 10: Closing */}
+      {/* Slide 10: Closing CTA */}
       <section
         data-slide="10"
-        className="min-h-screen flex items-center justify-center px-6 pb-20 bg-gradient-to-b from-white via-gray-50 to-gray-100"
+        className="min-h-screen flex items-center justify-center px-6 py-16 bg-gradient-to-b from-white via-emerald-50/30 to-teal-50/30"
       >
-        {/*
-          SPEAKER NOTES:
-          - Termine com visão de futuro: "Imagina ser a referência que indica A ferramenta do flip"
-          - Seja genuíno: "Estou no começo, mas sério sobre isso"
-          - Pergunte próximos passos: "Quer testar? Quer ver um demo?"
-        */}
         <div className="max-w-3xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600 mb-6">
+          <p className="text-emerald-600 text-xs font-semibold tracking-widest uppercase mb-4">
             Próximo Passo
           </p>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-10">
-            <span className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent">
-              Amanda, vamos construir
-            </span>
-            <br />
-            <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-              isso juntos?
-            </span>
+          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold mb-8">
+            <span className="text-gray-800">Amanda, </span>
+            <span className="text-gradient-emerald">vamos crescer juntos?</span>
           </h2>
-          <p className="text-lg sm:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto mb-8">
-            Sua audiência já confia em você pra transformar imóveis. Imagina confiar também
-            pra analisar — com uma ferramenta que carrega seu selo de qualidade.
+          <p className="text-lg sm:text-xl text-gray-600 leading-relaxed mb-4">
+            Você tem o olho treinado pra transformar imóveis. Eu tenho a ferramenta pra
+            garantir que a análise financeira seja tão boa quanto o visual.
           </p>
-          <p className="text-lg sm:text-xl text-gray-700 leading-relaxed max-w-2xl mx-auto font-medium">
-            Não precisa ser agora. Mas se fizer sentido, quero construir isso contigo.
+          <p className="text-lg sm:text-xl text-gray-700 font-medium mb-10">
+            Não é sobre tamanho de audiência. É sobre construir algo de valor — juntos.
           </p>
 
           {/* CTA Button */}
-          <div className="mt-12">
-            <a
-              href="https://wa.me/5541984297378?text=Oi%20Bruno!%20Vi%20o%20deck%20do%20Meuflip%20e%20quero%20conversar."
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold px-8 py-4 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5"
-            >
-              <span>Vamos conversar</span>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </a>
-          </div>
+          <a
+            href="https://wa.me/5541984297378?text=Oi%20Bruno!%20Vi%20o%20deck%20do%20Meuflip%20e%20quero%20conversar."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group relative inline-flex items-center gap-3 font-display text-base font-bold px-10 py-5 rounded-xl transition-all duration-300 hover:scale-105 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 text-white shadow-lg hover:shadow-xl hover:shadow-emerald-200"
+          >
+            <span className="text-emerald-100">{Icons.whatsapp}</span>
+            <span>Vamos conversar</span>
+            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </a>
 
-          <div className="mt-16 pt-8 border-t border-gray-200 space-y-2">
-            <p className="text-gray-900 font-medium">
-              meuflip.com.br
-            </p>
-            <p className="text-gray-500 text-sm">
+          <p className="text-sm text-gray-400 mt-5">
+            Zero compromisso. Só uma conversa pra ver se faz sentido.
+          </p>
+
+          {/* Footer */}
+          <div className="mt-14 pt-6 border-t border-gray-200/60">
+            <p className="text-base text-gray-600 font-medium">meuflip.com.br</p>
+            <p className="text-sm text-gray-400 mt-1">
               Feito especialmente para{" "}
               <a
                 href="https://instagram.com/amandaportilho.hf"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-emerald-600 hover:text-emerald-700 font-medium"
+                className="text-emerald-500 hover:text-emerald-600 font-medium"
               >
                 @amandaportilho.hf
               </a>
@@ -765,6 +869,17 @@ export default function PartnershipDeckPage() {
           </div>
         </div>
       </section>
+
+      {/* WhatsApp Float Button */}
+      <a
+        href="https://wa.me/5541984297378"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+        aria-label="Fale conosco no WhatsApp"
+      >
+        {Icons.whatsapp}
+      </a>
     </div>
   );
 }
