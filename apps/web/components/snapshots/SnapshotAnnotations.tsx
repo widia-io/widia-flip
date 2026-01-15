@@ -118,11 +118,19 @@ export function SnapshotAnnotations({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
+        {/* Styled Header */}
         <div className="p-3 border-b">
-          <h4 className="font-medium text-sm">Anotações</h4>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Adicione notas para lembrar o contexto desta análise
-          </p>
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded bg-primary/10">
+              <MessageSquare className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <div>
+              <h4 className="font-medium text-sm">Anotações</h4>
+              <p className="text-xs text-muted-foreground">
+                Notas para lembrar o contexto
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Add new annotation */}
@@ -139,12 +147,13 @@ export function SnapshotAnnotations({
               size="sm"
               onClick={handleCreate}
               disabled={!newNote.trim() || isPending}
+              className="gap-2"
             >
               {isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-4 w-4" />
                   Adicionar
                 </>
               )}
@@ -155,17 +164,26 @@ export function SnapshotAnnotations({
         {/* Annotations list */}
         <div className="max-h-64 overflow-y-auto">
           {isLoading ? (
-            <div className="p-4 text-center">
+            <div className="p-6 text-center">
               <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
             </div>
           ) : annotations.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              Nenhuma anotação ainda
+            <div className="p-6 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted mx-auto mb-3">
+                <MessageSquare className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">Nenhuma anotação ainda</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Adicione notas para lembrar o contexto
+              </p>
             </div>
           ) : (
             <div className="divide-y">
               {annotations.map((annotation) => (
-                <div key={annotation.id} className="p-3">
+                <div
+                  key={annotation.id}
+                  className="p-3 group hover:bg-muted/50 transition-colors"
+                >
                   {editingId === annotation.id ? (
                     <div>
                       <Textarea
@@ -209,7 +227,7 @@ export function SnapshotAnnotations({
                         <span className="text-xs text-muted-foreground">
                           {formatDate(annotation.created_at)}
                         </span>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
                             size="icon"
                             variant="ghost"
