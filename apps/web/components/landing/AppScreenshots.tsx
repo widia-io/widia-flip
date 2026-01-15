@@ -8,28 +8,34 @@ import { cn } from "@/lib/utils";
 
 const screenshots = [
   {
-    id: "prospects",
-    title: "Prospecção de Leads",
-    description: "Capture e priorize oportunidades com Flip Score automático",
-    src: "/screenshots/prospects.png",
-  },
-  {
-    id: "kanban",
-    title: "Pipeline de Imóveis",
-    description: "Acompanhe cada flip do início ao fim em Kanban visual",
-    src: "/screenshots/properties-kanban.png",
+    id: "dashboard",
+    title: "Dashboard Completo",
+    description: "KPIs, pipeline visual e atividade recente em um só lugar",
+    src: "/screenshots/dashboard-new.png",
   },
   {
     id: "viability",
     title: "Análise de Viabilidade",
-    description: "ROI, lucro líquido e todas as taxas calculadas em segundos",
-    src: "/screenshots/viability.png",
+    description: "ROI, lucro líquido e break-even calculados em segundos",
+    src: "/screenshots/viability-new.png",
   },
   {
-    id: "dashboard",
-    title: "Dashboard Completo",
-    description: "Visão geral dos seus flips e próximos passos",
-    src: "/screenshots/dashboard.png",
+    id: "snapshots",
+    title: "Central de Análises",
+    description: "Histórico de viabilidades com métricas de lucro e ROI",
+    src: "/screenshots/snapshots-new.png",
+  },
+  {
+    id: "costs",
+    title: "Gestão de Custos",
+    description: "Controle orçamentário com gráficos e alertas",
+    src: "/screenshots/costs-new.png",
+  },
+  {
+    id: "suppliers",
+    title: "Rede de Fornecedores",
+    description: "Profissionais avaliados com histórico de uso",
+    src: "/screenshots/suppliers-new.png",
   },
 ];
 
