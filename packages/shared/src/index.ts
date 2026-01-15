@@ -438,6 +438,7 @@ export const CostItemSchema = z.object({
   amount: z.number(),
   due_date: z.string().nullable(),
   vendor: z.string().nullable(),
+  supplier_id: z.string().nullable(),
   notes: z.string().nullable(),
   schedule_item_id: z.string().nullable(),
   created_at: z.string(),
@@ -459,6 +460,7 @@ export const CreateCostRequestSchema = z.object({
   amount: z.number().nonnegative(),
   due_date: z.string().optional(),
   vendor: z.string().optional(),
+  supplier_id: z.string().optional(),
   notes: z.string().optional(),
 });
 export type CreateCostRequest = z.infer<typeof CreateCostRequestSchema>;
@@ -470,6 +472,7 @@ export const UpdateCostRequestSchema = z.object({
   amount: z.number().nonnegative().optional(),
   due_date: z.string().optional(),
   vendor: z.string().optional(),
+  supplier_id: z.string().optional(),
   notes: z.string().optional(),
 });
 export type UpdateCostRequest = z.infer<typeof UpdateCostRequestSchema>;
@@ -760,6 +763,51 @@ export const UpdateSupplierRequestSchema = z.object({
   hourly_rate: z.number().nonnegative().nullable().optional(),
 });
 export type UpdateSupplierRequest = z.infer<typeof UpdateSupplierRequestSchema>;
+
+// Workspace-level suppliers summary (Fornecedores dashboard)
+
+export const SuppliersByCategoryAggSchema = z.object({
+  category: SupplierCategoryEnum,
+  count: z.number(),
+  avg_rating: z.number().nullable(),
+  avg_hourly_rate: z.number().nullable(),
+});
+export type SuppliersByCategoryAgg = z.infer<typeof SuppliersByCategoryAggSchema>;
+
+export const CategoryPriceAnalysisSchema = z.object({
+  category: SupplierCategoryEnum,
+  min_hourly: z.number().nullable(),
+  max_hourly: z.number().nullable(),
+  avg_hourly: z.number().nullable(),
+  supplier_count: z.number(),
+});
+export type CategoryPriceAnalysis = z.infer<typeof CategoryPriceAnalysisSchema>;
+
+export const SupplierUsageStatsSchema = z.object({
+  supplier_id: z.string(),
+  supplier_name: z.string(),
+  category: SupplierCategoryEnum,
+  total_costs: z.number(),
+  total_amount: z.number(),
+});
+export type SupplierUsageStats = z.infer<typeof SupplierUsageStatsSchema>;
+
+export const SuppliersSummarySchema = z.object({
+  total_count: z.number(),
+  by_category: z.array(SuppliersByCategoryAggSchema),
+  avg_rating: z.number().nullable(),
+  avg_hourly_rate: z.number().nullable(),
+  top_rated: z.array(SupplierSchema),
+  price_analysis: z.array(CategoryPriceAnalysisSchema),
+  usage_stats: z.array(SupplierUsageStatsSchema),
+});
+export type SuppliersSummary = z.infer<typeof SuppliersSummarySchema>;
+
+export const ListWorkspaceSuppliersResponseSchema = z.object({
+  items: z.array(SupplierSchema),
+  summary: SuppliersSummarySchema,
+});
+export type ListWorkspaceSuppliersResponse = z.infer<typeof ListWorkspaceSuppliersResponseSchema>;
 
 // M5 - Public Calculator
 
