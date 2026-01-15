@@ -2,23 +2,15 @@ import Link from "next/link";
 import {
   ArrowRight,
   Calculator,
-  TrendingUp,
-  PiggyBank,
-  History,
-  FileText,
-  Target,
   MessageCircle,
+  Lock,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 import { SUPPORT_WHATSAPP_URL } from "@/components/WhatsAppButton";
 
 import { getServerSession } from "@/lib/serverAuth";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { MeuFlipLogo } from "@/components/MeuFlipLogo";
 import { HeroAnimation } from "@/components/landing/HeroAnimation";
@@ -29,6 +21,8 @@ import { ProblemSection } from "@/components/landing/ProblemSection";
 import { ValuePropositionSection } from "@/components/landing/ValuePropositionSection";
 import { AuthoritySection } from "@/components/landing/AuthoritySection";
 import { AppScreenshots } from "@/components/landing/AppScreenshots";
+import { MobileStickyBar } from "@/components/landing/MobileStickyBar";
+import { FeaturesSection } from "@/components/landing/FeaturesSection";
 
 export default async function HomePage() {
   const session = await getServerSession();
@@ -83,24 +77,26 @@ export default async function HomePage() {
             {/* Texto */}
             <div className="text-center lg:text-left">
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                Gestão inteligente de flips
+                <Zap className="h-3.5 w-3.5" />
+                Feito por flippers, para flippers
               </div>
               <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl font-display">
-                House flipping não é obra.{" "}
-                <span className="text-primary">É número.</span>
+                Pare de perder{" "}
+                <span className="text-primary">R$20k por flip</span>
               </h1>
               <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
-                Controle compra, obra, taxas e lucro real dos seus flips em um só lugar.
+                Custos ocultos, taxas esquecidas e ROI errado acabam com seu lucro.
+                O meuflip calcula <strong className="text-foreground">tudo</strong> antes que você feche negócio.
               </p>
               <p className="mt-4 text-base text-muted-foreground">
-                Chega de planilhas quebradas, contas soltas e surpresa no final do flip.
-                O meuflip te mostra se o negócio dá dinheiro antes, durante e depois.
+                ITBI, registro, corretagem, imposto PJ, custo de obra — tudo incluído no cálculo.
+                Saiba o lucro real em 30 segundos.
               </p>
               <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {[
-                  { label: "ROI médio", value: "+24%" },
+                  { label: "ROI médio dos usuários", value: "+24%" },
                   { label: "Tempo poupado", value: "4h/sem" },
-                  { label: "Decisão segura", value: "em 30s" },
+                  { label: "Análise completa", value: "em 30s" },
                 ].map((stat) => (
                   <div
                     key={stat.label}
@@ -114,9 +110,9 @@ export default async function HomePage() {
                 ))}
               </div>
               <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
-                <Button size="lg" asChild className="w-full sm:w-auto">
+                <Button size="lg" asChild className="w-full sm:w-auto shadow-lg shadow-primary/25">
                   <Link href={isLoggedIn ? "/app" : "/login?tab=signup"}>
-                    Teste o meuflip agora
+                    Testar grátis por 7 dias
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
@@ -127,14 +123,22 @@ export default async function HomePage() {
                   className="w-full sm:w-auto"
                 >
                   <Link href="/calculator">
-                    Ver calculadora
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    Calculadora grátis
+                    <Calculator className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               </div>
-              <p className="mt-4 text-sm text-muted-foreground">
-                Sem cartão • Cancele quando quiser
-              </p>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground lg:justify-start">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4 text-green-600" />
+                  Sem cartão
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Lock className="h-4 w-4 text-green-600" />
+                  Dados criptografados
+                </span>
+                <span>Leva 30 segundos</span>
+              </div>
             </div>
 
             {/* Animação */}
@@ -166,166 +170,82 @@ export default async function HomePage() {
       <ConceptsSection />
 
       {/* Features */}
-      <section id="features" className="scroll-mt-16">
-        <div className="mx-auto max-w-6xl px-4 py-20">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold sm:text-3xl font-display">
-              Tudo que você precisa para flips lucrativos
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              Da prospecção à venda: ferramentas inteligentes para cada etapa
-            </p>
-          </div>
-
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <Card className="group rounded-2xl border border-border/60 bg-background/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <CardHeader>
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <Target className="h-5 w-5 text-primary" />
-                </div>
-                <CardTitle className="text-lg font-display">
-                  Priorize os 10% que valem a pena
-                </CardTitle>
-                <CardDescription>
-                  Score 0-100 automático classifica por lucro real. Descarte os
-                  ruins em 5s, foque nos promissores.
-                  <span className="mt-2 block text-xs font-medium text-primary">
-                    ↳ 3x mais negócios analisados por dia
-                  </span>
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="group rounded-2xl border border-border/60 bg-background/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <CardHeader>
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <Calculator className="h-5 w-5 text-primary" />
-                </div>
-                <CardTitle className="text-lg font-display">2 minutos, não 2 horas</CardTitle>
-                <CardDescription>
-                  Cole URL → dados extraídos → score calculado. Vivareal, ZAP,
-                  Quintoandar suportados.
-                  <span className="mt-2 block text-xs font-medium text-primary">
-                    ↳ 20+ prospects/dia vs 5 no Excel
-                  </span>
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="group rounded-2xl border border-border/60 bg-background/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <CardHeader>
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                </div>
-                <CardTitle className="text-lg font-display">
-                  Saiba se vale antes de visitar
-                </CardTitle>
-                <CardDescription>
-                  ROI, lucro líquido, break-even instantâneos. Todos custos
-                  inclusos (ITBI, registro, PJ).
-                  <span className="mt-2 block text-xs font-medium text-primary">
-                    ↳ Evite visitas que não fecham (R$ 500+ economizados/mês)
-                  </span>
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="group rounded-2xl border border-border/60 bg-background/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <CardHeader>
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <PiggyBank className="h-5 w-5 text-primary" />
-                </div>
-                <CardTitle className="text-lg font-display">
-                  À vista ou financiado? Resposta em 30s
-                </CardTitle>
-                <CardDescription>
-                  Compare lado a lado com taxas reais. Simule entrada, prestações,
-                  saldo devedor.
-                  <span className="mt-2 block text-xs font-medium text-primary">
-                    ↳ Negocie com confiança, feche 2x mais rápido
-                  </span>
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="group rounded-2xl border border-border/60 bg-background/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <CardHeader>
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <History className="h-5 w-5 text-primary" />
-                </div>
-                <CardTitle className="text-lg font-display">
-                  Opere em várias cidades sem confusão
-                </CardTitle>
-                <CardDescription>
-                  Taxas diferentes, prospects separados, histórico independente. SP
-                  capital ≠ Interior ≠ Litoral.
-                  <span className="mt-2 block text-xs font-medium text-primary">
-                    ↳ Expanda território sem perder controle
-                  </span>
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="group rounded-2xl border border-border/60 bg-background/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <CardHeader>
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
-                <CardTitle className="text-lg font-display">
-                  Timeline realista, sem surpresas
-                </CardTitle>
-                <CardDescription>
-                  Custos de reforma, docs, timeline versionado. Snapshots mostram
-                  evolução do negócio.
-                  <span className="mt-2 block text-xs font-medium text-primary">
-                    ↳ Margem real (evite R$ 20k+ em custos ocultos)
-                  </span>
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-        </div>
-      </section>
+      <FeaturesSection />
 
       {/* Pricing */}
       <PricingSection isLoggedIn={isLoggedIn} />
 
       {/* FAQ */}
-      <section className="border-t border-border bg-[radial-gradient(60%_50%_at_50%_0%,hsl(var(--primary)/0.08),transparent)]">
+      <section className="bg-muted/30">
         <div className="mx-auto max-w-3xl px-4 py-20">
           <div className="text-center">
-            <h2 className="text-2xl font-semibold sm:text-3xl font-display">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl font-display">
               Perguntas frequentes
             </h2>
           </div>
 
-          <div className="mt-12 space-y-6">
+          <div className="mt-12 grid gap-6 sm:grid-cols-2">
+            <div className="rounded-2xl border border-border/60 bg-background/70 p-6">
+              <h3 className="font-medium font-display">Quanto tempo leva para começar?</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                30 segundos. Crie conta, configure suas taxas locais, e analise o primeiro imóvel.
+                Não precisa instalar nada.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border/60 bg-background/70 p-6">
+              <h3 className="font-medium font-display">Funciona se eu faço 1-2 flips por ano?</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Perfeito para você. Justamente quem faz poucos flips precisa acertar cada um.
+                Um erro de R$20k em 2 flips = prejuízo anual.
+              </p>
+            </div>
+
             <div className="rounded-2xl border border-border/60 bg-background/70 p-6">
               <h3 className="font-medium font-display">Mas uma planilha não resolve?</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Resolve… até você errar uma fórmula ou perder tempo demais organizando tudo.
-                Flip bom é aquele que dá lucro sem dor de cabeça.
+                Resolve… até você esquecer uma taxa ou errar uma fórmula.
+                O meuflip tem todas taxas brasileiras pré-configuradas e nunca erra conta.
               </p>
             </div>
 
             <div className="rounded-2xl border border-border/60 bg-background/70 p-6">
               <h3 className="font-medium font-display">Funciona para iniciantes?</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Sim. Interface simples, cálculos explicados. Se está começando, perfeito para aprender.
+                Sim. Interface simples, cálculos explicados passo a passo.
+                Se está começando, perfeito para aprender sem queimar dinheiro.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border/60 bg-background/70 p-6">
+              <h3 className="font-medium font-display">Preciso saber programar ou usar sistemas?</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Zero. Se você usa WhatsApp e email, usa o meuflip.
+                Pensado para quem trabalha na rua, não no computador.
               </p>
             </div>
 
             <div className="rounded-2xl border border-border/60 bg-background/70 p-6">
               <h3 className="font-medium font-display">E se eu não gostar?</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Cancele com 1 clique. Sem fidelidade, sem burocracia.
+                Cancele com 1 clique. Sem fidelidade, sem multa, sem burocracia.
+                Seus dados são excluídos em 30 dias se preferir.
               </p>
             </div>
 
             <div className="rounded-2xl border border-border/60 bg-background/70 p-6">
               <h3 className="font-medium font-display">Meus dados são seguros?</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Sim. Criptografia, dados nunca compartilhados.
+                100%. Criptografia ponta a ponta, servidores no Brasil, conformidade com LGPD.
+                Seus negócios nunca são compartilhados.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border/60 bg-background/70 p-6">
+              <h3 className="font-medium font-display">Funciona em qualquer cidade do Brasil?</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Sim. Configure ITBI, registro e taxas específicas da sua região.
+                Use workspaces diferentes para cada mercado que atua.
               </p>
             </div>
           </div>
@@ -337,28 +257,36 @@ export default async function HomePage() {
         <div className="mx-auto max-w-6xl px-4 py-20 text-center">
           <div className="mx-auto max-w-3xl rounded-3xl border border-border/60 bg-background/70 px-6 py-12 shadow-[0_30px_80px_-60px_hsl(var(--primary)/0.6)]">
             <h2 className="text-2xl font-semibold sm:text-3xl font-display">
-            Pare de trabalhar no escuro.
+              Seu próximo flip pode ser o mais lucrativo
             </h2>
             <p className="mt-3 text-lg text-muted-foreground">
-              Comece a gerir seus flips como um negócio.
+              Com os números certos na mão, você negocia melhor e lucra mais.
             </p>
             <div className="mt-8 flex flex-col items-center gap-4">
-              <Button size="lg" asChild>
+              <Button size="lg" asChild className="shadow-lg shadow-primary/25">
                 <Link href={isLoggedIn ? "/app" : "/login?tab=signup"}>
-                  Teste o meuflip agora
+                  Começar agora — é grátis
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <p className="text-sm text-muted-foreground">
-                Sem cartão • Cancele quando quiser
-              </p>
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4 text-green-600" />
+                  Sem cartão
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Lock className="h-4 w-4 text-green-600" />
+                  LGPD compliant
+                </span>
+                <span>Cancele quando quiser</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border">
+      <footer className="border-t border-border pb-20 sm:pb-0">
         <div className="mx-auto max-w-6xl px-4 py-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
@@ -391,6 +319,9 @@ export default async function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Mobile Sticky CTA */}
+      <MobileStickyBar isLoggedIn={isLoggedIn} />
     </div>
   );
 }

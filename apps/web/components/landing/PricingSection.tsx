@@ -30,10 +30,11 @@ export function PricingSection({ isLoggedIn }: PricingSectionProps) {
   const [interval, setInterval] = useState<BillingInterval>("monthly");
 
   return (
-    <section id="pricing" className="scroll-mt-16 border-t border-border bg-muted/30">
+    <section id="pricing" className="scroll-mt-16 border-t border-border relative">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(50%_50%_at_50%_0%,hsl(var(--primary)/0.08),transparent)]" />
       <div className="mx-auto max-w-6xl px-4 py-20">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold sm:text-3xl font-display">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl font-display">
             Escolha o plano ideal para sua operação
           </h2>
           <p className="mt-3 text-muted-foreground">
