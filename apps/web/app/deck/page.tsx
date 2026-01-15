@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 const TOTAL_SLIDES = 10;
 
@@ -116,7 +117,7 @@ export default function PartnershipDeckPage() {
                   Decisão no feeling
                 </p>
                 <p className="text-gray-600 mt-1">
-                  "Parece bom" não paga as contas. Sem números, qualquer imóvel vira aposta.
+                  {'"Parece bom"'} não paga as contas. Sem números, qualquer imóvel vira aposta.
                 </p>
               </div>
             </li>
@@ -237,7 +238,7 @@ export default function PartnershipDeckPage() {
             Antes x Depois
           </p>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-12 text-center">
-            O "antes e depois" que ninguém posta:
+            O {'"antes e depois"'} que ninguém posta:
             <br />
             <span className="text-gray-400">o financeiro</span>
           </h2>
@@ -254,7 +255,7 @@ export default function PartnershipDeckPage() {
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="text-red-500 text-xl">✕</span>
-                  Feeling: "acho que dá lucro"
+                  Feeling: {'"acho que dá lucro"'}
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="text-red-500 text-xl">✕</span>
@@ -312,9 +313,11 @@ export default function PartnershipDeckPage() {
               </div>
               {/* Screenshot */}
               <div className="rounded-b-xl overflow-hidden shadow-2xl shadow-gray-400/20 border border-gray-200 border-t-0">
-                <img
+                <Image
                   src="/screenshots/viability-new.png"
                   alt="Análise de viabilidade no Meuflip - ROI, custos e lucro calculados automaticamente"
+                  width={1440}
+                  height={900}
                   className="w-full"
                 />
               </div>
@@ -353,14 +356,14 @@ export default function PartnershipDeckPage() {
           <p className="text-lg sm:text-xl text-gray-600 leading-relaxed mb-8">
             O mercado mudou. Tem curso de tudo, em todo lugar. A diferença não está mais em
             quem ensina — está em quem ajuda a executar. O G4 entendeu isso: saiu de
-            "educação para empreendedores" para "plataforma de gestão". Quem segura a mão
+            {' "educação para empreendedores" '} para {'"plataforma de gestão"'}. Quem segura a mão
             do aluno na hora da ação ganha a confiança de verdade.
           </p>
           <div className="bg-gray-100 rounded-lg p-8">
             <p className="text-xl sm:text-2xl font-bold text-gray-900">
-              "Conteúdo forma.
+              {'"Conteúdo forma.'}
               <br />
-              Ferramenta sustenta a decisão."
+              {'Ferramenta sustenta a decisão."'}
             </p>
           </div>
         </div>
@@ -447,9 +450,11 @@ export default function PartnershipDeckPage() {
             </div>
             {/* Screenshot */}
             <div className="rounded-b-xl overflow-hidden shadow-2xl shadow-gray-400/20 border border-gray-200 border-t-0">
-              <img
+              <Image
                 src="/screenshots/dashboard-new.png"
                 alt="Dashboard do Meuflip - visão geral de imóveis, pipeline e atividades"
+                width={1440}
+                height={900}
                 className="w-full"
               />
             </div>
