@@ -7,6 +7,7 @@ import {
   UpdateSupplierRequestSchema,
   type Supplier,
   type ListSuppliersResponse,
+  type ListWorkspaceSuppliersResponse,
   type CreateSupplierRequest,
   type UpdateSupplierRequest,
 } from "@widia/shared";
@@ -101,6 +102,39 @@ export async function deleteSupplierAction(supplierId: string) {
   } catch (e) {
     const message =
       e instanceof Error ? e.message : "Erro ao deletar fornecedor";
+    return { error: message };
+  }
+}
+
+export interface WorkspaceSuppliersFilters {
+  category?: string;
+  minRating?: number;
+  minHourlyRate?: number;
+  maxHourlyRate?: number;
+}
+
+export async function listWorkspaceSuppliersAction(
+  workspaceId: string,
+  filters?: WorkspaceSuppliersFilters
+) {
+  try {
+    const params = new URLSearchParams();
+    if (filters?.category) params.set("category", filters.category);
+    if (filters?.minRating)
+      params.set("min_rating", filters.minRating.toString());
+    if (filters?.minHourlyRate)
+      params.set("min_hourly_rate", filters.minHourlyRate.toString());
+    if (filters?.maxHourlyRate)
+      params.set("max_hourly_rate", filters.maxHourlyRate.toString());
+
+    const queryString = params.toString();
+    const url = `/api/v1/workspaces/${workspaceId}/suppliers${queryString ? `?${queryString}` : ""}`;
+
+    const result = await apiFetch<ListWorkspaceSuppliersResponse>(url);
+    return { data: result };
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : "Erro ao listar fornecedores";
     return { error: message };
   }
 }

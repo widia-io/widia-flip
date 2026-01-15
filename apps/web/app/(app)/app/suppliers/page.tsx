@@ -1,20 +1,24 @@
 import Link from "next/link";
 import { ListWorkspacesResponseSchema } from "@widia/shared";
 
-import { SuppliersGrid } from "@/components/SuppliersGrid";
+import { WorkspaceSuppliersDashboard } from "@/components/WorkspaceSuppliersDashboard";
 import { apiFetch } from "@/lib/apiFetch";
-import { listSuppliersAction } from "@/lib/actions/suppliers";
+import { listWorkspaceSuppliersAction } from "@/lib/actions/suppliers";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getActiveWorkspaceId } from "@/lib/workspace";
 
-export default async function SuppliersPage(props: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const searchParams = (await props.searchParams) ?? {};
-  const categoryFilter =
-    typeof searchParams.category === "string" ? searchParams.category : undefined;
+const defaultSummary = {
+  total_count: 0,
+  by_category: [],
+  avg_rating: null,
+  avg_hourly_rate: null,
+  top_rated: [],
+  price_analysis: [],
+  usage_stats: [],
+};
 
+export default async function SuppliersPage() {
   // Get active workspace from cookie
   const activeWorkspaceId = await getActiveWorkspaceId();
 
@@ -52,22 +56,19 @@ export default async function SuppliersPage(props: {
   const workspaceId = workspace.id;
   const workspaceName = workspace.name;
 
-  // Fetch suppliers
-  const suppliersResult = await listSuppliersAction(workspaceId, {
-    category: categoryFilter,
-  });
+  // Fetch suppliers with summary
+  const suppliersResult = await listWorkspaceSuppliersAction(workspaceId);
 
-  const suppliers = suppliersResult.data?.items ?? [];
+  const items = suppliersResult.data?.items ?? [];
+  const summary = suppliersResult.data?.summary ?? defaultSummary;
   const error = suppliersResult.error;
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 sm:px-6 lg:px-8">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       {/* Page Header */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Fornecedores
-          </h1>
+          <h1 className="text-2xl font-semibold">Fornecedores</h1>
           <p className="text-sm text-muted-foreground">{workspaceName}</p>
         </div>
       </div>
@@ -80,10 +81,10 @@ export default async function SuppliersPage(props: {
       ) : null}
 
       {/* Main Content */}
-      <SuppliersGrid
-        suppliers={suppliers}
+      <WorkspaceSuppliersDashboard
+        items={items}
+        summary={summary}
         workspaceId={workspaceId}
-        categoryFilter={categoryFilter}
       />
     </div>
   );

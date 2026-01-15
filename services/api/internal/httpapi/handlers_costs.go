@@ -33,6 +33,7 @@ type costItem struct {
 	Amount         float64   `json:"amount"`
 	DueDate        *string   `json:"due_date"`
 	Vendor         *string   `json:"vendor"`
+	SupplierID     *string   `json:"supplier_id"`
 	Notes          *string   `json:"notes"`
 	ScheduleItemID *string   `json:"schedule_item_id"`
 	CreatedAt      time.Time `json:"created_at"`
@@ -40,23 +41,25 @@ type costItem struct {
 }
 
 type createCostRequest struct {
-	CostType string  `json:"cost_type"`
-	Category *string `json:"category"`
-	Status   *string `json:"status"`
-	Amount   float64 `json:"amount"`
-	DueDate  *string `json:"due_date"`
-	Vendor   *string `json:"vendor"`
-	Notes    *string `json:"notes"`
+	CostType   string  `json:"cost_type"`
+	Category   *string `json:"category"`
+	Status     *string `json:"status"`
+	Amount     float64 `json:"amount"`
+	DueDate    *string `json:"due_date"`
+	Vendor     *string `json:"vendor"`
+	SupplierID *string `json:"supplier_id"`
+	Notes      *string `json:"notes"`
 }
 
 type updateCostRequest struct {
-	CostType *string  `json:"cost_type"`
-	Category *string  `json:"category"`
-	Status   *string  `json:"status"`
-	Amount   *float64 `json:"amount"`
-	DueDate  *string  `json:"due_date"`
-	Vendor   *string  `json:"vendor"`
-	Notes    *string  `json:"notes"`
+	CostType   *string  `json:"cost_type"`
+	Category   *string  `json:"category"`
+	Status     *string  `json:"status"`
+	Amount     *float64 `json:"amount"`
+	DueDate    *string  `json:"due_date"`
+	Vendor     *string  `json:"vendor"`
+	SupplierID *string  `json:"supplier_id"`
+	Notes      *string  `json:"notes"`
 }
 
 type listCostsResponse struct {
@@ -141,7 +144,7 @@ func (a *api) handleListCosts(w http.ResponseWriter, r *http.Request, propertyID
 
 	rows, err := a.db.QueryContext(
 		r.Context(),
-		`SELECT id, property_id, workspace_id, cost_type, category, status, amount, due_date, vendor, notes, schedule_item_id, created_at, updated_at
+		`SELECT id, property_id, workspace_id, cost_type, category, status, amount, due_date, vendor, supplier_id, notes, schedule_item_id, created_at, updated_at
 		 FROM cost_items
 		 WHERE property_id = $1
 		 ORDER BY created_at DESC`,
@@ -159,14 +162,18 @@ func (a *api) handleListCosts(w http.ResponseWriter, r *http.Request, propertyID
 	for rows.Next() {
 		var c costItem
 		var dueDate sql.NullString
+		var supplierID sql.NullString
 		var scheduleItemID sql.NullString
-		err := rows.Scan(&c.ID, &c.PropertyID, &c.WorkspaceID, &c.CostType, &c.Category, &c.Status, &c.Amount, &dueDate, &c.Vendor, &c.Notes, &scheduleItemID, &c.CreatedAt, &c.UpdatedAt)
+		err := rows.Scan(&c.ID, &c.PropertyID, &c.WorkspaceID, &c.CostType, &c.Category, &c.Status, &c.Amount, &dueDate, &c.Vendor, &supplierID, &c.Notes, &scheduleItemID, &c.CreatedAt, &c.UpdatedAt)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan cost"})
 			return
 		}
 		if dueDate.Valid {
 			c.DueDate = &dueDate.String
+		}
+		if supplierID.Valid {
+			c.SupplierID = &supplierID.String
 		}
 		if scheduleItemID.Valid {
 			c.ScheduleItemID = &scheduleItemID.String
@@ -242,19 +249,23 @@ func (a *api) handleCreateCost(w http.ResponseWriter, r *http.Request, propertyI
 	// Insert cost
 	var c costItem
 	var dueDate sql.NullString
+	var supplierID sql.NullString
 	err = a.db.QueryRowContext(
 		r.Context(),
-		`INSERT INTO cost_items (workspace_id, property_id, cost_type, category, status, amount, due_date, vendor, notes)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		 RETURNING id, property_id, workspace_id, cost_type, category, status, amount, due_date, vendor, notes, created_at, updated_at`,
-		workspaceID, propertyID, req.CostType, req.Category, status, req.Amount, req.DueDate, req.Vendor, req.Notes,
-	).Scan(&c.ID, &c.PropertyID, &c.WorkspaceID, &c.CostType, &c.Category, &c.Status, &c.Amount, &dueDate, &c.Vendor, &c.Notes, &c.CreatedAt, &c.UpdatedAt)
+		`INSERT INTO cost_items (workspace_id, property_id, cost_type, category, status, amount, due_date, vendor, supplier_id, notes)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		 RETURNING id, property_id, workspace_id, cost_type, category, status, amount, due_date, vendor, supplier_id, notes, created_at, updated_at`,
+		workspaceID, propertyID, req.CostType, req.Category, status, req.Amount, req.DueDate, req.Vendor, req.SupplierID, req.Notes,
+	).Scan(&c.ID, &c.PropertyID, &c.WorkspaceID, &c.CostType, &c.Category, &c.Status, &c.Amount, &dueDate, &c.Vendor, &supplierID, &c.Notes, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to create cost", Details: []string{err.Error()}})
 		return
 	}
 	if dueDate.Valid {
 		c.DueDate = &dueDate.String
+	}
+	if supplierID.Valid {
+		c.SupplierID = &supplierID.String
 	}
 
 	// Create timeline event
@@ -325,6 +336,7 @@ func (a *api) handleUpdateCost(w http.ResponseWriter, r *http.Request, costID st
 	// Update cost
 	var c costItem
 	var dueDate sql.NullString
+	var supplierID sql.NullString
 	err = a.db.QueryRowContext(
 		r.Context(),
 		`UPDATE cost_items SET
@@ -334,18 +346,22 @@ func (a *api) handleUpdateCost(w http.ResponseWriter, r *http.Request, costID st
 		   amount = COALESCE($4, amount),
 		   due_date = COALESCE($5, due_date),
 		   vendor = COALESCE($6, vendor),
-		   notes = COALESCE($7, notes),
+		   supplier_id = COALESCE($7, supplier_id),
+		   notes = COALESCE($8, notes),
 		   updated_at = now()
-		 WHERE id = $8
-		 RETURNING id, property_id, workspace_id, cost_type, category, status, amount, due_date, vendor, notes, created_at, updated_at`,
-		req.CostType, req.Category, req.Status, req.Amount, req.DueDate, req.Vendor, req.Notes, costID,
-	).Scan(&c.ID, &c.PropertyID, &c.WorkspaceID, &c.CostType, &c.Category, &c.Status, &c.Amount, &dueDate, &c.Vendor, &c.Notes, &c.CreatedAt, &c.UpdatedAt)
+		 WHERE id = $9
+		 RETURNING id, property_id, workspace_id, cost_type, category, status, amount, due_date, vendor, supplier_id, notes, created_at, updated_at`,
+		req.CostType, req.Category, req.Status, req.Amount, req.DueDate, req.Vendor, req.SupplierID, req.Notes, costID,
+	).Scan(&c.ID, &c.PropertyID, &c.WorkspaceID, &c.CostType, &c.Category, &c.Status, &c.Amount, &dueDate, &c.Vendor, &supplierID, &c.Notes, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to update cost", Details: []string{err.Error()}})
 		return
 	}
 	if dueDate.Valid {
 		c.DueDate = &dueDate.String
+	}
+	if supplierID.Valid {
+		c.SupplierID = &supplierID.String
 	}
 
 	// Build changes map for timeline
@@ -501,6 +517,7 @@ type workspaceCostItem struct {
 	Amount          float64   `json:"amount"`
 	DueDate         *string   `json:"due_date"`
 	Vendor          *string   `json:"vendor"`
+	SupplierID      *string   `json:"supplier_id"`
 	Notes           *string   `json:"notes"`
 	ScheduleItemID  *string   `json:"schedule_item_id"`
 	CreatedAt       time.Time `json:"created_at"`
@@ -569,7 +586,7 @@ func (a *api) handleWorkspaceCosts(w http.ResponseWriter, r *http.Request, works
 	rows, err := a.db.QueryContext(
 		r.Context(),
 		`SELECT c.id, c.property_id, c.workspace_id, c.cost_type, c.category, c.status, c.amount,
-		        c.due_date, c.vendor, c.notes, c.schedule_item_id, c.created_at, c.updated_at,
+		        c.due_date, c.vendor, c.supplier_id, c.notes, c.schedule_item_id, c.created_at, c.updated_at,
 		        COALESCE(p.address, p.neighborhood, 'Sem endereço') as property_name, p.address as property_address
 		 FROM cost_items c
 		 JOIN properties p ON p.id = c.property_id
@@ -590,10 +607,10 @@ func (a *api) handleWorkspaceCosts(w http.ResponseWriter, r *http.Request, works
 
 	for rows.Next() {
 		var c workspaceCostItem
-		var dueDate, scheduleItemID, propAddr sql.NullString
+		var dueDate, supplierID, scheduleItemID, propAddr sql.NullString
 		err := rows.Scan(
 			&c.ID, &c.PropertyID, &c.WorkspaceID, &c.CostType, &c.Category, &c.Status, &c.Amount,
-			&dueDate, &c.Vendor, &c.Notes, &scheduleItemID, &c.CreatedAt, &c.UpdatedAt,
+			&dueDate, &c.Vendor, &supplierID, &c.Notes, &scheduleItemID, &c.CreatedAt, &c.UpdatedAt,
 			&c.PropertyName, &propAddr,
 		)
 		if err != nil {
@@ -602,6 +619,9 @@ func (a *api) handleWorkspaceCosts(w http.ResponseWriter, r *http.Request, works
 		}
 		if dueDate.Valid {
 			c.DueDate = &dueDate.String
+		}
+		if supplierID.Valid {
+			c.SupplierID = &supplierID.String
 		}
 		if scheduleItemID.Valid {
 			c.ScheduleItemID = &scheduleItemID.String
@@ -657,7 +677,7 @@ func (a *api) handleWorkspaceCosts(w http.ResponseWriter, r *http.Request, works
 	upcomingRows, err := a.db.QueryContext(
 		r.Context(),
 		`SELECT c.id, c.property_id, c.workspace_id, c.cost_type, c.category, c.status, c.amount,
-		        c.due_date, c.vendor, c.notes, c.schedule_item_id, c.created_at, c.updated_at,
+		        c.due_date, c.vendor, c.supplier_id, c.notes, c.schedule_item_id, c.created_at, c.updated_at,
 		        COALESCE(p.address, p.neighborhood, 'Sem endereço') as property_name, p.address as property_address,
 		        (c.due_date::date - CURRENT_DATE) as days_until_due
 		 FROM cost_items c
@@ -680,10 +700,10 @@ func (a *api) handleWorkspaceCosts(w http.ResponseWriter, r *http.Request, works
 	upcoming := make([]upcomingCost, 0)
 	for upcomingRows.Next() {
 		var uc upcomingCost
-		var dueDate, scheduleItemID, propAddr sql.NullString
+		var dueDate, supplierID, scheduleItemID, propAddr sql.NullString
 		err := upcomingRows.Scan(
 			&uc.ID, &uc.PropertyID, &uc.WorkspaceID, &uc.CostType, &uc.Category, &uc.Status, &uc.Amount,
-			&dueDate, &uc.Vendor, &uc.Notes, &scheduleItemID, &uc.CreatedAt, &uc.UpdatedAt,
+			&dueDate, &uc.Vendor, &supplierID, &uc.Notes, &scheduleItemID, &uc.CreatedAt, &uc.UpdatedAt,
 			&uc.PropertyName, &propAddr, &uc.DaysUntilDue,
 		)
 		if err != nil {
@@ -692,6 +712,9 @@ func (a *api) handleWorkspaceCosts(w http.ResponseWriter, r *http.Request, works
 		}
 		if dueDate.Valid {
 			uc.DueDate = &dueDate.String
+		}
+		if supplierID.Valid {
+			uc.SupplierID = &supplierID.String
 		}
 		if scheduleItemID.Valid {
 			uc.ScheduleItemID = &scheduleItemID.String

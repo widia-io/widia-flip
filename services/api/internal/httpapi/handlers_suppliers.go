@@ -579,3 +579,277 @@ func (a *api) enforceSupplierCreation(w http.ResponseWriter, r *http.Request, us
 
 	return true
 }
+
+// ========== Workspace-level suppliers summary (Dashboard) ==========
+
+type suppliersByCategoryAgg struct {
+	Category      string   `json:"category"`
+	Count         int      `json:"count"`
+	AvgRating     *float64 `json:"avg_rating"`
+	AvgHourlyRate *float64 `json:"avg_hourly_rate"`
+}
+
+type categoryPriceAnalysis struct {
+	Category      string   `json:"category"`
+	MinHourly     *float64 `json:"min_hourly"`
+	MaxHourly     *float64 `json:"max_hourly"`
+	AvgHourly     *float64 `json:"avg_hourly"`
+	SupplierCount int      `json:"supplier_count"`
+}
+
+type supplierUsageStats struct {
+	SupplierID   string  `json:"supplier_id"`
+	SupplierName string  `json:"supplier_name"`
+	Category     string  `json:"category"`
+	TotalCosts   int     `json:"total_costs"`
+	TotalAmount  float64 `json:"total_amount"`
+}
+
+type suppliersSummary struct {
+	TotalCount    int                     `json:"total_count"`
+	ByCategory    []suppliersByCategoryAgg `json:"by_category"`
+	AvgRating     *float64                `json:"avg_rating"`
+	AvgHourlyRate *float64                `json:"avg_hourly_rate"`
+	TopRated      []supplier              `json:"top_rated"`
+	PriceAnalysis []categoryPriceAnalysis `json:"price_analysis"`
+	UsageStats    []supplierUsageStats    `json:"usage_stats"`
+}
+
+type listWorkspaceSuppliersResponse struct {
+	Items   []supplier       `json:"items"`
+	Summary suppliersSummary `json:"summary"`
+}
+
+// handleWorkspaceSuppliersSummary handles GET /api/v1/workspaces/:id/suppliers/summary
+func (a *api) handleWorkspaceSuppliersSummary(w http.ResponseWriter, r *http.Request, workspaceID string) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	// Check workspace membership
+	if hasMembership, err := a.hasWorkspaceMembership(r.Context(), workspaceID, userID); err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check membership"})
+		return
+	} else if !hasMembership {
+		writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "workspace not found"})
+		return
+	}
+
+	// Parse filters
+	categoryFilter := r.URL.Query().Get("category")
+	minRatingStr := r.URL.Query().Get("min_rating")
+	minHourlyStr := r.URL.Query().Get("min_hourly_rate")
+	maxHourlyStr := r.URL.Query().Get("max_hourly_rate")
+
+	var minRating *int
+	var minHourly, maxHourly *float64
+
+	if minRatingStr != "" {
+		if v, err := strconv.Atoi(minRatingStr); err == nil && v >= 1 && v <= 5 {
+			minRating = &v
+		}
+	}
+	if minHourlyStr != "" {
+		if v, err := strconv.ParseFloat(minHourlyStr, 64); err == nil {
+			minHourly = &v
+		}
+	}
+	if maxHourlyStr != "" {
+		if v, err := strconv.ParseFloat(maxHourlyStr, 64); err == nil {
+			maxHourly = &v
+		}
+	}
+
+	// Build query with filters
+	query := `SELECT id, workspace_id, name, phone, email, category, notes, rating, hourly_rate, created_at, updated_at
+			  FROM flip.suppliers WHERE workspace_id = $1`
+	args := []any{workspaceID}
+	argIdx := 2
+
+	if categoryFilter != "" && validSupplierCategories[categoryFilter] {
+		query += " AND category = $" + strconv.Itoa(argIdx)
+		args = append(args, categoryFilter)
+		argIdx++
+	}
+	if minRating != nil {
+		query += " AND rating >= $" + strconv.Itoa(argIdx)
+		args = append(args, *minRating)
+		argIdx++
+	}
+	if minHourly != nil {
+		query += " AND hourly_rate >= $" + strconv.Itoa(argIdx)
+		args = append(args, *minHourly)
+		argIdx++
+	}
+	if maxHourly != nil {
+		query += " AND hourly_rate <= $" + strconv.Itoa(argIdx)
+		args = append(args, *maxHourly)
+		argIdx++
+	}
+	query += " ORDER BY COALESCE(rating, 0) DESC, name ASC"
+
+	rows, err := a.db.QueryContext(r.Context(), query, args...)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to query suppliers"})
+		return
+	}
+	defer rows.Close()
+
+	items := make([]supplier, 0)
+	categoryAgg := make(map[string]*suppliersByCategoryAgg)
+	priceAgg := make(map[string]*categoryPriceAnalysis)
+	var totalRating, totalHourly float64
+	var ratingCount, hourlyCount int
+
+	for rows.Next() {
+		var s supplier
+		var rating sql.NullInt32
+		var hourlyRate sql.NullFloat64
+		err := rows.Scan(&s.ID, &s.WorkspaceID, &s.Name, &s.Phone, &s.Email, &s.Category, &s.Notes, &rating, &hourlyRate, &s.CreatedAt, &s.UpdatedAt)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to scan supplier"})
+			return
+		}
+		if rating.Valid {
+			v := int(rating.Int32)
+			s.Rating = &v
+			totalRating += float64(v)
+			ratingCount++
+		}
+		if hourlyRate.Valid {
+			s.HourlyRate = &hourlyRate.Float64
+			totalHourly += hourlyRate.Float64
+			hourlyCount++
+		}
+		items = append(items, s)
+
+		// Aggregate by category
+		if _, exists := categoryAgg[s.Category]; !exists {
+			categoryAgg[s.Category] = &suppliersByCategoryAgg{Category: s.Category}
+		}
+		categoryAgg[s.Category].Count++
+		if rating.Valid {
+			if categoryAgg[s.Category].AvgRating == nil {
+				v := float64(rating.Int32)
+				categoryAgg[s.Category].AvgRating = &v
+			} else {
+				// Running average
+				old := *categoryAgg[s.Category].AvgRating
+				count := float64(categoryAgg[s.Category].Count)
+				*categoryAgg[s.Category].AvgRating = old + (float64(rating.Int32)-old)/count
+			}
+		}
+		if hourlyRate.Valid {
+			if categoryAgg[s.Category].AvgHourlyRate == nil {
+				categoryAgg[s.Category].AvgHourlyRate = &hourlyRate.Float64
+			} else {
+				old := *categoryAgg[s.Category].AvgHourlyRate
+				count := float64(categoryAgg[s.Category].Count)
+				*categoryAgg[s.Category].AvgHourlyRate = old + (hourlyRate.Float64-old)/count
+			}
+		}
+
+		// Price analysis by category
+		if _, exists := priceAgg[s.Category]; !exists {
+			priceAgg[s.Category] = &categoryPriceAnalysis{Category: s.Category}
+		}
+		if hourlyRate.Valid {
+			priceAgg[s.Category].SupplierCount++
+			if priceAgg[s.Category].MinHourly == nil || hourlyRate.Float64 < *priceAgg[s.Category].MinHourly {
+				priceAgg[s.Category].MinHourly = &hourlyRate.Float64
+			}
+			if priceAgg[s.Category].MaxHourly == nil || hourlyRate.Float64 > *priceAgg[s.Category].MaxHourly {
+				priceAgg[s.Category].MaxHourly = &hourlyRate.Float64
+			}
+			if priceAgg[s.Category].AvgHourly == nil {
+				priceAgg[s.Category].AvgHourly = &hourlyRate.Float64
+			} else {
+				old := *priceAgg[s.Category].AvgHourly
+				count := float64(priceAgg[s.Category].SupplierCount)
+				*priceAgg[s.Category].AvgHourly = old + (hourlyRate.Float64-old)/count
+			}
+		}
+	}
+
+	// Convert maps to slices
+	byCategory := make([]suppliersByCategoryAgg, 0, len(categoryAgg))
+	for _, v := range categoryAgg {
+		byCategory = append(byCategory, *v)
+	}
+	priceAnalysis := make([]categoryPriceAnalysis, 0, len(priceAgg))
+	for _, v := range priceAgg {
+		if v.SupplierCount > 0 {
+			priceAnalysis = append(priceAnalysis, *v)
+		}
+	}
+
+	// Calculate overall averages
+	var avgRating, avgHourly *float64
+	if ratingCount > 0 {
+		v := totalRating / float64(ratingCount)
+		avgRating = &v
+	}
+	if hourlyCount > 0 {
+		v := totalHourly / float64(hourlyCount)
+		avgHourly = &v
+	}
+
+	// Top rated (limit 5)
+	topRated := make([]supplier, 0)
+	for _, s := range items {
+		if s.Rating != nil && *s.Rating >= 4 && len(topRated) < 5 {
+			topRated = append(topRated, s)
+		}
+	}
+
+	// Query usage stats (suppliers with costs)
+	usageRows, err := a.db.QueryContext(
+		r.Context(),
+		`SELECT s.id, s.name, s.category, COUNT(c.id) as total_costs, COALESCE(SUM(c.amount), 0) as total_amount
+		 FROM flip.suppliers s
+		 LEFT JOIN flip.cost_items c ON c.supplier_id = s.id
+		 WHERE s.workspace_id = $1
+		 GROUP BY s.id, s.name, s.category
+		 HAVING COUNT(c.id) > 0
+		 ORDER BY COUNT(c.id) DESC
+		 LIMIT 10`,
+		workspaceID,
+	)
+	if err != nil {
+		slog.Warn("failed to query usage stats", slog.Any("error", err))
+		// Don't fail the request, just return empty usage stats
+	}
+
+	usageStats := make([]supplierUsageStats, 0)
+	if usageRows != nil {
+		defer usageRows.Close()
+		for usageRows.Next() {
+			var u supplierUsageStats
+			if err := usageRows.Scan(&u.SupplierID, &u.SupplierName, &u.Category, &u.TotalCosts, &u.TotalAmount); err != nil {
+				slog.Warn("failed to scan usage stats", slog.Any("error", err))
+				continue
+			}
+			usageStats = append(usageStats, u)
+		}
+	}
+
+	writeJSON(w, http.StatusOK, listWorkspaceSuppliersResponse{
+		Items: items,
+		Summary: suppliersSummary{
+			TotalCount:    len(items),
+			ByCategory:    byCategory,
+			AvgRating:     avgRating,
+			AvgHourlyRate: avgHourly,
+			TopRated:      topRated,
+			PriceAnalysis: priceAnalysis,
+			UsageStats:    usageStats,
+		},
+	})
+}
