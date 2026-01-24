@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,18 +15,27 @@ import (
 	"github.com/widia-projects/widia-flip/services/api/internal/config"
 	"github.com/widia-projects/widia-flip/services/api/internal/httpapi"
 	"github.com/widia-projects/widia-flip/services/api/internal/llm"
+	"github.com/widia-projects/widia-flip/services/api/internal/logger"
 	"github.com/widia-projects/widia-flip/services/api/internal/storage"
 )
 
 func main() {
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
+	logger.Init(logLevel)
+
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("config: %v", err)
+		slog.Error("config load failed", slog.Any("error", err))
+		os.Exit(1)
 	}
 
 	db, err := sql.Open("pgx", cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("db open: %v", err)
+		slog.Error("db open failed", slog.Any("error", err))
+		os.Exit(1)
 	}
 	defer db.Close()
 
@@ -35,28 +44,27 @@ func main() {
 	db.SetConnMaxIdleTime(5 * time.Minute)
 
 	if err := db.Ping(); err != nil {
-		log.Fatalf("db ping: %v", err)
+		slog.Error("db ping failed", slog.Any("error", err))
+		os.Exit(1)
 	}
 
-	// Initialize S3 client for document storage
 	s3Client, err := storage.NewS3Client(cfg.S3)
 	if err != nil {
-		log.Printf("warning: S3 client init failed (document upload will be disabled): %v", err)
+		slog.Warn("s3_client_init_failed", slog.Any("error", err))
 		s3Client = nil
 	} else {
-		log.Printf("S3 client initialized for bucket: %s", cfg.S3.Bucket)
+		slog.Info("s3_client_initialized", slog.String("bucket", cfg.S3.Bucket))
 	}
 
-	// Initialize LLM client for Flip Score risk assessment
 	var llmClient *llm.Client
 	if cfg.LLM.OpenRouterAPIKey != "" {
 		llmClient = llm.NewClient(llm.Config{
 			APIKey: cfg.LLM.OpenRouterAPIKey,
 			Model:  cfg.LLM.OpenRouterModel,
 		})
-		log.Printf("LLM client initialized with model: %s", cfg.LLM.OpenRouterModel)
+		slog.Info("llm_client_initialized", slog.String("model", cfg.LLM.OpenRouterModel))
 	} else {
-		log.Printf("warning: OPENROUTER_API_KEY not set (Flip Score LLM analysis will be disabled)")
+		slog.Warn("llm_disabled", slog.String("reason", "OPENROUTER_API_KEY not set"))
 	}
 
 	handler := httpapi.NewHandler(httpapi.Deps{
@@ -74,9 +82,10 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("Go API listening on :%s", cfg.Port)
+		slog.Info("api_started", slog.String("port", cfg.Port))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %v", err)
+			slog.Error("listen_failed", slog.Any("error", err))
+			os.Exit(1)
 		}
 	}()
 

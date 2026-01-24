@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"log"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/widia-projects/widia-flip/services/api/internal/auth"
 	"github.com/widia-projects/widia-flip/services/api/internal/flipscore"
+	"github.com/widia-projects/widia-flip/services/api/internal/logger"
 )
 
 const (
@@ -31,7 +31,6 @@ type flipScoreProspect struct {
 }
 
 func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, prospectID string) {
-	reqID := r.Header.Get("X-Request-ID")
 	userID, ok := auth.UserIDFromContext(r.Context())
 	if !ok {
 		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
@@ -42,7 +41,10 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 	force := r.URL.Query().Get("force") == "true"
 	forceVersion := r.URL.Query().Get("version") // "v0" to force v0 calculation
 
-	log.Printf("flip_score_recompute_start request_id=%s prospect_id=%s user_id=%s force=%v version=%s", reqID, prospectID, userID, force, forceVersion)
+	logger.WithContext(r.Context()).Info("flip_score_recompute_start",
+		slog.String("prospect_id", prospectID),
+		slog.Bool("force", force),
+		slog.String("version", forceVersion))
 
 	// Fetch prospect with access check
 	prospect, err := a.getProspectWithFlipScore(r.Context(), prospectID, userID)
@@ -51,7 +53,7 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "prospect not found"})
 			return
 		}
-		log.Printf("flip_score_error request_id=%s error=%v", reqID, err)
+		logger.WithContext(r.Context()).Error("flip_score_error", slog.Any("error", err))
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch prospect"})
 		return
 	}
@@ -61,8 +63,10 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 		elapsed := time.Since(*prospect.FlipScoreUpdatedAt)
 		if elapsed < time.Duration(flipScoreRateLimitMinutes)*time.Minute {
 			remaining := time.Duration(flipScoreRateLimitMinutes)*time.Minute - elapsed
-			log.Printf("flip_score_rate_limited request_id=%s prospect_id=%s elapsed_min=%d remaining_min=%d",
-				reqID, prospectID, int(elapsed.Minutes()), int(remaining.Minutes())+1)
+			logger.WithContext(r.Context()).Warn("flip_score_rate_limited",
+				slog.String("prospect_id", prospectID),
+				slog.Int("elapsed_min", int(elapsed.Minutes())),
+				slog.Int("remaining_min", int(remaining.Minutes())+1))
 			writeError(w, http.StatusBadRequest, apiError{
 				Code:    "RATE_LIMITED",
 				Message: "Score atualizado recentemente. Aguarde ou use force=true.",
@@ -73,26 +77,33 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 
 	// Get cohort stats for S_price calculation
 	cohort := a.getCohortStats(r.Context(), prospect)
-	log.Printf("flip_score_cohort request_id=%s prospect_id=%s cohort_scope=%s cohort_n=%d",
-		reqID, prospectID, cohort.Scope, cohort.N)
+	logger.WithContext(r.Context()).Info("flip_score_cohort",
+		slog.String("prospect_id", prospectID),
+		slog.String("cohort_scope", cohort.Scope),
+		slog.Int("cohort_n", cohort.N))
 
 	// Try LLM risk assessment (with fallback)
 	var riskAssessment *flipscore.FlipRiskAssessment
 	if a.llmClient != nil && prospect.ListingText != nil && *prospect.ListingText != "" {
 		startTime := time.Now()
-		log.Printf("llm_request_start request_id=%s prospect_id=%s input_len=%d",
-			reqID, prospectID, len(*prospect.ListingText))
+		logger.WithContext(r.Context()).Info("llm_request_start",
+			slog.String("prospect_id", prospectID),
+			slog.Int("input_len", len(*prospect.ListingText)))
 
 		assessment, err := a.llmClient.ExtractRiskAssessment(r.Context(), *prospect.ListingText)
 		latency := time.Since(startTime).Milliseconds()
 
 		if err != nil {
-			log.Printf("llm_request_error request_id=%s prospect_id=%s error=%v latency_ms=%d",
-				reqID, prospectID, err, latency)
+			logger.WithContext(r.Context()).Error("llm_request_error",
+				slog.String("prospect_id", prospectID),
+				slog.Any("error", err),
+				slog.Int64("latency_ms", latency))
 			// Continue without risk assessment (fallback)
 		} else {
-			log.Printf("llm_request_success request_id=%s prospect_id=%s latency_ms=%d llm_confidence=%.2f",
-				reqID, prospectID, latency, assessment.LLMConfidence)
+			logger.WithContext(r.Context()).Info("llm_request_success",
+				slog.String("prospect_id", prospectID),
+				slog.Int64("latency_ms", latency),
+				slog.Float64("llm_confidence", assessment.LLMConfidence))
 			riskAssessment = assessment
 		}
 	}
@@ -142,9 +153,7 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 		}
 
 		if !canAccessFlipScoreV1(tier) {
-			slog.Warn("enforcement_blocked",
-				slog.String("request_id", reqID),
-				slog.String("user_id", userID),
+			logger.WithContext(r.Context()).Warn("enforcement_blocked",
 				slog.String("prospect_id", prospectID),
 				slog.String("action", "flip_score_v1"),
 				slog.String("reason", "tier_restriction"),
@@ -174,7 +183,9 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 		// Get workspace settings for v1 calculation
 		settings, err := a.getWorkspaceCashSettings(r.Context(), prospect.WorkspaceID)
 		if err != nil {
-			log.Printf("flip_score_settings_error request_id=%s prospect_id=%s error=%v", reqID, prospectID, err)
+			logger.WithContext(r.Context()).Error("flip_score_settings_error",
+				slog.String("prospect_id", prospectID),
+				slog.Any("error", err))
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch workspace settings"})
 			return
 		}
@@ -184,7 +195,9 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 
 		// Persist v1 to DB
 		if err := a.persistFlipScoreV1(r.Context(), prospectID, resultV1); err != nil {
-			log.Printf("flip_score_persist_error request_id=%s prospect_id=%s error=%v", reqID, prospectID, err)
+			logger.WithContext(r.Context()).Error("flip_score_persist_error",
+				slog.String("prospect_id", prospectID),
+				slog.Any("error", err))
 			writeError(w, http.StatusInternalServerError, apiError{Code: "SCORE_CALC_FAILED", Message: "failed to persist score"})
 			return
 		}
@@ -195,16 +208,21 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 		computedAt = resultV1.ComputedAt
 		breakdownBytes, _ = json.Marshal(resultV1.Breakdown)
 
-		log.Printf("flip_score_recompute_done request_id=%s prospect_id=%s score=%d version=%s confidence=%.2f roi=%.2f",
-			reqID, prospectID, resultV1.Score, resultV1.Version, resultV1.Confidence,
-			resultV1.Breakdown.Economics.ROI)
+		logger.WithContext(r.Context()).Info("flip_score_recompute_done",
+			slog.String("prospect_id", prospectID),
+			slog.Int("score", resultV1.Score),
+			slog.String("version", resultV1.Version),
+			slog.Float64("confidence", resultV1.Confidence),
+			slog.Float64("roi", resultV1.Breakdown.Economics.ROI))
 	} else {
 		// Calculate v0 score (fallback)
 		resultV0 := flipscore.Calculate(inputsV0, riskAssessment, cohort)
 
 		// Persist v0 to DB
 		if err := a.persistFlipScore(r.Context(), prospectID, resultV0); err != nil {
-			log.Printf("flip_score_persist_error request_id=%s prospect_id=%s error=%v", reqID, prospectID, err)
+			logger.WithContext(r.Context()).Error("flip_score_persist_error",
+				slog.String("prospect_id", prospectID),
+				slog.Any("error", err))
 			writeError(w, http.StatusInternalServerError, apiError{Code: "SCORE_CALC_FAILED", Message: "failed to persist score"})
 			return
 		}
@@ -215,8 +233,11 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 		computedAt = resultV0.ComputedAt
 		breakdownBytes, _ = json.Marshal(resultV0.Breakdown)
 
-		log.Printf("flip_score_recompute_done request_id=%s prospect_id=%s score=%d version=%s confidence=%.2f",
-			reqID, prospectID, resultV0.Score, resultV0.Version, resultV0.Confidence)
+		logger.WithContext(r.Context()).Info("flip_score_recompute_done",
+			slog.String("prospect_id", prospectID),
+			slog.Int("score", resultV0.Score),
+			slog.String("version", resultV0.Version),
+			slog.Float64("confidence", resultV0.Confidence))
 	}
 
 	// Build response
