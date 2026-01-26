@@ -55,12 +55,15 @@ export function ScheduleCalendar({
 
   const events: CalendarEvent[] = useMemo(() => {
     return items.map((item) => {
-      const date = new Date(item.planned_date + "T12:00:00");
+      const start = new Date(item.start_date + "T00:00:00");
+      // End date needs to be +1 day for react-big-calendar all-day events to render correctly
+      const endDate = new Date(item.end_date + "T00:00:00");
+      endDate.setDate(endDate.getDate() + 1);
       return {
         id: item.id,
         title: item.title,
-        start: date,
-        end: date,
+        start,
+        end: endDate,
         allDay: true,
         resource: item,
       };

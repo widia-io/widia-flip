@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo, useRef } from "react";
-import { Plus, Loader2, ChevronDown, ChevronRight, Trash2, Pencil, Paperclip, Upload, FileText, X, List, CalendarDays } from "lucide-react";
+import { Plus, Loader2, ChevronDown, ChevronRight, Trash2, Pencil, Paperclip, Upload, FileText, X, List, CalendarDays, GanttChart } from "lucide-react";
 import type { ScheduleItem, ScheduleSummary, ScheduleCategory, Document } from "@widia/shared";
 import { SCHEDULE_CATEGORY_LABELS } from "@widia/shared";
 import {
@@ -9,6 +9,7 @@ import {
   updateScheduleItemAction,
   markScheduleItemDoneAction,
   deleteScheduleItemAction,
+  updateScheduleDatesAction,
 } from "@/lib/actions/schedule";
 import {
   getUploadUrlAction,
@@ -39,6 +40,8 @@ import {
 } from "@/components/ui/collapsible";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ScheduleCalendar } from "@/components/ScheduleCalendar";
+import { ScheduleGantt } from "@/components/ScheduleGantt";
+import { toast } from "sonner";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_TYPES = [
@@ -82,16 +85,17 @@ function getIn7DaysStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function isOverdue(plannedDate: string, doneAt: string | null): boolean {
+function isOverdue(endDate: string, doneAt: string | null): boolean {
   if (doneAt) return false;
-  return plannedDate < getTodayStr();
+  return endDate < getTodayStr();
 }
 
-function isUpcoming7Days(plannedDate: string, doneAt: string | null): boolean {
+function isUpcoming7Days(startDate: string, endDate: string, doneAt: string | null): boolean {
   if (doneAt) return false;
   const todayStr = getTodayStr();
   const in7DaysStr = getIn7DaysStr();
-  return plannedDate >= todayStr && plannedDate <= in7DaysStr;
+  // Item is upcoming if it starts within the next 7 days and is not overdue
+  return endDate >= todayStr && startDate <= in7DaysStr;
 }
 
 interface ScheduleListProps {
@@ -107,7 +111,7 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [isPending, startTransition] = useTransition();
   const [completedOpen, setCompletedOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [viewMode, setViewMode] = useState<"list" | "calendar" | "gantt">("list");
   const [defaultDate, setDefaultDate] = useState<string>("");
 
   // Group items
@@ -120,9 +124,9 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
     for (const item of items) {
       if (item.done_at) {
         completed.push(item);
-      } else if (isOverdue(item.planned_date, item.done_at)) {
+      } else if (isOverdue(item.end_date, item.done_at)) {
         overdue.push(item);
-      } else if (isUpcoming7Days(item.planned_date, item.done_at)) {
+      } else if (isUpcoming7Days(item.start_date, item.end_date, item.done_at)) {
         upcoming.push(item);
       } else {
         future.push(item);
@@ -154,7 +158,8 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
 
   const handleCreate = async (data: {
     title: string;
-    planned_date: string;
+    start_date: string;
+    end_date?: string;
     notes?: string;
     category?: string;
     estimated_cost?: number;
@@ -163,7 +168,7 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
       const result = await createScheduleItemAction(propertyId, data);
       if (result.data) {
         setItems((prev) => [...prev, result.data!].sort((a, b) =>
-          a.planned_date.localeCompare(b.planned_date)
+          a.start_date.localeCompare(b.start_date)
         ));
         setShowForm(false);
         setDefaultDate("");
@@ -186,7 +191,8 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
     itemId: string,
     data: {
       title?: string;
-      planned_date?: string;
+      start_date?: string;
+      end_date?: string;
       notes?: string;
       category?: string;
       estimated_cost?: number;
@@ -201,6 +207,48 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
         setEditingItem(null);
       }
     });
+  };
+
+  const handleGanttDateChange = async (
+    itemId: string,
+    newStartDate: string,
+    newEndDate: string,
+    prevStartDate: string,
+    prevEndDate: string
+  ) => {
+    // Optimistically update UI
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === itemId ? { ...i, start_date: newStartDate, end_date: newEndDate } : i
+      )
+    );
+
+    const result = await updateScheduleDatesAction(itemId, propertyId, newStartDate, newEndDate);
+    if (result.error) {
+      // Revert on error
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === itemId ? { ...i, start_date: prevStartDate, end_date: prevEndDate } : i
+        )
+      );
+      toast.error("Erro ao atualizar datas");
+    } else {
+      toast.success("Datas atualizadas", {
+        action: {
+          label: "Desfazer",
+          onClick: async () => {
+            const undoResult = await updateScheduleDatesAction(itemId, propertyId, prevStartDate, prevEndDate);
+            if (!undoResult.error) {
+              setItems((prev) =>
+                prev.map((i) =>
+                  i.id === itemId ? { ...i, start_date: prevStartDate, end_date: prevEndDate } : i
+                )
+              );
+            }
+          },
+        },
+      });
+    }
   };
 
   const handleToggleDone = async (itemId: string, done: boolean) => {
@@ -260,12 +308,15 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <ToggleGroup type="single" value={viewMode} onValueChange={(v: string) => v && setViewMode(v as "list" | "calendar")}>
+              <ToggleGroup type="single" value={viewMode} onValueChange={(v: string) => v && setViewMode(v as "list" | "calendar" | "gantt")}>
                 <ToggleGroupItem value="list" aria-label="Ver como lista" size="sm">
                   <List className="h-4 w-4" />
                 </ToggleGroupItem>
                 <ToggleGroupItem value="calendar" aria-label="Ver como calendário" size="sm">
                   <CalendarDays className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="gantt" aria-label="Ver como Gantt" size="sm">
+                  <GanttChart className="h-4 w-4" />
                 </ToggleGroupItem>
               </ToggleGroup>
               <Button onClick={() => setShowForm(true)} size="sm">
@@ -303,6 +354,15 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
           items={items}
           onEventClick={setEditingItem}
           onSlotSelect={handleCalendarSlotSelect}
+        />
+      )}
+
+      {/* Gantt View */}
+      {viewMode === "gantt" && (
+        <ScheduleGantt
+          items={items}
+          onItemClick={setEditingItem}
+          onDateChange={handleGanttDateChange}
         />
       )}
 
@@ -682,7 +742,9 @@ function ScheduleItemRow({
           )}
         </Button>
         <div className="text-sm text-muted-foreground shrink-0">
-          {formatDate(item.planned_date)}
+          {item.start_date === item.end_date
+            ? formatDate(item.start_date)
+            : `${formatDate(item.start_date)} - ${formatDate(item.end_date)}`}
         </div>
         {item.estimated_cost !== null && (
           <div className="text-sm font-mono text-muted-foreground shrink-0">
@@ -779,7 +841,8 @@ interface ScheduleItemFormProps {
   initialData?: ScheduleItem;
   onSubmit: (data: {
     title: string;
-    planned_date: string;
+    start_date: string;
+    end_date?: string;
     notes?: string;
     category?: string;
     estimated_cost?: number;
@@ -797,7 +860,8 @@ function ScheduleItemForm({
   defaultDate,
 }: ScheduleItemFormProps) {
   const [title, setTitle] = useState(initialData?.title ?? "");
-  const [plannedDate, setPlannedDate] = useState(initialData?.planned_date ?? defaultDate ?? "");
+  const [startDate, setStartDate] = useState(initialData?.start_date ?? defaultDate ?? "");
+  const [endDate, setEndDate] = useState(initialData?.end_date ?? defaultDate ?? "");
   const [notes, setNotes] = useState(initialData?.notes ?? "");
   const [category, setCategory] = useState(initialData?.category ?? "");
   const [estimatedCost, setEstimatedCost] = useState<number | null>(
@@ -806,11 +870,12 @@ function ScheduleItemForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !plannedDate) return;
+    if (!title.trim() || !startDate) return;
 
     onSubmit({
       title: title.trim(),
-      planned_date: plannedDate,
+      start_date: startDate,
+      end_date: endDate || undefined,
       notes: notes.trim() || undefined,
       category: category || undefined,
       estimated_cost: estimatedCost ?? undefined,
@@ -821,7 +886,7 @@ function ScheduleItemForm({
     <Card>
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <div className="space-y-2 sm:col-span-2 lg:col-span-1">
               <Label>Título *</Label>
               <Input
@@ -833,12 +898,27 @@ function ScheduleItemForm({
               />
             </div>
             <div className="space-y-2">
-              <Label>Data prevista *</Label>
+              <Label>Data início *</Label>
               <Input
                 type="date"
-                value={plannedDate}
-                onChange={(e) => setPlannedDate(e.target.value)}
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  // Auto-set end date if empty or before new start
+                  if (!endDate || endDate < e.target.value) {
+                    setEndDate(e.target.value);
+                  }
+                }}
                 required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data fim</Label>
+              <Input
+                type="date"
+                value={endDate}
+                min={startDate}
+                onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -889,7 +969,7 @@ function ScheduleItemForm({
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isPending || !title.trim() || !plannedDate}>
+            <Button type="submit" disabled={isPending || !title.trim() || !startDate}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {initialData ? "Atualizar" : "Salvar"}
             </Button>

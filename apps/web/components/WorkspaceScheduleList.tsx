@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Building2, CheckCircle2, AlertCircle, Clock, List, CalendarDays } from "lucide-react";
+import { Building2, CheckCircle2, AlertCircle, Clock, List, CalendarDays, GanttChart } from "lucide-react";
 import type { WorkspaceScheduleItem, ScheduleSummary, ScheduleCategory } from "@widia/shared";
 import { SCHEDULE_CATEGORY_LABELS } from "@widia/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { WorkspaceScheduleCalendar } from "@/components/WorkspaceScheduleCalendar";
+import { WorkspaceScheduleGantt } from "@/components/WorkspaceScheduleGantt";
 
 function formatCurrency(value: number | null): string {
   if (value === null) return "-";
@@ -33,9 +34,9 @@ function getTodayStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function isOverdue(plannedDate: string, doneAt: string | null): boolean {
+function isOverdue(endDate: string, doneAt: string | null): boolean {
   if (doneAt) return false;
-  return plannedDate < getTodayStr();
+  return endDate < getTodayStr();
 }
 
 interface WorkspaceScheduleListProps {
@@ -56,7 +57,7 @@ interface GroupedByProperty {
 }
 
 export function WorkspaceScheduleList({ items, summary }: WorkspaceScheduleListProps) {
-  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [viewMode, setViewMode] = useState<"list" | "calendar" | "gantt">("list");
 
   const grouped = useMemo(() => {
     const map = new Map<string, GroupedByProperty>();
@@ -77,7 +78,7 @@ export function WorkspaceScheduleList({ items, summary }: WorkspaceScheduleListP
       group.stats.total++;
       if (item.done_at) {
         group.stats.completed++;
-      } else if (isOverdue(item.planned_date, item.done_at)) {
+      } else if (isOverdue(item.end_date, item.done_at)) {
         group.stats.overdue++;
       }
     }
@@ -126,12 +127,15 @@ export function WorkspaceScheduleList({ items, summary }: WorkspaceScheduleListP
                 <span className="font-medium">{formatCurrency(summary.estimated_total)}</span>
               </div>
             </div>
-            <ToggleGroup type="single" value={viewMode} onValueChange={(v: string) => v && setViewMode(v as "list" | "calendar")}>
+            <ToggleGroup type="single" value={viewMode} onValueChange={(v: string) => v && setViewMode(v as "list" | "calendar" | "gantt")}>
               <ToggleGroupItem value="list" aria-label="Ver como lista" size="sm">
                 <List className="h-4 w-4" />
               </ToggleGroupItem>
               <ToggleGroupItem value="calendar" aria-label="Ver como calendário" size="sm">
                 <CalendarDays className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="gantt" aria-label="Ver como Gantt" size="sm">
+                <GanttChart className="h-4 w-4" />
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
@@ -148,6 +152,11 @@ export function WorkspaceScheduleList({ items, summary }: WorkspaceScheduleListP
       {/* Calendar View */}
       {viewMode === "calendar" && (
         <WorkspaceScheduleCalendar items={items} />
+      )}
+
+      {/* Gantt View */}
+      {viewMode === "gantt" && (
+        <WorkspaceScheduleGantt items={items} />
       )}
 
       {/* List View - Grouped by property */}
@@ -196,7 +205,7 @@ export function WorkspaceScheduleList({ items, summary }: WorkspaceScheduleListP
 
 function ScheduleItemRow({ item }: { item: WorkspaceScheduleItem }) {
   const completed = !!item.done_at;
-  const overdue = isOverdue(item.planned_date, item.done_at);
+  const overdue = isOverdue(item.end_date, item.done_at);
 
   return (
     <div className="flex items-center gap-3 py-2">
@@ -237,7 +246,9 @@ function ScheduleItemRow({ item }: { item: WorkspaceScheduleItem }) {
             overdue ? "text-destructive font-medium" : "text-muted-foreground"
           }`}
         >
-          {formatDate(item.planned_date)}
+          {item.start_date === item.end_date
+            ? formatDate(item.start_date)
+            : `${formatDate(item.start_date)} - ${formatDate(item.end_date)}`}
         </span>
       </div>
     </div>

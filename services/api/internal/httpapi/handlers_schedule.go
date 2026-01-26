@@ -38,7 +38,8 @@ type scheduleItem struct {
 	PropertyID    string    `json:"property_id"`
 	WorkspaceID   string    `json:"workspace_id"`
 	Title         string    `json:"title"`
-	PlannedDate   string    `json:"planned_date"`
+	StartDate     string    `json:"start_date"`
+	EndDate       string    `json:"end_date"`
 	DoneAt        *string   `json:"done_at"`
 	Notes         *string   `json:"notes"`
 	OrderIndex    *int      `json:"order_index"`
@@ -79,7 +80,8 @@ type listWorkspaceScheduleResponse struct {
 
 type createScheduleRequest struct {
 	Title         string   `json:"title"`
-	PlannedDate   string   `json:"planned_date"`
+	StartDate     string   `json:"start_date"`
+	EndDate       *string  `json:"end_date"`
 	Notes         *string  `json:"notes"`
 	OrderIndex    *int     `json:"order_index"`
 	Category      *string  `json:"category"`
@@ -88,7 +90,8 @@ type createScheduleRequest struct {
 
 type updateScheduleRequest struct {
 	Title         *string  `json:"title"`
-	PlannedDate   *string  `json:"planned_date"`
+	StartDate     *string  `json:"start_date"`
+	EndDate       *string  `json:"end_date"`
 	DoneAt        *string  `json:"done_at"`
 	Notes         *string  `json:"notes"`
 	OrderIndex    *int     `json:"order_index"`
@@ -173,13 +176,13 @@ func (a *api) handleListSchedule(w http.ResponseWriter, r *http.Request, propert
 
 	rows, err := a.db.QueryContext(
 		r.Context(),
-		`SELECT s.id, s.property_id, s.workspace_id, s.title, s.planned_date, s.done_at, s.notes, s.order_index, s.category, s.estimated_cost, c.id as linked_cost_id,
+		`SELECT s.id, s.property_id, s.workspace_id, s.title, s.start_date, s.end_date, s.done_at, s.notes, s.order_index, s.category, s.estimated_cost, c.id as linked_cost_id,
 		        (SELECT COUNT(*) FROM documents d WHERE d.schedule_item_id = s.id) as document_count,
 		        s.created_at, s.updated_at
 		 FROM schedule_items s
 		 LEFT JOIN cost_items c ON c.schedule_item_id = s.id
 		 WHERE s.property_id = $1
-		 ORDER BY s.done_at NULLS FIRST, s.planned_date ASC`,
+		 ORDER BY s.done_at NULLS FIRST, s.start_date ASC`,
 		propertyID,
 	)
 	if err != nil {
@@ -197,14 +200,14 @@ func (a *api) handleListSchedule(w http.ResponseWriter, r *http.Request, propert
 
 	for rows.Next() {
 		var s scheduleItem
-		var plannedDate time.Time
+		var startDate, endDate time.Time
 		var doneAt sql.NullTime
 		var orderIndex sql.NullInt32
 		var estimatedCost sql.NullFloat64
 		var linkedCostID sql.NullString
 
 		err := rows.Scan(
-			&s.ID, &s.PropertyID, &s.WorkspaceID, &s.Title, &plannedDate,
+			&s.ID, &s.PropertyID, &s.WorkspaceID, &s.Title, &startDate, &endDate,
 			&doneAt, &s.Notes, &orderIndex, &s.Category, &estimatedCost,
 			&linkedCostID, &s.DocumentCount, &s.CreatedAt, &s.UpdatedAt,
 		)
@@ -213,7 +216,8 @@ func (a *api) handleListSchedule(w http.ResponseWriter, r *http.Request, propert
 			return
 		}
 
-		s.PlannedDate = plannedDate.Format(dateFormatISO)
+		s.StartDate = startDate.Format(dateFormatISO)
+		s.EndDate = endDate.Format(dateFormatISO)
 
 		if doneAt.Valid {
 			doneAtStr := doneAt.Time.Format(time.RFC3339)
@@ -235,16 +239,17 @@ func (a *api) handleListSchedule(w http.ResponseWriter, r *http.Request, propert
 		summary.TotalItems++
 
 		// Calculate summary metrics using date string comparison
+		// Item is overdue if end_date < today and not done
 		if doneAt.Valid {
 			summary.CompletedItems++
 			if estimatedCost.Valid {
 				summary.CompletedEstimated += estimatedCost.Float64
 			}
 		} else {
-			// Not done - check if overdue or upcoming
-			if s.PlannedDate < todayStr {
+			// Not done - check if overdue or upcoming (use end_date for overdue, start_date for upcoming)
+			if s.EndDate < todayStr {
 				summary.OverdueItems++
-			} else if s.PlannedDate <= in7DaysStr {
+			} else if s.StartDate <= in7DaysStr {
 				summary.Upcoming7Days++
 			}
 		}
@@ -280,15 +285,29 @@ func (a *api) handleCreateScheduleItem(w http.ResponseWriter, r *http.Request, p
 		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "title is required"})
 		return
 	}
-	if req.PlannedDate == "" {
-		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "planned_date is required"})
+	if req.StartDate == "" {
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "start_date is required"})
 		return
 	}
 	// Validate date format
-	_, err := time.Parse(dateFormatISO, req.PlannedDate)
+	_, err := time.Parse(dateFormatISO, req.StartDate)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "planned_date must be YYYY-MM-DD"})
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "start_date must be YYYY-MM-DD"})
 		return
+	}
+	// Default end_date to start_date if not provided
+	endDateStr := req.StartDate
+	if req.EndDate != nil && *req.EndDate != "" {
+		_, err := time.Parse(dateFormatISO, *req.EndDate)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "end_date must be YYYY-MM-DD"})
+			return
+		}
+		if *req.EndDate < req.StartDate {
+			writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "end_date must be >= start_date"})
+			return
+		}
+		endDateStr = *req.EndDate
 	}
 	if req.Category != nil && *req.Category != "" && !validScheduleCategories[*req.Category] {
 		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "invalid category"})
@@ -320,19 +339,19 @@ func (a *api) handleCreateScheduleItem(w http.ResponseWriter, r *http.Request, p
 
 	// Insert schedule item
 	var s scheduleItem
-	var plannedDate time.Time
+	var startDate, endDate time.Time
 	var doneAt sql.NullTime
 	var orderIndex sql.NullInt32
 	var estimatedCost sql.NullFloat64
 
 	err = a.db.QueryRowContext(
 		r.Context(),
-		`INSERT INTO schedule_items (workspace_id, property_id, title, planned_date, notes, order_index, category, estimated_cost)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		 RETURNING id, property_id, workspace_id, title, planned_date, done_at, notes, order_index, category, estimated_cost, created_at, updated_at`,
-		workspaceID, propertyID, req.Title, req.PlannedDate, req.Notes, req.OrderIndex, req.Category, req.EstimatedCost,
+		`INSERT INTO schedule_items (workspace_id, property_id, title, start_date, end_date, notes, order_index, category, estimated_cost)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		 RETURNING id, property_id, workspace_id, title, start_date, end_date, done_at, notes, order_index, category, estimated_cost, created_at, updated_at`,
+		workspaceID, propertyID, req.Title, req.StartDate, endDateStr, req.Notes, req.OrderIndex, req.Category, req.EstimatedCost,
 	).Scan(
-		&s.ID, &s.PropertyID, &s.WorkspaceID, &s.Title, &plannedDate,
+		&s.ID, &s.PropertyID, &s.WorkspaceID, &s.Title, &startDate, &endDate,
 		&doneAt, &s.Notes, &orderIndex, &s.Category, &estimatedCost,
 		&s.CreatedAt, &s.UpdatedAt,
 	)
@@ -341,7 +360,8 @@ func (a *api) handleCreateScheduleItem(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 
-	s.PlannedDate = plannedDate.Format(dateFormatISO)
+	s.StartDate = startDate.Format(dateFormatISO)
+	s.EndDate = endDate.Format(dateFormatISO)
 	if doneAt.Valid {
 		doneAtStr := doneAt.Time.Format(time.RFC3339)
 		s.DoneAt = &doneAtStr
@@ -368,7 +388,7 @@ func (a *api) handleCreateScheduleItem(w http.ResponseWriter, r *http.Request, p
 			`INSERT INTO cost_items (workspace_id, property_id, schedule_item_id, cost_type, category, status, amount, due_date, notes)
 			 VALUES ($1, $2, $3, 'renovation', $4, 'planned', $5, $6, $7)
 			 RETURNING id`,
-			workspaceID, propertyID, s.ID, categoryStr, *req.EstimatedCost, req.PlannedDate, notesStr,
+			workspaceID, propertyID, s.ID, categoryStr, *req.EstimatedCost, req.StartDate, notesStr,
 		).Scan(&costID)
 		if err == nil {
 			s.LinkedCostID = &costID
@@ -379,7 +399,8 @@ func (a *api) handleCreateScheduleItem(w http.ResponseWriter, r *http.Request, p
 	a.createTimelineEvent(r.Context(), propertyID, workspaceID, EventTypeScheduleItemCreated, map[string]any{
 		"schedule_item_id": s.ID,
 		"title":            s.Title,
-		"planned_date":     s.PlannedDate,
+		"start_date":       s.StartDate,
+		"end_date":         s.EndDate,
 	}, userID)
 
 	writeJSON(w, http.StatusCreated, s)
@@ -405,10 +426,17 @@ func (a *api) handleUpdateScheduleItem(w http.ResponseWriter, r *http.Request, i
 		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "title cannot be empty"})
 		return
 	}
-	if req.PlannedDate != nil {
-		_, err := time.Parse(dateFormatISO, *req.PlannedDate)
+	if req.StartDate != nil {
+		_, err := time.Parse(dateFormatISO, *req.StartDate)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "planned_date must be YYYY-MM-DD"})
+			writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "start_date must be YYYY-MM-DD"})
+			return
+		}
+	}
+	if req.EndDate != nil {
+		_, err := time.Parse(dateFormatISO, *req.EndDate)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "end_date must be YYYY-MM-DD"})
 			return
 		}
 	}
@@ -424,14 +452,15 @@ func (a *api) handleUpdateScheduleItem(w http.ResponseWriter, r *http.Request, i
 	// Check access and get previous state
 	var workspaceID, propertyID string
 	var prevDoneAt sql.NullTime
+	var prevStartDate, prevEndDate time.Time
 	err := a.db.QueryRowContext(
 		r.Context(),
-		`SELECT s.workspace_id, s.property_id, s.done_at
+		`SELECT s.workspace_id, s.property_id, s.done_at, s.start_date, s.end_date
 		 FROM schedule_items s
 		 JOIN workspace_memberships m ON m.workspace_id = s.workspace_id
 		 WHERE s.id = $1 AND m.user_id = $2`,
 		itemID, userID,
-	).Scan(&workspaceID, &propertyID, &prevDoneAt)
+	).Scan(&workspaceID, &propertyID, &prevDoneAt, &prevStartDate, &prevEndDate)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "schedule item not found"})
@@ -443,27 +472,48 @@ func (a *api) handleUpdateScheduleItem(w http.ResponseWriter, r *http.Request, i
 
 	// Update schedule item
 	var s scheduleItem
-	var plannedDate time.Time
+	var startDate, endDate time.Time
 	var doneAt sql.NullTime
 	var orderIndex sql.NullInt32
 	var estimatedCost sql.NullFloat64
+
+	// Validate end_date >= start_date if both are being updated
+	if req.StartDate != nil && req.EndDate != nil && *req.EndDate < *req.StartDate {
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "end_date must be >= start_date"})
+		return
+	}
+	// If only start_date changed, check against existing end_date
+	if req.StartDate != nil && req.EndDate == nil {
+		if *req.StartDate > prevEndDate.Format(dateFormatISO) {
+			writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "start_date must be <= existing end_date"})
+			return
+		}
+	}
+	// If only end_date changed, check against existing start_date
+	if req.EndDate != nil && req.StartDate == nil {
+		if *req.EndDate < prevStartDate.Format(dateFormatISO) {
+			writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "end_date must be >= existing start_date"})
+			return
+		}
+	}
 
 	err = a.db.QueryRowContext(
 		r.Context(),
 		`UPDATE schedule_items SET
 		   title = COALESCE($1, title),
-		   planned_date = COALESCE($2, planned_date),
-		   done_at = CASE WHEN $3::text = 'null' THEN NULL WHEN $3::text != '' THEN $3::timestamptz ELSE done_at END,
-		   notes = COALESCE($4, notes),
-		   order_index = COALESCE($5, order_index),
-		   category = COALESCE($6, category),
-		   estimated_cost = COALESCE($7, estimated_cost),
+		   start_date = COALESCE($2, start_date),
+		   end_date = COALESCE($3, end_date),
+		   done_at = CASE WHEN $4::text = 'null' THEN NULL WHEN $4::text != '' THEN $4::timestamptz ELSE done_at END,
+		   notes = COALESCE($5, notes),
+		   order_index = COALESCE($6, order_index),
+		   category = COALESCE($7, category),
+		   estimated_cost = COALESCE($8, estimated_cost),
 		   updated_at = now()
-		 WHERE id = $8
-		 RETURNING id, property_id, workspace_id, title, planned_date, done_at, notes, order_index, category, estimated_cost, created_at, updated_at`,
-		req.Title, req.PlannedDate, formatDoneAtForUpdate(req.DoneAt), req.Notes, req.OrderIndex, req.Category, req.EstimatedCost, itemID,
+		 WHERE id = $9
+		 RETURNING id, property_id, workspace_id, title, start_date, end_date, done_at, notes, order_index, category, estimated_cost, created_at, updated_at`,
+		req.Title, req.StartDate, req.EndDate, formatDoneAtForUpdate(req.DoneAt), req.Notes, req.OrderIndex, req.Category, req.EstimatedCost, itemID,
 	).Scan(
-		&s.ID, &s.PropertyID, &s.WorkspaceID, &s.Title, &plannedDate,
+		&s.ID, &s.PropertyID, &s.WorkspaceID, &s.Title, &startDate, &endDate,
 		&doneAt, &s.Notes, &orderIndex, &s.Category, &estimatedCost,
 		&s.CreatedAt, &s.UpdatedAt,
 	)
@@ -472,7 +522,8 @@ func (a *api) handleUpdateScheduleItem(w http.ResponseWriter, r *http.Request, i
 		return
 	}
 
-	s.PlannedDate = plannedDate.Format(dateFormatISO)
+	s.StartDate = startDate.Format(dateFormatISO)
+	s.EndDate = endDate.Format(dateFormatISO)
 	if doneAt.Valid {
 		doneAtStr := doneAt.Time.Format(time.RFC3339)
 		s.DoneAt = &doneAtStr
@@ -486,7 +537,7 @@ func (a *api) handleUpdateScheduleItem(w http.ResponseWriter, r *http.Request, i
 	}
 
 	// Sync linked cost_item
-	s.LinkedCostID = a.syncLinkedCost(r.Context(), itemID, workspaceID, propertyID, s.Title, s.PlannedDate, s.Category, s.EstimatedCost)
+	s.LinkedCostID = a.syncLinkedCost(r.Context(), itemID, workspaceID, propertyID, s.Title, s.StartDate, s.Category, s.EstimatedCost)
 
 	// Determine timeline event type
 	wasCompleted := !prevDoneAt.Valid && doneAt.Valid
@@ -501,8 +552,11 @@ func (a *api) handleUpdateScheduleItem(w http.ResponseWriter, r *http.Request, i
 		if req.Title != nil {
 			changes["title"] = *req.Title
 		}
-		if req.PlannedDate != nil {
-			changes["planned_date"] = *req.PlannedDate
+		if req.StartDate != nil {
+			changes["start_date"] = *req.StartDate
+		}
+		if req.EndDate != nil {
+			changes["end_date"] = *req.EndDate
 		}
 		if req.DoneAt != nil {
 			if *req.DoneAt == "" {
@@ -673,7 +727,7 @@ func (a *api) handleWorkspaceSchedule(w http.ResponseWriter, r *http.Request, wo
 
 	rows, err := a.db.QueryContext(
 		r.Context(),
-		`SELECT s.id, s.property_id, s.workspace_id, s.title, s.planned_date, s.done_at, s.notes, s.order_index, s.category, s.estimated_cost, c.id as linked_cost_id,
+		`SELECT s.id, s.property_id, s.workspace_id, s.title, s.start_date, s.end_date, s.done_at, s.notes, s.order_index, s.category, s.estimated_cost, c.id as linked_cost_id,
 		        (SELECT COUNT(*) FROM documents d WHERE d.schedule_item_id = s.id) as document_count,
 		        s.created_at, s.updated_at,
 		        COALESCE(p.address, p.neighborhood, 'Sem endereço') as property_name, p.address as property_address
@@ -681,7 +735,7 @@ func (a *api) handleWorkspaceSchedule(w http.ResponseWriter, r *http.Request, wo
 		 JOIN properties p ON p.id = s.property_id
 		 LEFT JOIN cost_items c ON c.schedule_item_id = s.id
 		 WHERE s.workspace_id = $1
-		 ORDER BY s.done_at NULLS FIRST, s.planned_date ASC`,
+		 ORDER BY s.done_at NULLS FIRST, s.start_date ASC`,
 		workspaceID,
 	)
 	if err != nil {
@@ -698,7 +752,7 @@ func (a *api) handleWorkspaceSchedule(w http.ResponseWriter, r *http.Request, wo
 
 	for rows.Next() {
 		var item workspaceScheduleItem
-		var plannedDate time.Time
+		var startDate, endDate time.Time
 		var doneAt sql.NullTime
 		var orderIndex sql.NullInt32
 		var estimatedCost sql.NullFloat64
@@ -706,7 +760,7 @@ func (a *api) handleWorkspaceSchedule(w http.ResponseWriter, r *http.Request, wo
 		var propertyAddress sql.NullString
 
 		err := rows.Scan(
-			&item.ID, &item.PropertyID, &item.WorkspaceID, &item.Title, &plannedDate,
+			&item.ID, &item.PropertyID, &item.WorkspaceID, &item.Title, &startDate, &endDate,
 			&doneAt, &item.Notes, &orderIndex, &item.Category, &estimatedCost,
 			&linkedCostID, &item.DocumentCount, &item.CreatedAt, &item.UpdatedAt,
 			&item.PropertyName, &propertyAddress,
@@ -716,7 +770,8 @@ func (a *api) handleWorkspaceSchedule(w http.ResponseWriter, r *http.Request, wo
 			return
 		}
 
-		item.PlannedDate = plannedDate.Format(dateFormatISO)
+		item.StartDate = startDate.Format(dateFormatISO)
+		item.EndDate = endDate.Format(dateFormatISO)
 
 		if doneAt.Valid {
 			doneAtStr := doneAt.Time.Format(time.RFC3339)
@@ -740,16 +795,16 @@ func (a *api) handleWorkspaceSchedule(w http.ResponseWriter, r *http.Request, wo
 		items = append(items, item)
 		summary.TotalItems++
 
-		// Calculate summary metrics
+		// Calculate summary metrics (use end_date for overdue, start_date for upcoming)
 		if doneAt.Valid {
 			summary.CompletedItems++
 			if estimatedCost.Valid {
 				summary.CompletedEstimated += estimatedCost.Float64
 			}
 		} else {
-			if item.PlannedDate < todayStr {
+			if item.EndDate < todayStr {
 				summary.OverdueItems++
-			} else if item.PlannedDate <= in7DaysStr {
+			} else if item.StartDate <= in7DaysStr {
 				summary.Upcoming7Days++
 			}
 		}

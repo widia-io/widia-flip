@@ -555,7 +555,8 @@ export const ScheduleItemSchema = z.object({
   property_id: z.string(),
   workspace_id: z.string(),
   title: z.string(),
-  planned_date: z.string(),
+  start_date: z.string(),
+  end_date: z.string(),
   done_at: z.string().nullable(),
   notes: z.string().nullable(),
   order_index: z.number().nullable(),
@@ -600,17 +601,22 @@ export type ListWorkspaceScheduleResponse = z.infer<typeof ListWorkspaceSchedule
 
 export const CreateScheduleItemRequestSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
-  planned_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (YYYY-MM-DD)"),
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (YYYY-MM-DD)"),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (YYYY-MM-DD)").optional(),
   notes: z.string().optional(),
   order_index: z.number().int().optional(),
   category: z.string().optional(),
   estimated_cost: z.number().nonnegative().optional(),
-});
+}).refine(
+  (data) => !data.end_date || data.end_date >= data.start_date,
+  { message: "Data fim deve ser >= data início", path: ["end_date"] }
+);
 export type CreateScheduleItemRequest = z.infer<typeof CreateScheduleItemRequestSchema>;
 
 export const UpdateScheduleItemRequestSchema = z.object({
   title: z.string().min(1).optional(),
-  planned_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   done_at: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   order_index: z.number().int().nullable().optional(),
