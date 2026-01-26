@@ -111,3 +111,28 @@ export async function deleteScheduleItemAction(itemId: string, propertyId: strin
     return { error: message };
   }
 }
+
+export async function updateScheduleDatesAction(
+  itemId: string,
+  propertyId: string,
+  startDate: string,
+  endDate: string
+) {
+  if (endDate < startDate) {
+    return { error: "Data fim deve ser >= data início" };
+  }
+
+  try {
+    const result = await apiFetch<ScheduleItem>(`/api/v1/schedule/${itemId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start_date: startDate, end_date: endDate }),
+    });
+    revalidatePath(`/app/properties/${propertyId}/schedule`);
+    revalidatePath(`/app/properties/${propertyId}/timeline`);
+    return { data: result };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Erro ao atualizar datas";
+    return { error: message };
+  }
+}
