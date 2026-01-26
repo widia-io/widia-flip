@@ -57,7 +57,7 @@ interface GroupedByProperty {
 }
 
 export function WorkspaceScheduleList({ items, summary }: WorkspaceScheduleListProps) {
-  const [viewMode, setViewMode] = useState<"list" | "calendar" | "gantt">("list");
+  const [viewMode, setViewMode] = useState<"list" | "calendar" | "gantt">("gantt");
 
   const grouped = useMemo(() => {
     const map = new Map<string, GroupedByProperty>();

@@ -111,7 +111,7 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [isPending, startTransition] = useTransition();
   const [completedOpen, setCompletedOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "calendar" | "gantt">("list");
+  const [viewMode, setViewMode] = useState<"list" | "calendar" | "gantt">("gantt");
   const [defaultDate, setDefaultDate] = useState<string>("");
 
   // Group items
@@ -363,6 +363,12 @@ export function ScheduleList({ propertyId, workspaceId, initialItems }: Schedule
           items={items}
           onItemClick={setEditingItem}
           onDateChange={handleGanttDateChange}
+          onToggleDone={handleToggleDone}
+          onDelete={handleDelete}
+          onQuickAdd={(date) => {
+            setDefaultDate(date);
+            setShowForm(true);
+          }}
         />
       )}
 

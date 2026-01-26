@@ -277,6 +277,33 @@
   font-size: 0.875rem;
 }
 
+/* Gantt chart enhancements */
+@keyframes gantt-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.gantt-pulse {
+  animation: gantt-pulse 2s ease-in-out infinite;
+}
+
+.gantt-bar {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.gantt-bar:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.gantt-grid-line {
+  transition: background-color 0.15s ease;
+}
+
+.gantt-grid-line:hover {
+  background-color: hsl(var(--accent) / 0.08);
+}
+
 /* Documents Calendar styles (same as schedule) */
 .documents-calendar .rbc-calendar {
   font-family: inherit;
