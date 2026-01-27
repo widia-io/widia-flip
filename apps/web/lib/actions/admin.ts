@@ -7,6 +7,8 @@ import type {
   AdminUserDetail,
   AdminStatusResponse,
   BillingTier,
+  AdminSaaSMetricsResponse,
+  AdminSaaSMetricsPeriod,
 } from "@widia/shared";
 
 import { apiFetch } from "@/lib/apiFetch";
@@ -76,4 +78,12 @@ export async function deleteUser(userId: string): Promise<void> {
   await apiFetch(`/api/v1/admin/users/${userId}`, { method: "DELETE" });
   revalidatePath("/app/admin/users");
   revalidatePath("/app/admin");
+}
+
+export async function getAdminSaaSMetrics(
+  period: AdminSaaSMetricsPeriod = "30d"
+): Promise<AdminSaaSMetricsResponse> {
+  return apiFetch<AdminSaaSMetricsResponse>(
+    `/api/v1/admin/metrics?period=${period}`
+  );
 }

@@ -524,3 +524,303 @@ func (a *api) handleUserAdminStatus(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]bool{"isAdmin": isAdmin})
 }
+
+// SaaS Metrics types
+
+type adminSaaSMetrics struct {
+	Period      string                   `json:"period"`
+	PeriodStart string                   `json:"periodStart"`
+	PeriodEnd   string                   `json:"periodEnd"`
+	MRR         adminMRRMetrics          `json:"mrr"`
+	Churn       adminChurnMetrics        `json:"churn"`
+	Leads       adminLeadsMetrics        `json:"leads"`
+	Conversion  adminConversionMetrics   `json:"conversion"`
+	TrialToPaid adminTrialToPaidMetrics  `json:"trialToPaid"`
+}
+
+type adminMRRMetrics struct {
+	Total       int64          `json:"total"`
+	ByTier      map[string]int64 `json:"byTier"`
+	ActiveCount int            `json:"activeCount"`
+	Delta       float64        `json:"delta"`
+}
+
+type adminChurnMetrics struct {
+	Count   int     `json:"count"`
+	Rate    float64 `json:"rate"`
+	Revenue int64   `json:"revenue"`
+	Delta   float64 `json:"delta"`
+}
+
+type adminLeadsMetrics struct {
+	TotalSignups int     `json:"totalSignups"`
+	WithTrial    int     `json:"withTrial"`
+	NoTrial      int     `json:"noTrial"`
+	Delta        float64 `json:"delta"`
+}
+
+type adminConversionMetrics struct {
+	SignupToTrial float64 `json:"signupToTrial"`
+	TrialToActive float64 `json:"trialToActive"`
+	Overall       float64 `json:"overall"`
+}
+
+type adminTrialToPaidMetrics struct {
+	Converted      int     `json:"converted"`
+	InTrial        int     `json:"inTrial"`
+	Expired        int     `json:"expired"`
+	ConversionRate float64 `json:"conversionRate"`
+	Delta          float64 `json:"delta"`
+}
+
+// Tier prices in centavos
+var tierPrices = map[string]int64{
+	"starter": 3900,
+	"pro":     11900,
+	"growth":  24900,
+}
+
+// Handler for /api/v1/admin/metrics
+func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+
+	// Parse period parameter
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "30d"
+	}
+	if period != "30d" && period != "90d" && period != "all" {
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "period must be 30d, 90d, or all"})
+		return
+	}
+
+	now := time.Now().UTC()
+	var periodStart, periodEnd time.Time
+	var prevStart, prevEnd time.Time
+
+	periodEnd = now
+	switch period {
+	case "30d":
+		periodStart = now.AddDate(0, 0, -30)
+		prevStart = periodStart.AddDate(0, 0, -30)
+		prevEnd = periodStart
+	case "90d":
+		periodStart = now.AddDate(0, 0, -90)
+		prevStart = periodStart.AddDate(0, 0, -90)
+		prevEnd = periodStart
+	case "all":
+		periodStart = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+		prevStart = periodStart
+		prevEnd = periodStart
+	}
+
+	metrics := adminSaaSMetrics{
+		Period:      period,
+		PeriodStart: periodStart.Format(time.RFC3339),
+		PeriodEnd:   periodEnd.Format(time.RFC3339),
+		MRR:         adminMRRMetrics{ByTier: make(map[string]int64)},
+	}
+
+	// MRR - current active subscriptions
+	rows, err := a.db.QueryContext(ctx, `
+		SELECT tier, COUNT(*)
+		FROM user_billing
+		WHERE status = 'active'
+		GROUP BY tier
+	`)
+	if err != nil {
+		log.Printf("admin metrics: MRR query error: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch MRR"})
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var tier string
+		var count int
+		if err := rows.Scan(&tier, &count); err != nil {
+			continue
+		}
+		price := tierPrices[tier]
+		metrics.MRR.ByTier[tier] = price * int64(count)
+		metrics.MRR.Total += price * int64(count)
+		metrics.MRR.ActiveCount += count
+	}
+
+	// MRR delta - compare with previous period active count
+	var prevActiveCount int
+	a.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM user_billing
+		WHERE status = 'active'
+		AND updated_at < $1
+	`, periodStart).Scan(&prevActiveCount)
+
+	if prevActiveCount > 0 {
+		metrics.MRR.Delta = float64(metrics.MRR.ActiveCount-prevActiveCount) / float64(prevActiveCount) * 100
+	}
+
+	// Churn - canceled/past_due in period
+	a.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM user_billing
+		WHERE status IN ('canceled', 'past_due')
+		AND updated_at >= $1
+		AND updated_at <= $2
+	`, periodStart, periodEnd).Scan(&metrics.Churn.Count)
+
+	// Churn revenue (estimate based on tier at cancellation)
+	rows, err = a.db.QueryContext(ctx, `
+		SELECT tier, COUNT(*)
+		FROM user_billing
+		WHERE status IN ('canceled', 'past_due')
+		AND updated_at >= $1
+		AND updated_at <= $2
+		GROUP BY tier
+	`, periodStart, periodEnd)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var tier string
+			var count int
+			if err := rows.Scan(&tier, &count); err != nil {
+				continue
+			}
+			metrics.Churn.Revenue += tierPrices[tier] * int64(count)
+		}
+	}
+
+	// Churn rate
+	var totalWithBilling int
+	a.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM user_billing`).Scan(&totalWithBilling)
+	if totalWithBilling > 0 {
+		metrics.Churn.Rate = float64(metrics.Churn.Count) / float64(totalWithBilling) * 100
+	}
+
+	// Churn delta
+	var prevChurn int
+	if period != "all" {
+		a.db.QueryRowContext(ctx, `
+			SELECT COUNT(*)
+			FROM user_billing
+			WHERE status IN ('canceled', 'past_due')
+			AND updated_at >= $1
+			AND updated_at < $2
+		`, prevStart, prevEnd).Scan(&prevChurn)
+		if prevChurn > 0 {
+			metrics.Churn.Delta = float64(metrics.Churn.Count-prevChurn) / float64(prevChurn) * 100
+		}
+	}
+
+	// Leads (signups) in period
+	a.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM "user"
+		WHERE "createdAt" >= $1
+		AND "createdAt" <= $2
+	`, periodStart, periodEnd).Scan(&metrics.Leads.TotalSignups)
+
+	// Leads with trial
+	a.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM user_billing b
+		JOIN "user" u ON u.id = b.user_id
+		WHERE u."createdAt" >= $1
+		AND u."createdAt" <= $2
+		AND b.trial_end IS NOT NULL
+	`, periodStart, periodEnd).Scan(&metrics.Leads.WithTrial)
+
+	metrics.Leads.NoTrial = metrics.Leads.TotalSignups - metrics.Leads.WithTrial
+
+	// Leads delta
+	var prevLeads int
+	if period != "all" {
+		a.db.QueryRowContext(ctx, `
+			SELECT COUNT(*)
+			FROM "user"
+			WHERE "createdAt" >= $1
+			AND "createdAt" < $2
+		`, prevStart, prevEnd).Scan(&prevLeads)
+		if prevLeads > 0 {
+			metrics.Leads.Delta = float64(metrics.Leads.TotalSignups-prevLeads) / float64(prevLeads) * 100
+		}
+	}
+
+	// Conversion rates
+	var totalUsers int
+	a.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM "user"`).Scan(&totalUsers)
+
+	var usersWithTrial int
+	a.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM user_billing
+		WHERE trial_end IS NOT NULL
+	`).Scan(&usersWithTrial)
+
+	var activeUsers int
+	a.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM user_billing
+		WHERE status = 'active'
+	`).Scan(&activeUsers)
+
+	if totalUsers > 0 {
+		metrics.Conversion.SignupToTrial = float64(usersWithTrial) / float64(totalUsers) * 100
+	}
+	if usersWithTrial > 0 {
+		metrics.Conversion.TrialToActive = float64(activeUsers) / float64(usersWithTrial) * 100
+	}
+	if totalUsers > 0 {
+		metrics.Conversion.Overall = float64(activeUsers) / float64(totalUsers) * 100
+	}
+
+	// Trial to Paid breakdown
+	a.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM user_billing
+		WHERE trial_end IS NOT NULL
+		AND status = 'active'
+	`).Scan(&metrics.TrialToPaid.Converted)
+
+	a.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM user_billing
+		WHERE status = 'trialing'
+	`).Scan(&metrics.TrialToPaid.InTrial)
+
+	a.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM user_billing
+		WHERE trial_end IS NOT NULL
+		AND trial_end < $1
+		AND status NOT IN ('active', 'trialing')
+	`, now).Scan(&metrics.TrialToPaid.Expired)
+
+	totalTrialUsers := metrics.TrialToPaid.Converted + metrics.TrialToPaid.InTrial + metrics.TrialToPaid.Expired
+	if totalTrialUsers > 0 {
+		metrics.TrialToPaid.ConversionRate = float64(metrics.TrialToPaid.Converted) / float64(totalTrialUsers) * 100
+	}
+
+	// Trial conversion delta
+	var prevConverted int
+	if period != "all" {
+		a.db.QueryRowContext(ctx, `
+			SELECT COUNT(*)
+			FROM user_billing
+			WHERE trial_end IS NOT NULL
+			AND status = 'active'
+			AND updated_at >= $1
+			AND updated_at < $2
+		`, prevStart, prevEnd).Scan(&prevConverted)
+		if prevConverted > 0 {
+			metrics.TrialToPaid.Delta = float64(metrics.TrialToPaid.Converted-prevConverted) / float64(prevConverted) * 100
+		}
+	}
+
+	writeJSON(w, http.StatusOK, metrics)
+}

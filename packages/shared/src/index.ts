@@ -1549,6 +1549,63 @@ export const ListPromotionsResponseSchema = z.object({
 });
 export type ListPromotionsResponse = z.infer<typeof ListPromotionsResponseSchema>;
 
+// Admin SaaS Metrics
+
+export const AdminSaaSMetricsPeriodEnum = z.enum(["30d", "90d", "all"]);
+export type AdminSaaSMetricsPeriod = z.infer<typeof AdminSaaSMetricsPeriodEnum>;
+
+export const AdminMRRMetricsSchema = z.object({
+  total: z.number(),
+  byTier: z.record(z.string(), z.number()),
+  activeCount: z.number(),
+  delta: z.number(),
+});
+export type AdminMRRMetrics = z.infer<typeof AdminMRRMetricsSchema>;
+
+export const AdminChurnMetricsSchema = z.object({
+  count: z.number(),
+  rate: z.number(),
+  revenue: z.number(),
+  delta: z.number(),
+});
+export type AdminChurnMetrics = z.infer<typeof AdminChurnMetricsSchema>;
+
+export const AdminLeadsMetricsSchema = z.object({
+  totalSignups: z.number(),
+  withTrial: z.number(),
+  noTrial: z.number(),
+  delta: z.number(),
+});
+export type AdminLeadsMetrics = z.infer<typeof AdminLeadsMetricsSchema>;
+
+export const AdminConversionMetricsSchema = z.object({
+  signupToTrial: z.number(),
+  trialToActive: z.number(),
+  overall: z.number(),
+});
+export type AdminConversionMetrics = z.infer<typeof AdminConversionMetricsSchema>;
+
+export const AdminTrialToPaidMetricsSchema = z.object({
+  converted: z.number(),
+  inTrial: z.number(),
+  expired: z.number(),
+  conversionRate: z.number(),
+  delta: z.number(),
+});
+export type AdminTrialToPaidMetrics = z.infer<typeof AdminTrialToPaidMetricsSchema>;
+
+export const AdminSaaSMetricsResponseSchema = z.object({
+  period: AdminSaaSMetricsPeriodEnum,
+  periodStart: z.string(),
+  periodEnd: z.string(),
+  mrr: AdminMRRMetricsSchema,
+  churn: AdminChurnMetricsSchema,
+  leads: AdminLeadsMetricsSchema,
+  conversion: AdminConversionMetricsSchema,
+  trialToPaid: AdminTrialToPaidMetricsSchema,
+});
+export type AdminSaaSMetricsResponse = z.infer<typeof AdminSaaSMetricsResponseSchema>;
+
 // Dashboard
 
 export const PropertyStatsSchema = z.object({
