@@ -1594,6 +1594,11 @@ export const AdminTrialToPaidMetricsSchema = z.object({
 });
 export type AdminTrialToPaidMetrics = z.infer<typeof AdminTrialToPaidMetricsSchema>;
 
+export const AdminIncompleteMetricsSchema = z.object({
+  count: z.number(),
+});
+export type AdminIncompleteMetrics = z.infer<typeof AdminIncompleteMetricsSchema>;
+
 export const AdminSaaSMetricsResponseSchema = z.object({
   period: AdminSaaSMetricsPeriodEnum,
   periodStart: z.string(),
@@ -1603,8 +1608,38 @@ export const AdminSaaSMetricsResponseSchema = z.object({
   leads: AdminLeadsMetricsSchema,
   conversion: AdminConversionMetricsSchema,
   trialToPaid: AdminTrialToPaidMetricsSchema,
+  incomplete: AdminIncompleteMetricsSchema,
 });
 export type AdminSaaSMetricsResponse = z.infer<typeof AdminSaaSMetricsResponseSchema>;
+
+export const MetricsUserCategoryEnum = z.enum([
+  "active",
+  "in_trial",
+  "churned",
+  "converted",
+  "trial_expired",
+  "incomplete",
+]);
+export type MetricsUserCategory = z.infer<typeof MetricsUserCategoryEnum>;
+
+export const MetricsUserSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  name: z.string(),
+  tier: z.string().nullable(),
+  billingStatus: z.string().nullable(),
+  trialEnd: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string().nullable(),
+});
+export type MetricsUser = z.infer<typeof MetricsUserSchema>;
+
+export const ListMetricsUsersResponseSchema = z.object({
+  category: MetricsUserCategoryEnum,
+  items: z.array(MetricsUserSchema),
+  total: z.number(),
+});
+export type ListMetricsUsersResponse = z.infer<typeof ListMetricsUsersResponseSchema>;
 
 // Dashboard
 

@@ -536,6 +536,7 @@ type adminSaaSMetrics struct {
 	Leads       adminLeadsMetrics        `json:"leads"`
 	Conversion  adminConversionMetrics   `json:"conversion"`
 	TrialToPaid adminTrialToPaidMetrics  `json:"trialToPaid"`
+	Incomplete  adminIncompleteMetrics   `json:"incomplete"`
 }
 
 type adminMRRMetrics struct {
@@ -573,11 +574,165 @@ type adminTrialToPaidMetrics struct {
 	Delta          float64 `json:"delta"`
 }
 
+type adminIncompleteMetrics struct {
+	Count int `json:"count"`
+}
+
 // Tier prices in centavos
 var tierPrices = map[string]int64{
 	"starter": 3900,
 	"pro":     11900,
 	"growth":  24900,
+}
+
+// Metrics user type
+type metricsUser struct {
+	ID            string  `json:"id"`
+	Email         string  `json:"email"`
+	Name          string  `json:"name"`
+	Tier          *string `json:"tier"`
+	BillingStatus *string `json:"billingStatus"`
+	TrialEnd      *string `json:"trialEnd"`
+	CreatedAt     string  `json:"createdAt"`
+	UpdatedAt     *string `json:"updatedAt"`
+}
+
+type listMetricsUsersResponse struct {
+	Category string        `json:"category"`
+	Items    []metricsUser `json:"items"`
+	Total    int           `json:"total"`
+}
+
+// Handler for /api/v1/admin/metrics/users
+func (a *api) handleAdminMetricsUsers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+	category := r.URL.Query().Get("category")
+
+	validCategories := map[string]bool{
+		"active":        true,
+		"in_trial":      true,
+		"churned":       true,
+		"converted":     true,
+		"trial_expired": true,
+		"incomplete":    true,
+	}
+
+	if !validCategories[category] {
+		writeError(w, http.StatusBadRequest, apiError{
+			Code:    "VALIDATION_ERROR",
+			Message: "category must be active, in_trial, churned, converted, or trial_expired",
+		})
+		return
+	}
+
+	var query string
+	now := time.Now().UTC()
+
+	switch category {
+	case "active":
+		query = `
+			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
+			FROM "user" u
+			JOIN user_billing b ON b.user_id = u.id
+			WHERE b.status = 'active'
+			ORDER BY b.updated_at DESC NULLS LAST
+		`
+	case "in_trial":
+		query = `
+			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
+			FROM "user" u
+			JOIN user_billing b ON b.user_id = u.id
+			WHERE b.status = 'trialing'
+			ORDER BY b.trial_end ASC NULLS LAST
+		`
+	case "churned":
+		query = `
+			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
+			FROM "user" u
+			JOIN user_billing b ON b.user_id = u.id
+			WHERE b.status IN ('canceled', 'past_due', 'unpaid')
+			ORDER BY b.updated_at DESC NULLS LAST
+		`
+	case "converted":
+		query = `
+			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
+			FROM "user" u
+			JOIN user_billing b ON b.user_id = u.id
+			WHERE b.trial_end IS NOT NULL AND b.status = 'active'
+			ORDER BY b.updated_at DESC NULLS LAST
+		`
+	case "trial_expired":
+		// Trial expirado = trial_end passou E não converteu (status != active)
+		query = `
+			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
+			FROM "user" u
+			JOIN user_billing b ON b.user_id = u.id
+			WHERE b.trial_end IS NOT NULL
+			AND b.trial_end < $1
+			AND b.status != 'active'
+			ORDER BY b.trial_end DESC
+		`
+	case "incomplete":
+		query = `
+			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
+			FROM "user" u
+			JOIN user_billing b ON b.user_id = u.id
+			WHERE b.status IN ('incomplete', 'incomplete_expired')
+			ORDER BY b.updated_at DESC NULLS LAST
+		`
+	}
+
+	var rows *sql.Rows
+	var err error
+
+	if category == "trial_expired" {
+		rows, err = a.db.QueryContext(ctx, query, now)
+	} else {
+		rows, err = a.db.QueryContext(ctx, query)
+	}
+
+	if err != nil {
+		log.Printf("admin metrics users: query error: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch users"})
+		return
+	}
+	defer rows.Close()
+
+	items := make([]metricsUser, 0)
+	for rows.Next() {
+		var u metricsUser
+		var createdAt time.Time
+		var updatedAt sql.NullTime
+		var trialEnd sql.NullTime
+
+		if err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.Tier, &u.BillingStatus, &trialEnd, &createdAt, &updatedAt); err != nil {
+			log.Printf("admin metrics users: scan error: %v", err)
+			continue
+		}
+
+		u.CreatedAt = createdAt.Format(time.RFC3339)
+		if updatedAt.Valid {
+			t := updatedAt.Time.Format(time.RFC3339)
+			u.UpdatedAt = &t
+		}
+		if trialEnd.Valid {
+			t := trialEnd.Time.Format(time.RFC3339)
+			u.TrialEnd = &t
+		}
+
+		items = append(items, u)
+	}
+
+	writeJSON(w, http.StatusOK, listMetricsUsersResponse{
+		Category: category,
+		Items:    items,
+		Total:    len(items),
+	})
 }
 
 // Handler for /api/v1/admin/metrics
@@ -626,12 +781,13 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		MRR:         adminMRRMetrics{ByTier: make(map[string]int64)},
 	}
 
-	// MRR - current active subscriptions
+	// MRR - current active subscriptions (JOIN with user to exclude orphaned records)
 	rows, err := a.db.QueryContext(ctx, `
-		SELECT tier, COUNT(*)
-		FROM user_billing
-		WHERE status = 'active'
-		GROUP BY tier
+		SELECT b.tier, COUNT(*)
+		FROM user_billing b
+		JOIN "user" u ON u.id = b.user_id
+		WHERE b.status = 'active'
+		GROUP BY b.tier
 	`)
 	if err != nil {
 		log.Printf("admin metrics: MRR query error: %v", err)
@@ -656,32 +812,35 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 	var prevActiveCount int
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
-		FROM user_billing
-		WHERE status = 'active'
-		AND updated_at < $1
+		FROM user_billing b
+		JOIN "user" u ON u.id = b.user_id
+		WHERE b.status = 'active'
+		AND b.updated_at < $1
 	`, periodStart).Scan(&prevActiveCount)
 
 	if prevActiveCount > 0 {
 		metrics.MRR.Delta = float64(metrics.MRR.ActiveCount-prevActiveCount) / float64(prevActiveCount) * 100
 	}
 
-	// Churn - canceled/past_due in period
+	// Churn - canceled/past_due in period (JOIN with user to exclude orphaned records)
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
-		FROM user_billing
-		WHERE status IN ('canceled', 'past_due')
-		AND updated_at >= $1
-		AND updated_at <= $2
+		FROM user_billing b
+		JOIN "user" u ON u.id = b.user_id
+		WHERE b.status IN ('canceled', 'past_due', 'unpaid')
+		AND b.updated_at >= $1
+		AND b.updated_at <= $2
 	`, periodStart, periodEnd).Scan(&metrics.Churn.Count)
 
 	// Churn revenue (estimate based on tier at cancellation)
 	rows, err = a.db.QueryContext(ctx, `
-		SELECT tier, COUNT(*)
-		FROM user_billing
-		WHERE status IN ('canceled', 'past_due')
-		AND updated_at >= $1
-		AND updated_at <= $2
-		GROUP BY tier
+		SELECT b.tier, COUNT(*)
+		FROM user_billing b
+		JOIN "user" u ON u.id = b.user_id
+		WHERE b.status IN ('canceled', 'past_due', 'unpaid')
+		AND b.updated_at >= $1
+		AND b.updated_at <= $2
+		GROUP BY b.tier
 	`, periodStart, periodEnd)
 	if err == nil {
 		defer rows.Close()
@@ -697,7 +856,10 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 
 	// Churn rate
 	var totalWithBilling int
-	a.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM user_billing`).Scan(&totalWithBilling)
+	a.db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM user_billing b
+		JOIN "user" u ON u.id = b.user_id
+	`).Scan(&totalWithBilling)
 	if totalWithBilling > 0 {
 		metrics.Churn.Rate = float64(metrics.Churn.Count) / float64(totalWithBilling) * 100
 	}
@@ -707,10 +869,11 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 	if period != "all" {
 		a.db.QueryRowContext(ctx, `
 			SELECT COUNT(*)
-			FROM user_billing
-			WHERE status IN ('canceled', 'past_due')
-			AND updated_at >= $1
-			AND updated_at < $2
+			FROM user_billing b
+			JOIN "user" u ON u.id = b.user_id
+			WHERE b.status IN ('canceled', 'past_due', 'unpaid')
+			AND b.updated_at >= $1
+			AND b.updated_at < $2
 		`, prevStart, prevEnd).Scan(&prevChurn)
 		if prevChurn > 0 {
 			metrics.Churn.Delta = float64(metrics.Churn.Count-prevChurn) / float64(prevChurn) * 100
@@ -758,15 +921,17 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 	var usersWithTrial int
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
-		FROM user_billing
-		WHERE trial_end IS NOT NULL
+		FROM user_billing b
+		JOIN "user" u ON u.id = b.user_id
+		WHERE b.trial_end IS NOT NULL
 	`).Scan(&usersWithTrial)
 
 	var activeUsers int
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
-		FROM user_billing
-		WHERE status = 'active'
+		FROM user_billing b
+		JOIN "user" u ON u.id = b.user_id
+		WHERE b.status = 'active'
 	`).Scan(&activeUsers)
 
 	if totalUsers > 0 {
@@ -782,23 +947,27 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 	// Trial to Paid breakdown
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
-		FROM user_billing
-		WHERE trial_end IS NOT NULL
-		AND status = 'active'
+		FROM user_billing b
+		JOIN "user" u ON u.id = b.user_id
+		WHERE b.trial_end IS NOT NULL
+		AND b.status = 'active'
 	`).Scan(&metrics.TrialToPaid.Converted)
 
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
-		FROM user_billing
-		WHERE status = 'trialing'
+		FROM user_billing b
+		JOIN "user" u ON u.id = b.user_id
+		WHERE b.status = 'trialing'
 	`).Scan(&metrics.TrialToPaid.InTrial)
 
+	// Trial expirado = trial_end passou E não converteu (status != active)
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
-		FROM user_billing
-		WHERE trial_end IS NOT NULL
-		AND trial_end < $1
-		AND status NOT IN ('active', 'trialing')
+		FROM user_billing b
+		JOIN "user" u ON u.id = b.user_id
+		WHERE b.trial_end IS NOT NULL
+		AND b.trial_end < $1
+		AND b.status != 'active'
 	`, now).Scan(&metrics.TrialToPaid.Expired)
 
 	totalTrialUsers := metrics.TrialToPaid.Converted + metrics.TrialToPaid.InTrial + metrics.TrialToPaid.Expired
@@ -811,16 +980,25 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 	if period != "all" {
 		a.db.QueryRowContext(ctx, `
 			SELECT COUNT(*)
-			FROM user_billing
-			WHERE trial_end IS NOT NULL
-			AND status = 'active'
-			AND updated_at >= $1
-			AND updated_at < $2
+			FROM user_billing b
+			JOIN "user" u ON u.id = b.user_id
+			WHERE b.trial_end IS NOT NULL
+			AND b.status = 'active'
+			AND b.updated_at >= $1
+			AND b.updated_at < $2
 		`, prevStart, prevEnd).Scan(&prevConverted)
 		if prevConverted > 0 {
 			metrics.TrialToPaid.Delta = float64(metrics.TrialToPaid.Converted-prevConverted) / float64(prevConverted) * 100
 		}
 	}
+
+	// Incomplete checkouts
+	a.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM user_billing b
+		JOIN "user" u ON u.id = b.user_id
+		WHERE b.status IN ('incomplete', 'incomplete_expired')
+	`).Scan(&metrics.Incomplete.Count)
 
 	writeJSON(w, http.StatusOK, metrics)
 }

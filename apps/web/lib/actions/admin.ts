@@ -9,6 +9,8 @@ import type {
   BillingTier,
   AdminSaaSMetricsResponse,
   AdminSaaSMetricsPeriod,
+  ListMetricsUsersResponse,
+  MetricsUserCategory,
 } from "@widia/shared";
 
 import { apiFetch } from "@/lib/apiFetch";
@@ -85,5 +87,13 @@ export async function getAdminSaaSMetrics(
 ): Promise<AdminSaaSMetricsResponse> {
   return apiFetch<AdminSaaSMetricsResponse>(
     `/api/v1/admin/metrics?period=${period}`
+  );
+}
+
+export async function getMetricsUsers(
+  category: MetricsUserCategory
+): Promise<ListMetricsUsersResponse> {
+  return apiFetch<ListMetricsUsersResponse>(
+    `/api/v1/admin/metrics/users?category=${category}`
   );
 }

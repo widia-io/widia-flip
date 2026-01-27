@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   DollarSign,
   Users,
@@ -10,13 +11,29 @@ import {
   ArrowLeft,
   ArrowUp,
   ArrowDown,
+  Loader2,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import type { AdminSaaSMetricsResponse } from "@widia/shared";
+import type {
+  AdminSaaSMetricsResponse,
+  ListMetricsUsersResponse,
+  MetricsUserCategory,
+} from "@widia/shared";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getMetricsUsers } from "@/lib/actions/admin";
 
 interface Props {
   metrics: AdminSaaSMetricsResponse;
@@ -89,6 +106,107 @@ function PeriodFilter({ current }: { current: string }) {
           {p === "all" ? "All" : p}
         </button>
       ))}
+    </div>
+  );
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  active: "bg-emerald-100 text-emerald-800",
+  trialing: "bg-blue-100 text-blue-800",
+  canceled: "bg-red-100 text-red-800",
+  past_due: "bg-orange-100 text-orange-800",
+  unpaid: "bg-red-100 text-red-800",
+  incomplete: "bg-yellow-100 text-yellow-800",
+  incomplete_expired: "bg-yellow-100 text-yellow-800",
+};
+
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "-";
+  return new Date(dateStr).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function UsersTab({ category }: { category: MetricsUserCategory }) {
+  const [data, setData] = useState<ListMetricsUsersResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    getMetricsUsers(category)
+      .then(setData)
+      .finally(() => setLoading(false));
+  }, [category]);
+
+  if (loading) {
+    return (
+      <div className="flex h-40 items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!data || data.items.length === 0) {
+    return (
+      <div className="flex h-40 items-center justify-center text-muted-foreground">
+        Nenhum usuário nesta categoria
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Usuário</TableHead>
+            <TableHead>Tier</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Trial End</TableHead>
+            <TableHead>Criado em</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.items.map((user) => (
+            <TableRow key={user.id}>
+              <TableCell>
+                <div>
+                  <div className="font-medium">{user.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {user.email}
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                {user.tier ? (
+                  <span className="capitalize">{user.tier}</span>
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {user.billingStatus ? (
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "capitalize",
+                      STATUS_COLORS[user.billingStatus]
+                    )}
+                  >
+                    {user.billingStatus}
+                  </Badge>
+                ) : (
+                  "-"
+                )}
+              </TableCell>
+              <TableCell>{formatDate(user.trialEnd)}</TableCell>
+              <TableCell>{formatDate(user.createdAt)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -334,6 +452,55 @@ export function MetricsDashboard({ metrics }: Props) {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* User Lists by Category */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Usuários por Categoria</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="active">
+            <TabsList className="mb-4 flex-wrap">
+              <TabsTrigger value="active">
+                Ativos ({metrics.mrr.activeCount})
+              </TabsTrigger>
+              <TabsTrigger value="in_trial">
+                Em Trial ({metrics.trialToPaid.inTrial})
+              </TabsTrigger>
+              <TabsTrigger value="converted">
+                Convertidos ({metrics.trialToPaid.converted})
+              </TabsTrigger>
+              <TabsTrigger value="churned">
+                Churned ({metrics.churn.count})
+              </TabsTrigger>
+              <TabsTrigger value="trial_expired">
+                Trial Expirado ({metrics.trialToPaid.expired})
+              </TabsTrigger>
+              <TabsTrigger value="incomplete">
+                Checkout Abandonado ({metrics.incomplete.count})
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="active">
+              <UsersTab category="active" />
+            </TabsContent>
+            <TabsContent value="in_trial">
+              <UsersTab category="in_trial" />
+            </TabsContent>
+            <TabsContent value="converted">
+              <UsersTab category="converted" />
+            </TabsContent>
+            <TabsContent value="churned">
+              <UsersTab category="churned" />
+            </TabsContent>
+            <TabsContent value="trial_expired">
+              <UsersTab category="trial_expired" />
+            </TabsContent>
+            <TabsContent value="incomplete">
+              <UsersTab category="incomplete" />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
