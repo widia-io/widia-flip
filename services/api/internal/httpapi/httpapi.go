@@ -84,6 +84,8 @@ func NewHandler(deps Deps) http.Handler {
 	// Admin routes (JWT auth + is_admin check)
 	adminMux := http.NewServeMux()
 	adminMux.HandleFunc("/api/v1/admin/stats", api.handleAdminStats)
+	adminMux.HandleFunc("/api/v1/admin/metrics/users", api.handleAdminMetricsUsers)
+	adminMux.HandleFunc("/api/v1/admin/metrics", api.handleAdminMetrics)
 	adminMux.HandleFunc("/api/v1/admin/users", api.handleAdminUsersCollection)
 	adminMux.HandleFunc("/api/v1/admin/users/", api.handleAdminUsersSubroutes)
 	adminMux.HandleFunc("/api/v1/admin/promotions", api.handleAdminPromotionsCollection)
