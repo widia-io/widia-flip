@@ -640,7 +640,7 @@ func (a *api) handleAdminMetricsUsers(w http.ResponseWriter, r *http.Request) {
 			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
 			FROM "user" u
 			JOIN user_billing b ON b.user_id = u.id
-			WHERE b.status = 'active'
+			WHERE b.status = 'active' AND u.is_admin = false
 			ORDER BY b.updated_at DESC NULLS LAST
 		`
 	case "in_trial":
@@ -648,7 +648,7 @@ func (a *api) handleAdminMetricsUsers(w http.ResponseWriter, r *http.Request) {
 			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
 			FROM "user" u
 			JOIN user_billing b ON b.user_id = u.id
-			WHERE b.status = 'trialing'
+			WHERE b.status = 'trialing' AND u.is_admin = false
 			ORDER BY b.trial_end ASC NULLS LAST
 		`
 	case "churned":
@@ -656,7 +656,7 @@ func (a *api) handleAdminMetricsUsers(w http.ResponseWriter, r *http.Request) {
 			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
 			FROM "user" u
 			JOIN user_billing b ON b.user_id = u.id
-			WHERE b.status IN ('canceled', 'past_due', 'unpaid')
+			WHERE b.status IN ('canceled', 'past_due', 'unpaid') AND u.is_admin = false
 			ORDER BY b.updated_at DESC NULLS LAST
 		`
 	case "converted":
@@ -664,7 +664,7 @@ func (a *api) handleAdminMetricsUsers(w http.ResponseWriter, r *http.Request) {
 			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
 			FROM "user" u
 			JOIN user_billing b ON b.user_id = u.id
-			WHERE b.trial_end IS NOT NULL AND b.status = 'active'
+			WHERE b.trial_end IS NOT NULL AND b.status = 'active' AND u.is_admin = false
 			ORDER BY b.updated_at DESC NULLS LAST
 		`
 	case "trial_expired":
@@ -676,6 +676,7 @@ func (a *api) handleAdminMetricsUsers(w http.ResponseWriter, r *http.Request) {
 			WHERE b.trial_end IS NOT NULL
 			AND b.trial_end < $1
 			AND b.status != 'active'
+			AND u.is_admin = false
 			ORDER BY b.trial_end DESC
 		`
 	case "incomplete":
@@ -683,7 +684,7 @@ func (a *api) handleAdminMetricsUsers(w http.ResponseWriter, r *http.Request) {
 			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
 			FROM "user" u
 			JOIN user_billing b ON b.user_id = u.id
-			WHERE b.status IN ('incomplete', 'incomplete_expired')
+			WHERE b.status IN ('incomplete', 'incomplete_expired') AND u.is_admin = false
 			ORDER BY b.updated_at DESC NULLS LAST
 		`
 	}
@@ -782,12 +783,12 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		MRR:         adminMRRMetrics{ByTier: make(map[string]int64)},
 	}
 
-	// MRR - current active subscriptions (JOIN with user to exclude orphaned records)
+	// MRR - current active subscriptions (JOIN with user to exclude orphaned records and admins)
 	rows, err := a.db.QueryContext(ctx, `
 		SELECT b.tier, COUNT(*)
 		FROM user_billing b
 		JOIN "user" u ON u.id = b.user_id
-		WHERE b.status = 'active'
+		WHERE b.status = 'active' AND u.is_admin = false
 		GROUP BY b.tier
 	`)
 	if err != nil {
@@ -815,7 +816,7 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		SELECT COUNT(*)
 		FROM user_billing b
 		JOIN "user" u ON u.id = b.user_id
-		WHERE b.status = 'active'
+		WHERE b.status = 'active' AND u.is_admin = false
 		AND b.updated_at < $1
 	`, periodStart).Scan(&prevActiveCount)
 
@@ -823,12 +824,12 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		metrics.MRR.Delta = float64(metrics.MRR.ActiveCount-prevActiveCount) / float64(prevActiveCount) * 100
 	}
 
-	// Churn - canceled/past_due in period (JOIN with user to exclude orphaned records)
+	// Churn - canceled/past_due in period (JOIN with user to exclude orphaned records and admins)
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM user_billing b
 		JOIN "user" u ON u.id = b.user_id
-		WHERE b.status IN ('canceled', 'past_due', 'unpaid')
+		WHERE b.status IN ('canceled', 'past_due', 'unpaid') AND u.is_admin = false
 		AND b.updated_at >= $1
 		AND b.updated_at <= $2
 	`, periodStart, periodEnd).Scan(&metrics.Churn.Count)
@@ -838,7 +839,7 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		SELECT b.tier, COUNT(*)
 		FROM user_billing b
 		JOIN "user" u ON u.id = b.user_id
-		WHERE b.status IN ('canceled', 'past_due', 'unpaid')
+		WHERE b.status IN ('canceled', 'past_due', 'unpaid') AND u.is_admin = false
 		AND b.updated_at >= $1
 		AND b.updated_at <= $2
 		GROUP BY b.tier
@@ -860,6 +861,7 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM user_billing b
 		JOIN "user" u ON u.id = b.user_id
+		WHERE u.is_admin = false
 	`).Scan(&totalWithBilling)
 	if totalWithBilling > 0 {
 		metrics.Churn.Rate = float64(metrics.Churn.Count) / float64(totalWithBilling) * 100
@@ -872,7 +874,7 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 			SELECT COUNT(*)
 			FROM user_billing b
 			JOIN "user" u ON u.id = b.user_id
-			WHERE b.status IN ('canceled', 'past_due', 'unpaid')
+			WHERE b.status IN ('canceled', 'past_due', 'unpaid') AND u.is_admin = false
 			AND b.updated_at >= $1
 			AND b.updated_at < $2
 		`, prevStart, prevEnd).Scan(&prevChurn)
@@ -881,15 +883,16 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Leads (signups) in period
+	// Leads (signups) in period - exclude admins
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM "user"
 		WHERE "createdAt" >= $1
 		AND "createdAt" <= $2
+		AND is_admin = false
 	`, periodStart, periodEnd).Scan(&metrics.Leads.TotalSignups)
 
-	// Leads with active trial (trial_end > now)
+	// Leads with active trial (trial_end > now) - exclude admins
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM user_billing b
@@ -898,9 +901,10 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		AND u."createdAt" <= $2
 		AND b.trial_end IS NOT NULL
 		AND b.trial_end > $3
+		AND u.is_admin = false
 	`, periodStart, periodEnd, now).Scan(&metrics.Leads.WithActiveTrial)
 
-	// Leads with expired trial (trial_end <= now AND not converted)
+	// Leads with expired trial (trial_end <= now AND not converted) - exclude admins
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM user_billing b
@@ -910,6 +914,7 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		AND b.trial_end IS NOT NULL
 		AND b.trial_end <= $3
 		AND b.status != 'active'
+		AND u.is_admin = false
 	`, periodStart, periodEnd, now).Scan(&metrics.Leads.WithExpiredTrial)
 
 	metrics.Leads.NoTrial = metrics.Leads.TotalSignups - metrics.Leads.WithActiveTrial - metrics.Leads.WithExpiredTrial
@@ -922,22 +927,23 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 			FROM "user"
 			WHERE "createdAt" >= $1
 			AND "createdAt" < $2
+			AND is_admin = false
 		`, prevStart, prevEnd).Scan(&prevLeads)
 		if prevLeads > 0 {
 			metrics.Leads.Delta = float64(metrics.Leads.TotalSignups-prevLeads) / float64(prevLeads) * 100
 		}
 	}
 
-	// Conversion rates
+	// Conversion rates - exclude admins
 	var totalUsers int
-	a.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM "user"`).Scan(&totalUsers)
+	a.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM "user" WHERE is_admin = false`).Scan(&totalUsers)
 
 	var usersWithTrial int
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM user_billing b
 		JOIN "user" u ON u.id = b.user_id
-		WHERE b.trial_end IS NOT NULL
+		WHERE b.trial_end IS NOT NULL AND u.is_admin = false
 	`).Scan(&usersWithTrial)
 
 	var activeUsers int
@@ -945,7 +951,7 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		SELECT COUNT(*)
 		FROM user_billing b
 		JOIN "user" u ON u.id = b.user_id
-		WHERE b.status = 'active'
+		WHERE b.status = 'active' AND u.is_admin = false
 	`).Scan(&activeUsers)
 
 	if totalUsers > 0 {
@@ -958,25 +964,27 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		metrics.Conversion.Overall = float64(activeUsers) / float64(totalUsers) * 100
 	}
 
-	// Trial to Paid breakdown
+	// Trial to Paid breakdown - exclude admins
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM user_billing b
 		JOIN "user" u ON u.id = b.user_id
 		WHERE b.trial_end IS NOT NULL
 		AND b.status = 'active'
+		AND u.is_admin = false
 	`).Scan(&metrics.TrialToPaid.Converted)
 
-	// Only count active trials (trial_end > now)
+	// Only count active trials (trial_end > now) - exclude admins
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM user_billing b
 		JOIN "user" u ON u.id = b.user_id
 		WHERE b.status = 'trialing'
 		AND b.trial_end > $1
+		AND u.is_admin = false
 	`, now).Scan(&metrics.TrialToPaid.InTrial)
 
-	// Trial expirado = trial_end passou E não converteu (status != active)
+	// Trial expirado = trial_end passou E não converteu (status != active) - exclude admins
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM user_billing b
@@ -984,6 +992,7 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		WHERE b.trial_end IS NOT NULL
 		AND b.trial_end < $1
 		AND b.status != 'active'
+		AND u.is_admin = false
 	`, now).Scan(&metrics.TrialToPaid.Expired)
 
 	totalTrialUsers := metrics.TrialToPaid.Converted + metrics.TrialToPaid.InTrial + metrics.TrialToPaid.Expired
@@ -991,7 +1000,7 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		metrics.TrialToPaid.ConversionRate = float64(metrics.TrialToPaid.Converted) / float64(totalTrialUsers) * 100
 	}
 
-	// Trial conversion delta
+	// Trial conversion delta - exclude admins
 	var prevConverted int
 	if period != "all" {
 		a.db.QueryRowContext(ctx, `
@@ -1002,18 +1011,20 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 			AND b.status = 'active'
 			AND b.updated_at >= $1
 			AND b.updated_at < $2
+			AND u.is_admin = false
 		`, prevStart, prevEnd).Scan(&prevConverted)
 		if prevConverted > 0 {
 			metrics.TrialToPaid.Delta = float64(metrics.TrialToPaid.Converted-prevConverted) / float64(prevConverted) * 100
 		}
 	}
 
-	// Incomplete checkouts
+	// Incomplete checkouts - exclude admins
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM user_billing b
 		JOIN "user" u ON u.id = b.user_id
 		WHERE b.status IN ('incomplete', 'incomplete_expired')
+		AND u.is_admin = false
 	`).Scan(&metrics.Incomplete.Count)
 
 	writeJSON(w, http.StatusOK, metrics)
