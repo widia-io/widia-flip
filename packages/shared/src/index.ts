@@ -1572,7 +1572,8 @@ export type AdminChurnMetrics = z.infer<typeof AdminChurnMetricsSchema>;
 
 export const AdminLeadsMetricsSchema = z.object({
   totalSignups: z.number(),
-  withTrial: z.number(),
+  withActiveTrial: z.number(),
+  withExpiredTrial: z.number(),
   noTrial: z.number(),
   delta: z.number(),
 });
