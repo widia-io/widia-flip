@@ -289,11 +289,12 @@ export function MetricsDashboard({ metrics }: Props) {
             <div className="text-2xl font-bold">
               {metrics.leads.totalSignups}
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">
-                {metrics.leads.withTrial} with trial
-              </span>
-              <DeltaBadge delta={metrics.leads.delta} />
+            <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span>{metrics.leads.withActiveTrial} with active trial</span>
+                <DeltaBadge delta={metrics.leads.delta} />
+              </div>
+              <div>{metrics.leads.withExpiredTrial} with expired trial</div>
             </div>
           </CardContent>
         </Card>

@@ -554,10 +554,11 @@ type adminChurnMetrics struct {
 }
 
 type adminLeadsMetrics struct {
-	TotalSignups int     `json:"totalSignups"`
-	WithTrial    int     `json:"withTrial"`
-	NoTrial      int     `json:"noTrial"`
-	Delta        float64 `json:"delta"`
+	TotalSignups     int     `json:"totalSignups"`
+	WithActiveTrial  int     `json:"withActiveTrial"`
+	WithExpiredTrial int     `json:"withExpiredTrial"`
+	NoTrial          int     `json:"noTrial"`
+	Delta            float64 `json:"delta"`
 }
 
 type adminConversionMetrics struct {
@@ -888,7 +889,7 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		AND "createdAt" <= $2
 	`, periodStart, periodEnd).Scan(&metrics.Leads.TotalSignups)
 
-	// Leads with trial
+	// Leads with active trial (trial_end > now)
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM user_billing b
@@ -896,9 +897,22 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		WHERE u."createdAt" >= $1
 		AND u."createdAt" <= $2
 		AND b.trial_end IS NOT NULL
-	`, periodStart, periodEnd).Scan(&metrics.Leads.WithTrial)
+		AND b.trial_end > $3
+	`, periodStart, periodEnd, now).Scan(&metrics.Leads.WithActiveTrial)
 
-	metrics.Leads.NoTrial = metrics.Leads.TotalSignups - metrics.Leads.WithTrial
+	// Leads with expired trial (trial_end <= now AND not converted)
+	a.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM user_billing b
+		JOIN "user" u ON u.id = b.user_id
+		WHERE u."createdAt" >= $1
+		AND u."createdAt" <= $2
+		AND b.trial_end IS NOT NULL
+		AND b.trial_end <= $3
+		AND b.status != 'active'
+	`, periodStart, periodEnd, now).Scan(&metrics.Leads.WithExpiredTrial)
+
+	metrics.Leads.NoTrial = metrics.Leads.TotalSignups - metrics.Leads.WithActiveTrial - metrics.Leads.WithExpiredTrial
 
 	// Leads delta
 	var prevLeads int
@@ -953,12 +967,14 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		AND b.status = 'active'
 	`).Scan(&metrics.TrialToPaid.Converted)
 
+	// Only count active trials (trial_end > now)
 	a.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM user_billing b
 		JOIN "user" u ON u.id = b.user_id
 		WHERE b.status = 'trialing'
-	`).Scan(&metrics.TrialToPaid.InTrial)
+		AND b.trial_end > $1
+	`, now).Scan(&metrics.TrialToPaid.InTrial)
 
 	// Trial expirado = trial_end passou E não converteu (status != active)
 	a.db.QueryRowContext(ctx, `
