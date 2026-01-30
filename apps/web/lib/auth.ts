@@ -30,6 +30,87 @@ const logoSvg = `
   <rect x="28" y="8" width="12" height="6" rx="1" fill="#2563eb"/>
 </svg>`;
 
+function getResetPasswordEmailHtml(userName: string, resetUrl: string) {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f5; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; background-color: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <!-- Header with Logo -->
+          <tr>
+            <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #e4e4e7;">
+              <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                <tr>
+                  <td style="vertical-align: middle; padding-right: 10px;">
+                    ${logoSvg}
+                  </td>
+                  <td style="vertical-align: middle;">
+                    <span style="font-size: 24px; font-weight: 700; color: #18181b;">Meu Flip</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 32px;">
+              <h1 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #18181b; text-align: center;">
+                Redefinir sua senha
+              </h1>
+              <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #52525b; text-align: center;">
+                Olá${userName ? ` ${userName}` : ""},<br>
+                Clique no botão abaixo para redefinir sua senha.
+              </p>
+
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 8px 0 24px;">
+                    <a href="${resetUrl}"
+                       style="display: inline-block; background-color: #2563eb; color: white; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
+                      Redefinir senha
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Link fallback -->
+              <p style="margin: 0; font-size: 13px; color: #71717a; text-align: center; word-break: break-all;">
+                Ou copie este link:<br>
+                <a href="${resetUrl}" style="color: #2563eb;">${resetUrl}</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 32px; background-color: #fafafa; border-radius: 0 0 12px 12px; border-top: 1px solid #e4e4e7;">
+              <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #a1a1aa; text-align: center;">
+                Se você não solicitou esta ação, ignore este email.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Footer branding -->
+        <p style="margin: 24px 0 0; font-size: 12px; color: #a1a1aa; text-align: center;">
+          © ${new Date().getFullYear()} Meu Flip. Todos os direitos reservados.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
 function getVerificationEmailHtml(userName: string, verificationUrl: string) {
   return `
 <!DOCTYPE html>
@@ -136,6 +217,15 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
+    sendResetPassword: async ({ user, url }) => {
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@meuflip.com";
+      await getResend().emails.send({
+        from: fromEmail,
+        to: user.email,
+        subject: "Redefinir sua senha - Meu Flip",
+        html: getResetPasswordEmailHtml(user.name || "", url),
+      });
+    },
   },
   emailVerification: {
     sendOnSignUp: true,

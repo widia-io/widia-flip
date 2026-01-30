@@ -67,4 +67,44 @@ export async function signOutAction() {
   redirect("/login");
 }
 
+export async function requestPasswordResetAction(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim();
+
+  try {
+    await auth.api.requestPasswordReset({
+      body: {
+        email,
+        redirectTo: "/reset-password",
+      },
+    });
+  } catch {
+    // Silently ignore errors - don't reveal if email exists
+  }
+
+  // Always show success to prevent email enumeration
+  redirect(`/forgot-password?success=email_sent&email=${encodeURIComponent(email)}`);
+}
+
+export async function resetPasswordAction(formData: FormData) {
+  const newPassword = String(formData.get("password") ?? "");
+  const token = String(formData.get("token") ?? "");
+
+  if (newPassword.length < 8) {
+    redirect(`/reset-password?token=${encodeURIComponent(token)}&error=password_too_short`);
+  }
+
+  try {
+    await auth.api.resetPassword({
+      body: {
+        newPassword,
+        token,
+      },
+    });
+  } catch {
+    redirect(`/reset-password?token=${encodeURIComponent(token)}&error=invalid_token`);
+  }
+
+  redirect("/login?success=password_reset");
+}
+
 
