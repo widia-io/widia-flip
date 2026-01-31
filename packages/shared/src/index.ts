@@ -1642,6 +1642,66 @@ export const ListMetricsUsersResponseSchema = z.object({
 });
 export type ListMetricsUsersResponse = z.infer<typeof ListMetricsUsersResponseSchema>;
 
+// Email Marketing (LGPD-compliant)
+
+export const EmailCampaignStatusEnum = z.enum(["draft", "queued", "sending", "sent"]);
+export type EmailCampaignStatus = z.infer<typeof EmailCampaignStatusEnum>;
+
+export const EmailCampaignSchema = z.object({
+  id: z.string(),
+  subject: z.string(),
+  bodyHtml: z.string(),
+  status: EmailCampaignStatusEnum,
+  createdBy: z.string(),
+  createdAt: z.string(),
+  queuedAt: z.string().nullable(),
+  sentAt: z.string().nullable(),
+  recipientCount: z.number(),
+});
+export type EmailCampaign = z.infer<typeof EmailCampaignSchema>;
+
+export const ListEmailCampaignsResponseSchema = z.object({
+  items: z.array(EmailCampaignSchema),
+});
+export type ListEmailCampaignsResponse = z.infer<typeof ListEmailCampaignsResponseSchema>;
+
+export const EligibleRecipientsResponseSchema = z.object({
+  eligibleCount: z.number(),
+});
+export type EligibleRecipientsResponse = z.infer<typeof EligibleRecipientsResponseSchema>;
+
+export const CreateEmailCampaignRequestSchema = z.object({
+  subject: z.string().min(1, "Assunto é obrigatório"),
+  bodyHtml: z.string().min(1, "Conteúdo é obrigatório"),
+});
+export type CreateEmailCampaignRequest = z.infer<typeof CreateEmailCampaignRequestSchema>;
+
+export const QueueCampaignResponseSchema = z.object({
+  recipientCount: z.number(),
+});
+export type QueueCampaignResponse = z.infer<typeof QueueCampaignResponseSchema>;
+
+export const SendBatchResponseSchema = z.object({
+  processed: z.number(),
+  sent: z.number(),
+  failed: z.number(),
+  status: z.enum(["sending", "completed"]),
+});
+export type SendBatchResponse = z.infer<typeof SendBatchResponseSchema>;
+
+export const MarketingConsentStatusEnum = z.enum(["pending", "accepted", "declined"]);
+export type MarketingConsentStatus = z.infer<typeof MarketingConsentStatusEnum>;
+
+export const MarketingConsentStatusResponseSchema = z.object({
+  status: MarketingConsentStatusEnum,
+});
+export type MarketingConsentStatusResponse = z.infer<typeof MarketingConsentStatusResponseSchema>;
+
+export const UpdateMarketingConsentRequestSchema = z.object({
+  accepted: z.boolean(),
+});
+export type UpdateMarketingConsentRequest = z.infer<typeof UpdateMarketingConsentRequestSchema>;
+
 // Dashboard
 
 export const PropertyStatsSchema = z.object({

@@ -31,6 +31,7 @@ func NewHandler(deps Deps) http.Handler {
 	publicMux.HandleFunc("/api/v1/health", api.handleHealth)
 	publicMux.HandleFunc("/api/v1/public/cash-calc", api.handlePublicCashCalc)
 	publicMux.HandleFunc("/api/v1/public/promotions/active-banner", api.handlePublicActiveBanner)
+	publicMux.HandleFunc("/api/v1/public/unsubscribe/", api.handlePublicUnsubscribe)
 
 	// Protected routes (auth required)
 	protectedMux := http.NewServeMux()
@@ -73,6 +74,10 @@ func NewHandler(deps Deps) http.Handler {
 	// User admin status check (protected, not admin-only)
 	protectedMux.HandleFunc("/api/v1/user/admin-status", api.handleUserAdminStatus)
 
+	// User marketing consent (LGPD)
+	protectedMux.HandleFunc("/api/v1/user/marketing-consent", api.handleUserMarketingConsent)
+	protectedMux.HandleFunc("/api/v1/user/marketing-consent/status", api.handleUserMarketingConsentStatus)
+
 	// Unified Snapshots (workspace-wide)
 	protectedMux.HandleFunc("/api/v1/snapshots", api.handleSnapshotsCollection)
 	protectedMux.HandleFunc("/api/v1/snapshots/", api.handleSnapshotsSubroutes)
@@ -90,6 +95,7 @@ func NewHandler(deps Deps) http.Handler {
 	adminMux.HandleFunc("/api/v1/admin/users/", api.handleAdminUsersSubroutes)
 	adminMux.HandleFunc("/api/v1/admin/promotions", api.handleAdminPromotionsCollection)
 	adminMux.HandleFunc("/api/v1/admin/promotions/", api.handleAdminPromotionsSubroutes)
+	adminMux.HandleFunc("/api/v1/admin/email/", api.handleAdminEmailSubroutes)
 	var adminHandler http.Handler = adminMux
 	adminHandler = adminAuthMiddleware(api.tokenVerifier, api.db, adminHandler)
 

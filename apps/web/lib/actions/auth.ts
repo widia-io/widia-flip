@@ -35,6 +35,7 @@ export async function signUpEmailAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const phone = String(formData.get("phone") ?? "").trim() || undefined;
   const terms = formData.get("terms");
+  const marketingOptIn = formData.get("marketing") === "on";
 
   // Validate terms acceptance
   if (terms !== "on") {
@@ -50,6 +51,7 @@ export async function signUpEmailAction(formData: FormData) {
         password,
         phone,
         accepted_terms_at: new Date().toISOString(),
+        marketing_opt_in_at: marketingOptIn ? new Date().toISOString() : undefined,
         callbackURL: "/app",
       },
     });
