@@ -212,6 +212,11 @@ export const auth = betterAuth({
         required: false,
         fieldName: "accepted_terms_at",
       },
+      marketing_opt_in_at: {
+        type: "string", // ISO timestamp string
+        required: false,
+        fieldName: "marketing_opt_in_at",
+      },
     },
   },
   emailAndPassword: {

@@ -50,10 +50,10 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-13 — Paywall + Enforcement ativo`
-* **Milestone em andamento:** `M12 — Paywall + Enforcement (CONCLUÍDO)`
-* **Próximo milestone (planejado):** TBD (backlog)
-* **Última atualização:** `2025-12-23`
+* **Current Checkpoint:** `CP-14 — Email Marketing (Mini Mailchimp)`
+* **Milestone em andamento:** `M13 — Email Marketing (CONCLUÍDO)`
+* **Próximo milestone (planejado):** N/A (MVP Complete)
+* **Última atualização:** `2026-01-30`
 
 ## 1.2 Milestones (visão macro)
 
@@ -70,6 +70,7 @@
 * ✅ `M10 — Billing Foundation (Stripe) + Entitlements (soft)`
 * ✅ `M11 — Usage Tracking (v1) + Soft Limits`
 * ✅ `M12 — Paywall + Enforcement (Hard Limits)`
+* ✅ `M13 — Email Marketing (Mini Mailchimp)`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
 
@@ -228,6 +229,16 @@ Deve existir:
 * UX de paywall (modal/CTA upgrade) sem quebrar navegação.
 * Estados `past_due/unpaid` tratados (read-only mode).
 
+### CP-14 — Email Marketing (Mini Mailchimp)
+
+Deve existir:
+
+* Opt-in de marketing no cadastro + banner no app para quem **ainda não decidiu**.
+* Base de destinatários = usuários ativos com email verificado e opt-in.
+* Campanhas de email (criar/listar) + fila mínima de envio com status por destinatário.
+* Template fixo com logo + link de descadastro público (unsubscribe).
+* Envio via Resend (mesmo provedor já usado no auth).
+
 ---
 
 ## 1.4 Task Board (MVP)
@@ -366,6 +377,102 @@ Deve existir:
 * ✅ T12.4 Stripe Customer Portal (self-serve: trocar cartão/cancelar/downgrade)
 * ✅ T12.5 Estados de cobrança: `past_due/unpaid` → read-only mode (não criar novos itens, mas visualizar)
   **Checkpoint alvo:** `CP-13 — Paywall + Enforcement ativo` ✅
+
+### M13 — Email Marketing (Mini Mailchimp)
+
+* ✅ T13.1 Modelagem DB: `email_campaigns`, `email_sends` + campos `marketing_opt_in_at`, `marketing_opt_out_at`, `unsubscribe_token` em `user`
+* ✅ T13.2 Signup: checkbox opt-in marketing (se marcado, grava `marketing_opt_in_at`)
+* ✅ T13.3 Banner no app para quem **ainda não decidiu** (opt-in/opt-out) e persistir decisão
+* ✅ T13.4 Go API (admin): criar/listar campanhas + listar destinatários elegíveis (ativos, email verificado, opt-in)
+* ✅ T13.5 Fila mínima de envio: enfileirar `email_sends` + worker batch para processar `queued`
+* ✅ T13.6 Resend integration: envio de template fixo com logo + conteúdo da campanha
+* ✅ T13.7 Unsubscribe público: rota `/unsubscribe/:token` que grava `marketing_opt_out_at`
+* ✅ T13.8 Admin UI: lista de campanhas + criar campanha + botão "Enviar agora" com confirmação
+  **Checkpoint alvo:** `CP-14 — Email Marketing (Mini Mailchimp)` ✅
+
+## 1.6 Status Atual (Audit 2026-01-30)
+
+> **Nota:** auditoria rápida baseada em presença de código/migrations/rotas. **Não** inclui QA completo, e pode haver diferenças de comportamento em runtime.
+
+### M0 — Setup & Foundation
+
+* ✅ Monorepo + docker compose presentes (`apps/`, `services/`, `packages/`, `docker-compose*.yml`).
+* ✅ Better Auth no web (`apps/web/lib/auth.ts`) + BFF `apiFetch` (`apps/web/lib/apiFetch.ts`).
+* ✅ Migrations base e schema (`migrations/0001_*`, `migrations/0011_*`, `migrations/0012_*`).
+
+### M1 — Prospecção + Quick Add
+
+* ✅ Migrations de prospecção (`migrations/0002_*`).
+* ✅ CRUD API de prospects (`services/api/internal/httpapi/handlers_prospects.go`).
+* ✅ UI de prospecção (página `/app/prospects` e modais de add/view).
+
+### M2 — Imóvel Hub + Viabilidade à Vista
+
+* ✅ Migrations de properties/settings (`migrations/0003_*`).
+* ✅ API de properties + cash analysis (`handlers_properties.go`, `handlers_cash_analysis.go`).
+* ✅ Hub do imóvel com abas (`apps/web/app/(app)/app/properties/[id]/*`).
+
+### M3 — Financiamento
+
+* ✅ Migrations de financiamento (`migrations/0004_*`).
+* ✅ API de financing (`handlers_financing.go`).
+* ✅ UI de financiamento (`apps/web/app/(app)/app/properties/[id]/financing`).
+
+### M4 — Custos + Documentos + Timeline
+
+* ✅ Migrations custos/docs/timeline (`migrations/0005_*`).
+* ✅ API de custos/docs/timeline (`handlers_costs.go`, `handlers_documents.go`, timeline em `handlers_properties.go`).
+* ✅ UI de custos/docs/timeline (`apps/web/app/(app)/app/properties/[id]/{costs,documents,timeline}`).
+
+### M5 — SEO Calculator + Gating
+
+* ✅ Página pública calculadora (`apps/web/app/calculator/page.tsx`).
+* ✅ Cálculo/salvar via routes (`apps/web/app/api/calculator/*`) com gating por login (`CalculatorForm`).
+
+### M6 — Polimento MVP
+
+* ⚠️ **Não revalidado** — estados de loading/empty e smoke test manual não foram auditados nesta revisão.
+
+### M7 — UI/UX Polish + Extended Features
+
+* ✅ Theme toggle (`ThemeToggle`, `ThemeProvider`).
+* ✅ Gestão de workspaces + settings (`/app/workspaces`, `/app/workspaces/[id]/settings`).
+* ✅ Redesign prospecção + modais (`ProspectCard`, `ProspectAddModal`, `ProspectViewModal`).
+* ✅ Importação via URL (`apps/web/app/api/scrape-property/route.ts`).
+
+### M8 — Flip Score v0
+
+* ✅ Migrations Flip Score v0 (`migrations/0007_*`).
+* ✅ API Flip Score (`handlers_flip_score.go`) + UI em prospecção.
+
+### M9 — Flip Score v1 (Economics + ARV)
+
+* ✅ Migrations inputs v1 (`migrations/0009_*`).
+* ✅ Cálculo server-side + UI inputs (handlers de cash/flip + modais de prospect).
+
+### M10 — Billing Foundation (Stripe) + Entitlements
+
+* ✅ Migrations billing (`migrations/0010_*`).
+* ✅ API billing (`handlers_billing.go`) + routes Stripe no web (`/api/billing/*`).
+* ✅ UI billing (`/app/billing`).
+
+### M11 — Usage Tracking v1 + Soft Limits
+
+* ✅ API usage (`handlers_usage.go`, `/api/v1/workspaces/:id/usage`).
+* ✅ UI usage (`UsageCard`).
+
+### M12 — Paywall + Enforcement (Hard Limits)
+
+* ✅ Enforcement server-side (`handlers_enforcement.go`) + consumo no web (`PaywallModal`, `apiFetch`).
+
+### M13 — Email Marketing (Mini Mailchimp)
+
+* ✅ **Implementado** — Migration `0032_email_marketing.up.sql` cria tabelas `email_campaigns`, `email_sends` + campos `marketing_opt_in_at`, `marketing_opt_out_at`, `unsubscribe_token` em `user`.
+* ✅ **Implementado** — Checkbox de opt-in no cadastro (`SignupForm.tsx`) + banner de decisão no app (`MarketingConsentBanner.tsx`).
+* ✅ **Implementado** — Go API admin (`handlers_email.go`): criar/listar campanhas, listar recipients, queue, send batch.
+* ✅ **Implementado** — Rota pública de unsubscribe (`/unsubscribe/:token`) + Go handler.
+* ✅ **Implementado** — Admin UI (`/app/admin/email/*`): lista, create, detail + actions (queue/send).
+* ✅ **Já existia** — Resend integrado no web para emails transacionais (auth) e reutilizado para marketing.
 
 # 2) API & Data Model (para guiar implementação)
 
@@ -974,6 +1081,10 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-13` — 2025-12-23 — M12 entregue: Enforcement hard limits (Go handlers_enforcement.go c/ guards por endpoint), HTTP 402 + error codes PAYWALL_REQUIRED/LIMIT_EXCEEDED, PaywallModal + usePaywall hook (React Context), integração paywall em: prospect creation, cash/financing snapshots, document upload, workspace creation. Stripe Customer Portal existente. Estados past_due/unpaid bloqueiam criação.
 * `CP-13` — 2026-01-07 — Landing page modernizada (tipografia, hero e seções com novo visual).
 * `CP-13` — 2026-01-13 — PRD: proposta de Cronograma da Obra (V0/V1) adicionada ao backlog.
+* `CP-14` — 2026-01-30 — PRD: milestone/tarefas do Email Marketing (Mini Mailchimp) adicionadas ao backlog (opt-in signup + banner, fila mínima, Resend, unsubscribe).
+* `CP-13` — 2026-01-30 — PRD: auditoria no código confirma M13 (Email Marketing) ainda não implementado; Resend existe apenas para emails transacionais.
+* `CP-13` — 2026-01-30 — PRD: auditoria rápida do código para M0–M12 (presença de migrations/handlers/rotas) + resumo de pendências.
+* `CP-14` — 2026-01-30 — M13 entregue: Email Marketing MVP com LGPD compliance. Migration 0032 (email_campaigns, email_sends, user fields). Go API (handlers_email.go): admin routes + public unsubscribe. Web: SignupForm checkbox, MarketingConsentBanner, server actions, admin UI (/app/admin/email). Resend integration reutilizada.
 
 ---
 

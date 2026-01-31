@@ -87,6 +87,13 @@ export function SignupForm() {
         </Label>
       </div>
 
+      <div className="flex items-start space-x-2">
+        <Checkbox id="marketing" name="marketing" className="mt-1" />
+        <Label htmlFor="marketing" className="text-sm font-normal leading-relaxed text-muted-foreground">
+          Quero receber novidades e dicas por email
+        </Label>
+      </div>
+
       <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? "Criando conta..." : "Criar conta"}
       </Button>

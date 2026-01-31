@@ -2,12 +2,13 @@ import type { ReactNode } from "react";
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { ListWorkspacesResponseSchema, UserPreferencesSchema, AdminStatusResponseSchema, UserEntitlementsSchema, type UserEntitlements } from "@widia/shared";
+import { ListWorkspacesResponseSchema, UserPreferencesSchema, AdminStatusResponseSchema, UserEntitlementsSchema, MarketingConsentStatusResponseSchema, type UserEntitlements, type MarketingConsentStatus } from "@widia/shared";
 
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { PaywallProvider } from "@/components/PaywallModal";
 import { FeatureTourWrapper } from "@/components/FeatureTourWrapper";
+import { MarketingConsentBanner } from "@/components/MarketingConsentBanner";
 import { SidebarProvider } from "@/lib/hooks/useSidebar";
 import { getServerSession } from "@/lib/serverAuth";
 import { apiFetch } from "@/lib/apiFetch";
@@ -43,24 +44,36 @@ async function getUserEntitlements(): Promise<UserEntitlements | null> {
   }
 }
 
+async function getMarketingConsentStatus(): Promise<MarketingConsentStatus> {
+  try {
+    const data = await apiFetch("/api/v1/user/marketing-consent/status");
+    const parsed = MarketingConsentStatusResponseSchema.safeParse(data);
+    return parsed.success ? parsed.data.status : "pending";
+  } catch {
+    return "pending";
+  }
+}
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession();
   if (!session) {
     redirect("/login");
   }
 
-  // Fetch user's workspaces, preferences, admin status, and entitlements in parallel
+  // Fetch user's workspaces, preferences, admin status, entitlements, and consent in parallel
   let workspacesRaw: { items: { id: string; name: string }[] };
   let preferences: Awaited<ReturnType<typeof getUserPreferences>> = null;
   let isAdmin = false;
   let entitlements: UserEntitlements | null = null;
+  let marketingConsentStatus: MarketingConsentStatus = "pending";
 
   try {
-    [workspacesRaw, preferences, isAdmin, entitlements] = await Promise.all([
+    [workspacesRaw, preferences, isAdmin, entitlements, marketingConsentStatus] = await Promise.all([
       apiFetch<{ items: { id: string; name: string }[] }>("/api/v1/workspaces"),
       getUserPreferences(),
       getAdminStatus(),
       getUserEntitlements(),
+      getMarketingConsentStatus(),
     ]);
   } catch (error) {
     // Token missing/expired - clear session and redirect to login
@@ -111,6 +124,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
         {/* Feature Tour */}
         <FeatureTourWrapper autoStart={shouldAutoStartTour ?? false} />
+
+        {/* Marketing Consent Banner (LGPD) */}
+        <MarketingConsentBanner initialStatus={marketingConsentStatus} />
       </SidebarProvider>
     </PaywallProvider>
   );

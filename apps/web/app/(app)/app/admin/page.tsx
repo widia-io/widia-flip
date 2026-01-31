@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Megaphone,
   BarChart3,
+  Mail,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +40,13 @@ export default async function AdminDashboardPage() {
           >
             <BarChart3 className="h-4 w-4" />
             SaaS Metrics
+          </Link>
+          <Link
+            href="/app/admin/email"
+            className="flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            <Mail className="h-4 w-4" />
+            Email Marketing
           </Link>
           <Link
             href="/app/admin/promotions"
