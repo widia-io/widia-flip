@@ -10,6 +10,9 @@ export async function POST(request: Request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "svix-id": request.headers.get("svix-id") ?? "",
+        "svix-timestamp": request.headers.get("svix-timestamp") ?? "",
+        "svix-signature": request.headers.get("svix-signature") ?? "",
       },
       body,
     });
