@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Mail, MousePointerClick, Eye, AlertTriangle, Ban } from "lucide-react";
 import { notFound } from "next/navigation";
 
-import { getEmailCampaign, getEligibleRecipientsCount } from "@/lib/actions/email";
+import { getEmailCampaign, getEligibleRecipientsCount, getCampaignStats } from "@/lib/actions/email";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CampaignActions } from "./CampaignActions";
 import { CampaignPreview } from "./CampaignPreview";
+import type { CampaignStatsResponse } from "@widia/shared";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
@@ -22,12 +23,22 @@ export default async function CampaignDetailPage(props: {
 
   let campaign;
   let eligibleCount = 0;
+  let stats: CampaignStatsResponse | null = null;
 
   try {
     [campaign, { eligibleCount }] = await Promise.all([
       getEmailCampaign(id),
       getEligibleRecipientsCount(),
     ]);
+
+    // Fetch stats only for sent/sending campaigns
+    if (campaign.status === "sent" || campaign.status === "sending") {
+      try {
+        stats = await getCampaignStats(id);
+      } catch {
+        // Stats not available yet
+      }
+    }
   } catch {
     notFound();
   }
@@ -130,6 +141,75 @@ export default async function CampaignDetailPage(props: {
               )}
             </CardContent>
           </Card>
+
+          {/* Analytics - only show for sent/sending campaigns */}
+          {stats && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Analytics</CardTitle>
+                <CardDescription>Metricas de engajamento</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Key metrics grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border p-3">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Mail className="h-4 w-4" />
+                      <span className="text-xs">Entregues</span>
+                    </div>
+                    <p className="mt-1 text-xl font-semibold">{stats.delivered}</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Eye className="h-4 w-4" />
+                      <span className="text-xs">Aberturas</span>
+                    </div>
+                    <p className="mt-1 text-xl font-semibold">{stats.opened}</p>
+                    <p className="text-xs text-muted-foreground">{stats.openRate}%</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MousePointerClick className="h-4 w-4" />
+                      <span className="text-xs">Cliques</span>
+                    </div>
+                    <p className="mt-1 text-xl font-semibold">{stats.clicked}</p>
+                    <p className="text-xs text-muted-foreground">{stats.clickRate}%</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span className="text-xs">Bounces</span>
+                    </div>
+                    <p className="mt-1 text-xl font-semibold">{stats.bounced}</p>
+                  </div>
+                </div>
+
+                {/* Warnings for complaints */}
+                {stats.complained > 0 && (
+                  <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                    <Ban className="h-4 w-4" />
+                    <span>{stats.complained} reclamacao(s) de spam</span>
+                  </div>
+                )}
+
+                {/* Progress bar for delivery */}
+                {stats.sent > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Taxa de entrega</span>
+                      <span>{Math.round((stats.delivered / stats.sent) * 100)}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-green-500"
+                        style={{ width: `${(stats.delivered / stats.sent) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

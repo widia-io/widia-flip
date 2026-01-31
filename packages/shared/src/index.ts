@@ -1717,6 +1717,20 @@ export const UpdateMarketingConsentRequestSchema = z.object({
 });
 export type UpdateMarketingConsentRequest = z.infer<typeof UpdateMarketingConsentRequestSchema>;
 
+// Campaign Stats (Analytics)
+
+export const CampaignStatsResponseSchema = z.object({
+  sent: z.number(),
+  delivered: z.number(),
+  opened: z.number(),
+  clicked: z.number(),
+  bounced: z.number(),
+  complained: z.number(),
+  openRate: z.number(),
+  clickRate: z.number(),
+});
+export type CampaignStatsResponse = z.infer<typeof CampaignStatsResponseSchema>;
+
 // Dashboard
 
 export const PropertyStatsSchema = z.object({

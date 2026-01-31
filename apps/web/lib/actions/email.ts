@@ -8,6 +8,7 @@ import {
   QueueCampaignResponseSchema,
   SendBatchResponseSchema,
   MarketingConsentStatusResponseSchema,
+  CampaignStatsResponseSchema,
   type ListEmailCampaignsResponse,
   type EligibleRecipientsResponse,
   type ListEligibleRecipientsResponse,
@@ -15,6 +16,7 @@ import {
   type QueueCampaignResponse,
   type SendBatchResponse,
   type MarketingConsentStatusResponse,
+  type CampaignStatsResponse,
 } from "@widia/shared";
 
 import { apiFetch } from "@/lib/apiFetch";
@@ -64,6 +66,11 @@ export async function sendCampaignBatch(id: string): Promise<SendBatchResponse> 
     method: "POST",
   });
   return SendBatchResponseSchema.parse(data);
+}
+
+export async function getCampaignStats(id: string): Promise<CampaignStatsResponse> {
+  const data = await apiFetch(`/api/v1/admin/email/campaigns/${id}/stats`);
+  return CampaignStatsResponseSchema.parse(data);
 }
 
 // User consent actions

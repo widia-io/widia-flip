@@ -32,6 +32,7 @@ func NewHandler(deps Deps) http.Handler {
 	publicMux.HandleFunc("/api/v1/public/cash-calc", api.handlePublicCashCalc)
 	publicMux.HandleFunc("/api/v1/public/promotions/active-banner", api.handlePublicActiveBanner)
 	publicMux.HandleFunc("/api/v1/public/unsubscribe/", api.handlePublicUnsubscribe)
+	publicMux.HandleFunc("/api/v1/webhooks/resend", api.handleResendWebhook)
 
 	// Protected routes (auth required)
 	protectedMux := http.NewServeMux()
@@ -109,6 +110,7 @@ func NewHandler(deps Deps) http.Handler {
 	mainMux := http.NewServeMux()
 	mainMux.Handle("/api/v1/health", publicMux)
 	mainMux.Handle("/api/v1/public/", publicMux)
+	mainMux.Handle("/api/v1/webhooks/", publicMux)
 	mainMux.Handle("/api/v1/internal/", internalHandler)
 	mainMux.Handle("/api/v1/admin/", adminHandler)
 	mainMux.Handle("/", protectedHandler)

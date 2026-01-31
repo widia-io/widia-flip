@@ -1,14 +1,20 @@
 package httpapi
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -143,6 +149,16 @@ func (a *api) handleAdminEmailSubroutes(w http.ResponseWriter, r *http.Request) 
 		if len(parts) == 2 && parts[1] == "send" {
 			if r.Method == http.MethodPost {
 				a.handleSendCampaignBatch(w, r, campaignID)
+			} else {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+			}
+			return
+		}
+
+		// /api/v1/admin/email/campaigns/{id}/stats
+		if len(parts) == 2 && parts[1] == "stats" {
+			if r.Method == http.MethodGet {
+				a.handleGetCampaignStats(w, r, campaignID)
 			} else {
 				w.WriteHeader(http.StatusMethodNotAllowed)
 			}
@@ -555,7 +571,7 @@ func (a *api) handleSendCampaignBatch(w http.ResponseWriter, r *http.Request, ca
 	failed := 0
 
 	for _, t := range targets {
-		err := sendMarketingEmail(t.Email, t.Name, subject, bodyHTML, t.UnsubscribeToken)
+		resendEmailID, err := sendMarketingEmail(t.Email, t.Name, subject, bodyHTML, t.UnsubscribeToken)
 		if err != nil {
 			log.Printf("send email to %s: error: %v", t.Email, err)
 			a.db.ExecContext(ctx, `
@@ -565,9 +581,9 @@ func (a *api) handleSendCampaignBatch(w http.ResponseWriter, r *http.Request, ca
 			failed++
 		} else {
 			a.db.ExecContext(ctx, `
-				UPDATE email_sends SET status = 'sent', sent_at = now()
+				UPDATE email_sends SET status = 'sent', sent_at = now(), resend_email_id = $2
 				WHERE id = $1
-			`, t.ID)
+			`, t.ID, resendEmailID)
 			sent++
 		}
 	}
@@ -593,8 +609,13 @@ func (a *api) handleSendCampaignBatch(w http.ResponseWriter, r *http.Request, ca
 }
 
 
-// Send marketing email using Resend (placeholder - actual implementation needs Resend SDK)
-func sendMarketingEmail(toEmail, userName, subject, bodyHTML, unsubscribeToken string) error {
+// resendEmailResponse represents the response from Resend API
+type resendEmailResponse struct {
+	ID string `json:"id"`
+}
+
+// Send marketing email using Resend and return the Resend email ID
+func sendMarketingEmail(toEmail, userName, subject, bodyHTML, unsubscribeToken string) (string, error) {
 	// Get base URL for unsubscribe link
 	baseURL := os.Getenv("BETTER_AUTH_URL")
 	if baseURL == "" {
@@ -608,7 +629,7 @@ func sendMarketingEmail(toEmail, userName, subject, bodyHTML, unsubscribeToken s
 	// Use Resend API directly via HTTP
 	apiKey := os.Getenv("RESEND_API_KEY")
 	if apiKey == "" {
-		return fmt.Errorf("RESEND_API_KEY not configured")
+		return "", fmt.Errorf("RESEND_API_KEY not configured")
 	}
 
 	fromEmail := os.Getenv("RESEND_FROM_EMAIL")
@@ -627,7 +648,7 @@ func sendMarketingEmail(toEmail, userName, subject, bodyHTML, unsubscribeToken s
 
 	req, err := http.NewRequest("POST", "https://api.resend.com/emails", strings.NewReader(string(payloadBytes)))
 	if err != nil {
-		return err
+		return "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", "application/json")
@@ -635,15 +656,23 @@ func sendMarketingEmail(toEmail, userName, subject, bodyHTML, unsubscribeToken s
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("resend API error: status %d", resp.StatusCode)
+		return "", fmt.Errorf("resend API error: status %d", resp.StatusCode)
 	}
 
-	return nil
+	// Parse response to get email ID
+	var resendResp resendEmailResponse
+	if err := json.NewDecoder(resp.Body).Decode(&resendResp); err != nil {
+		// Email was sent but we couldn't parse ID - not a failure
+		log.Printf("warning: couldn't parse resend response: %v", err)
+		return "", nil
+	}
+
+	return resendResp.ID, nil
 }
 
 // Build marketing email HTML template
@@ -825,4 +854,227 @@ func (a *api) handleUserMarketingConsentStatus(w http.ResponseWriter, r *http.Re
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": status})
+}
+
+// ================== Webhook Handler ==================
+
+// resendWebhookEvent represents a Resend webhook event
+type resendWebhookEvent struct {
+	Type      string `json:"type"`
+	CreatedAt string `json:"created_at"`
+	Data      struct {
+		EmailID string `json:"email_id"`
+		From    string `json:"from"`
+		To      []string `json:"to"`
+		Subject string `json:"subject"`
+	} `json:"data"`
+}
+
+// verifyResendWebhook verifies the Svix signature from Resend webhooks
+func verifyResendWebhook(payload []byte, headers http.Header, secret string) bool {
+	msgID := headers.Get("svix-id")
+	timestamp := headers.Get("svix-timestamp")
+	signature := headers.Get("svix-signature")
+
+	if msgID == "" || timestamp == "" || signature == "" {
+		log.Printf("webhook: missing headers - id=%s ts=%s sig=%s", msgID, timestamp, signature)
+		return false
+	}
+
+	// Verify timestamp is within 5 minutes
+	ts, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		log.Printf("webhook: invalid timestamp: %v", err)
+		return false
+	}
+	now := time.Now().Unix()
+	if math.Abs(float64(now-ts)) > 300 {
+		log.Printf("webhook: timestamp too old: %d vs %d", ts, now)
+		return false
+	}
+
+	// Decode secret (base64 with whsec_ prefix)
+	secretKey := strings.TrimPrefix(secret, "whsec_")
+	keyBytes, err := base64.StdEncoding.DecodeString(secretKey)
+	if err != nil {
+		log.Printf("webhook: failed to decode secret: %v", err)
+		return false
+	}
+
+	// Compute HMAC-SHA256 - Svix format: {msg_id}.{timestamp}.{payload}
+	signedContent := msgID + "." + timestamp + "." + string(payload)
+	mac := hmac.New(sha256.New, keyBytes)
+	mac.Write([]byte(signedContent))
+	expectedSig := base64.StdEncoding.EncodeToString(mac.Sum(nil))
+
+	// Signature format: v1,{base64sig} (can have multiple separated by space)
+	for _, sig := range strings.Split(signature, " ") {
+		parts := strings.SplitN(sig, ",", 2)
+		if len(parts) == 2 && parts[0] == "v1" {
+			if hmac.Equal([]byte(expectedSig), []byte(parts[1])) {
+				return true
+			}
+		}
+	}
+
+	log.Printf("webhook: signature mismatch")
+	return false
+}
+
+// Handler for /api/v1/webhooks/resend (public, no auth)
+func (a *api) handleResendWebhook(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Read body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, apiError{Code: "INVALID_BODY", Message: "failed to read body"})
+		return
+	}
+
+	// Verify signature if secret is configured
+	webhookSecret := os.Getenv("RESEND_WEBHOOK_SECRET")
+	if webhookSecret != "" {
+		if !verifyResendWebhook(body, r.Header, webhookSecret) {
+			log.Printf("resend webhook: invalid signature")
+			writeError(w, http.StatusUnauthorized, apiError{Code: "INVALID_SIGNATURE", Message: "invalid webhook signature"})
+			return
+		}
+	}
+
+	// Parse event
+	var event resendWebhookEvent
+	if err := json.Unmarshal(body, &event); err != nil {
+		log.Printf("resend webhook: parse error: %v", err)
+		writeError(w, http.StatusBadRequest, apiError{Code: "INVALID_JSON", Message: "invalid json body"})
+		return
+	}
+
+	// Map Resend event types to our event types
+	eventType := ""
+	switch event.Type {
+	case "email.sent":
+		eventType = "sent"
+	case "email.delivered":
+		eventType = "delivered"
+	case "email.opened":
+		eventType = "opened"
+	case "email.clicked":
+		eventType = "clicked"
+	case "email.bounced":
+		eventType = "bounced"
+	case "email.complained":
+		eventType = "complained"
+	case "email.delivery_delayed":
+		eventType = "delayed"
+	default:
+		// Unknown event type, ignore
+		log.Printf("resend webhook: unknown event type: %s", event.Type)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	ctx := r.Context()
+
+	// Find campaign_id from email_sends by resend_email_id
+	var campaignID sql.NullString
+	a.db.QueryRowContext(ctx, `
+		SELECT campaign_id FROM email_sends WHERE resend_email_id = $1
+	`, event.Data.EmailID).Scan(&campaignID)
+
+	// Get recipient email (first in list)
+	recipientEmail := ""
+	if len(event.Data.To) > 0 {
+		recipientEmail = event.Data.To[0]
+	}
+
+	// Insert event
+	_, err = a.db.ExecContext(ctx, `
+		INSERT INTO email_events (email_id, campaign_id, event_type, recipient_email, payload)
+		VALUES ($1, $2, $3, $4, $5)
+	`, event.Data.EmailID, campaignID, eventType, recipientEmail, body)
+	if err != nil {
+		log.Printf("resend webhook: insert error: %v", err)
+		// Still return 200 to avoid retries
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// ================== Campaign Stats ==================
+
+type campaignStatsResponse struct {
+	Sent       int     `json:"sent"`
+	Delivered  int     `json:"delivered"`
+	Opened     int     `json:"opened"`
+	Clicked    int     `json:"clicked"`
+	Bounced    int     `json:"bounced"`
+	Complained int     `json:"complained"`
+	OpenRate   float64 `json:"openRate"`
+	ClickRate  float64 `json:"clickRate"`
+}
+
+// Handler for /api/v1/admin/email/campaigns/{id}/stats
+func (a *api) handleGetCampaignStats(w http.ResponseWriter, r *http.Request, campaignID string) {
+	ctx := r.Context()
+
+	// Verify campaign exists
+	var exists bool
+	err := a.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM email_campaigns WHERE id = $1)`, campaignID).Scan(&exists)
+	if err != nil || !exists {
+		writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "campaign not found"})
+		return
+	}
+
+	// Get event counts
+	rows, err := a.db.QueryContext(ctx, `
+		SELECT event_type, COUNT(*)
+		FROM email_events
+		WHERE campaign_id = $1
+		GROUP BY event_type
+	`, campaignID)
+	if err != nil {
+		log.Printf("get campaign stats: error: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to get stats"})
+		return
+	}
+	defer rows.Close()
+
+	stats := campaignStatsResponse{}
+	for rows.Next() {
+		var eventType string
+		var count int
+		if err := rows.Scan(&eventType, &count); err != nil {
+			continue
+		}
+		switch eventType {
+		case "sent":
+			stats.Sent = count
+		case "delivered":
+			stats.Delivered = count
+		case "opened":
+			stats.Opened = count
+		case "clicked":
+			stats.Clicked = count
+		case "bounced":
+			stats.Bounced = count
+		case "complained":
+			stats.Complained = count
+		}
+	}
+
+	// Calculate rates (based on delivered, fallback to sent if no delivered events)
+	base := stats.Delivered
+	if base == 0 {
+		base = stats.Sent
+	}
+	if base > 0 {
+		stats.OpenRate = math.Round(float64(stats.Opened)/float64(base)*1000) / 10  // e.g. 53.8
+		stats.ClickRate = math.Round(float64(stats.Clicked)/float64(base)*1000) / 10
+	}
+
+	writeJSON(w, http.StatusOK, stats)
 }
