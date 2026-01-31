@@ -3,12 +3,14 @@
 import {
   ListEmailCampaignsResponseSchema,
   EligibleRecipientsResponseSchema,
+  ListEligibleRecipientsResponseSchema,
   EmailCampaignSchema,
   QueueCampaignResponseSchema,
   SendBatchResponseSchema,
   MarketingConsentStatusResponseSchema,
   type ListEmailCampaignsResponse,
   type EligibleRecipientsResponse,
+  type ListEligibleRecipientsResponse,
   type EmailCampaign,
   type QueueCampaignResponse,
   type SendBatchResponse,
@@ -22,6 +24,11 @@ import { apiFetch } from "@/lib/apiFetch";
 export async function getEligibleRecipientsCount(): Promise<EligibleRecipientsResponse> {
   const data = await apiFetch("/api/v1/admin/email/recipients");
   return EligibleRecipientsResponseSchema.parse(data);
+}
+
+export async function listEligibleRecipients(): Promise<ListEligibleRecipientsResponse> {
+  const data = await apiFetch("/api/v1/admin/email/recipients/list");
+  return ListEligibleRecipientsResponseSchema.parse(data);
 }
 
 export async function listEmailCampaigns(): Promise<ListEmailCampaignsResponse> {

@@ -1,10 +1,18 @@
 import Link from "next/link";
 import { ChevronLeft, Mail, Plus, Users } from "lucide-react";
 
-import { listEmailCampaigns, getEligibleRecipientsCount } from "@/lib/actions/email";
+import { listEmailCampaigns, getEligibleRecipientsCount, listEligibleRecipients } from "@/lib/actions/email";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
@@ -14,9 +22,10 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 };
 
 export default async function AdminEmailPage() {
-  const [{ items: campaigns }, { eligibleCount }] = await Promise.all([
+  const [{ items: campaigns }, { eligibleCount }, { items: recipients }] = await Promise.all([
     listEmailCampaigns(),
     getEligibleRecipientsCount(),
+    listEligibleRecipients(),
   ]);
 
   return (
@@ -137,6 +146,48 @@ export default async function AdminEmailPage() {
                 );
               })}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Eligible recipients list */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Destinatários Elegíveis</CardTitle>
+          <CardDescription>
+            Usuários que optaram por receber emails e têm email verificado (máx. 500)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recipients.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Users className="mb-4 h-12 w-12 text-muted-foreground/50" />
+              <p className="text-muted-foreground">Nenhum destinatário elegível</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Usuários precisam ter email verificado e aceitar marketing
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Opt-in em</TableHead>
+                  <TableHead>Cadastrado em</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recipients.map((recipient) => (
+                  <TableRow key={recipient.id}>
+                    <TableCell className="font-medium">{recipient.name || "—"}</TableCell>
+                    <TableCell>{recipient.email}</TableCell>
+                    <TableCell>{new Date(recipient.optInAt).toLocaleDateString("pt-BR")}</TableCell>
+                    <TableCell>{new Date(recipient.createdAt).toLocaleDateString("pt-BR")}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

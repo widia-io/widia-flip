@@ -1670,6 +1670,21 @@ export const EligibleRecipientsResponseSchema = z.object({
 });
 export type EligibleRecipientsResponse = z.infer<typeof EligibleRecipientsResponseSchema>;
 
+export const EligibleRecipientSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  name: z.string(),
+  optInAt: z.string(),
+  createdAt: z.string(),
+});
+export type EligibleRecipient = z.infer<typeof EligibleRecipientSchema>;
+
+export const ListEligibleRecipientsResponseSchema = z.object({
+  items: z.array(EligibleRecipientSchema),
+  total: z.number(),
+});
+export type ListEligibleRecipientsResponse = z.infer<typeof ListEligibleRecipientsResponseSchema>;
+
 export const CreateEmailCampaignRequestSchema = z.object({
   subject: z.string().min(1, "Assunto é obrigatório"),
   bodyHtml: z.string().min(1, "Conteúdo é obrigatório"),

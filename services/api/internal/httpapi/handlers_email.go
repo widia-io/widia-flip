@@ -44,6 +44,19 @@ type eligibleRecipientsResponse struct {
 	EligibleCount int `json:"eligibleCount"`
 }
 
+type eligibleRecipient struct {
+	ID        string `json:"id"`
+	Email     string `json:"email"`
+	Name      string `json:"name"`
+	OptInAt   string `json:"optInAt"`
+	CreatedAt string `json:"createdAt"`
+}
+
+type listEligibleRecipientsResponse struct {
+	Items []eligibleRecipient `json:"items"`
+	Total int                 `json:"total"`
+}
+
 type createCampaignRequest struct {
 	Subject  string `json:"subject"`
 	BodyHTML string `json:"bodyHtml"`
@@ -68,6 +81,16 @@ func (a *api) handleAdminEmailSubroutes(w http.ResponseWriter, r *http.Request) 
 	if rest == "recipients" {
 		if r.Method == http.MethodGet {
 			a.handleEmailRecipients(w, r)
+		} else {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+		return
+	}
+
+	// /api/v1/admin/email/recipients/list
+	if rest == "recipients/list" {
+		if r.Method == http.MethodGet {
+			a.handleListEligibleRecipients(w, r)
 		} else {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
@@ -188,6 +211,43 @@ func (a *api) handleEmailRecipients(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, eligibleRecipientsResponse{EligibleCount: count})
+}
+
+// List eligible recipients
+func (a *api) handleListEligibleRecipients(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	rows, err := a.db.QueryContext(ctx, `
+		SELECT id, email, name, marketing_opt_in_at, "createdAt"
+		FROM "user"
+		WHERE "emailVerified" = true
+		AND is_active = true
+		AND marketing_opt_in_at IS NOT NULL
+		AND marketing_opt_out_at IS NULL
+		ORDER BY marketing_opt_in_at DESC
+		LIMIT 500
+	`)
+	if err != nil {
+		log.Printf("list eligible recipients: error: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to list recipients"})
+		return
+	}
+	defer rows.Close()
+
+	items := make([]eligibleRecipient, 0)
+	for rows.Next() {
+		var r eligibleRecipient
+		var optInAt, createdAt time.Time
+		if err := rows.Scan(&r.ID, &r.Email, &r.Name, &optInAt, &createdAt); err != nil {
+			log.Printf("list eligible recipients: scan error: %v", err)
+			continue
+		}
+		r.OptInAt = optInAt.Format(time.RFC3339)
+		r.CreatedAt = createdAt.Format(time.RFC3339)
+		items = append(items, r)
+	}
+
+	writeJSON(w, http.StatusOK, listEligibleRecipientsResponse{Items: items, Total: len(items)})
 }
 
 // List all campaigns
