@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Building2, FolderKanban, CreditCard, LineChart, Shield, MessageCircle, Users, CalendarCheck, FileText, DollarSign, Settings } from "lucide-react";
+import { Home, Search, Building2, FolderKanban, CreditCard, LineChart, Shield, MessageCircle, Users, CalendarCheck, FileText, DollarSign } from "lucide-react";
 import { MeuFlipLogo } from "@/components/MeuFlipLogo";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -71,21 +71,6 @@ function SidebarContent({ onNavigate, isAdmin }: { onNavigate?: () => void; isAd
         >
           <CreditCard className="h-4 w-4" />
           Assinatura
-        </Link>
-
-        {/* Settings link - always visible */}
-        <Link
-          href="/app/settings"
-          onClick={onNavigate}
-          className={cn(
-            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-            pathname.startsWith("/app/settings")
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          )}
-        >
-          <Settings className="h-4 w-4" />
-          Configurações
         </Link>
 
         {/* Admin link - only show for admins */}
