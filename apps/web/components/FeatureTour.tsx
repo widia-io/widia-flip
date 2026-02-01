@@ -80,26 +80,26 @@ export function FeatureTour({
     return () => window.removeEventListener("resize", updatePosition);
   }, [isRunning, step, currentStep]);
 
-  const handleNext = useCallback(() => {
-    if (currentStep < TOUR_STEPS.length - 1) {
-      setCurrentStep((prev) => prev + 1);
-    } else {
-      handleComplete();
-    }
-  }, [currentStep]);
-
-  const handlePrev = useCallback(() => {
-    if (currentStep > 0) {
-      setCurrentStep((prev) => prev - 1);
-    }
-  }, [currentStep]);
-
   const handleComplete = useCallback(async () => {
     setIsRunning(false);
     setCurrentStep(0);
     await completeFeatureTour();
     onComplete?.();
   }, [onComplete]);
+
+  const handleNext = useCallback(() => {
+    if (currentStep < TOUR_STEPS.length - 1) {
+      setCurrentStep((prev) => prev + 1);
+    } else {
+      handleComplete();
+    }
+  }, [currentStep, handleComplete]);
+
+  const handlePrev = useCallback(() => {
+    if (currentStep > 0) {
+      setCurrentStep((prev) => prev - 1);
+    }
+  }, [currentStep]);
 
   const handleSkip = useCallback(async () => {
     await handleComplete();

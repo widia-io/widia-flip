@@ -5,7 +5,6 @@ import {
   Calendar,
   dateFnsLocalizer,
   type View,
-  type NavigateAction,
 } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -91,7 +90,7 @@ export function DocumentsCalendar({
     [onEventClick]
   );
 
-  const handleNavigate = useCallback((newDate: Date, _view: View, _action: NavigateAction) => {
+  const handleNavigate = useCallback((newDate: Date) => {
     setCurrentDate(newDate);
   }, []);
 

@@ -1,7 +1,5 @@
 "use client";
 
-import { MessageCircle } from "lucide-react";
-
 const WHATSAPP_NUMBER = "5541984297378";
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 

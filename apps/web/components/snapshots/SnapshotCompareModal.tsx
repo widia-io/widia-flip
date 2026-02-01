@@ -10,7 +10,6 @@ import {
   TrendingUp,
   TrendingDown,
   Percent,
-  Wallet,
   Receipt,
   Settings,
   Building2,

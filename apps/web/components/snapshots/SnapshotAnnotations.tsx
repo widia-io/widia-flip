@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
 import { MessageSquare, Plus, Pencil, Trash2, Loader2, X, Check } from "lucide-react";
 import type { SnapshotAnnotation, SnapshotType } from "@widia/shared";
 import { Button } from "@/components/ui/button";
@@ -39,13 +39,7 @@ export function SnapshotAnnotations({
 
   const count = annotations.length || initialCount;
 
-  useEffect(() => {
-    if (isOpen && annotations.length === 0) {
-      loadAnnotations();
-    }
-  }, [isOpen, snapshotId, snapshotType]);
-
-  const loadAnnotations = async () => {
+  const loadAnnotations = useCallback(async () => {
     setIsLoading(true);
     const result = await listAnnotationsAction(snapshotId, snapshotType);
     if (result.error) {
@@ -55,7 +49,13 @@ export function SnapshotAnnotations({
       setAnnotations(result.data.items);
     }
     setIsLoading(false);
-  };
+  }, [snapshotId, snapshotType]);
+
+  useEffect(() => {
+    if (isOpen && annotations.length === 0) {
+      loadAnnotations();
+    }
+  }, [isOpen, annotations.length, loadAnnotations]);
 
   const handleCreate = () => {
     if (!newNote.trim()) return;

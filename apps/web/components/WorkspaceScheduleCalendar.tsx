@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { Calendar, dateFnsLocalizer, type View, type NavigateAction } from "react-big-calendar";
+import { Calendar, dateFnsLocalizer, type View } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { WorkspaceScheduleItem, ScheduleCategory } from "@widia/shared";
@@ -75,7 +75,7 @@ export function WorkspaceScheduleCalendar({
     [onEventClick]
   );
 
-  const handleNavigate = useCallback((newDate: Date, _view: View, _action: NavigateAction) => {
+  const handleNavigate = useCallback((newDate: Date) => {
     setCurrentDate(newDate);
   }, []);
 

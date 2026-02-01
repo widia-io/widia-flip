@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut, Menu, HelpCircle } from "lucide-react";
+import { LogOut, Menu, HelpCircle, Settings } from "lucide-react";
+import Link from "next/link";
 import { type UserEntitlements } from "@widia/shared";
 
 import { signOutAction } from "@/lib/actions/auth";
@@ -73,6 +74,12 @@ export function Header({ userEmail, workspaces, activeWorkspaceId, entitlements 
           <span className="sr-only">Ver tour</span>
         </Button>
         <ThemeToggle />
+        <Link href="/app/settings">
+          <Button variant="ghost" size="icon" title="Configurações">
+            <Settings className="h-4 w-4" />
+            <span className="sr-only">Configurações</span>
+          </Button>
+        </Link>
         <form action={signOutAction}>
           <Button variant="ghost" size="sm" type="submit" className="px-2 sm:px-3">
             <LogOut className="h-4 w-4" />
