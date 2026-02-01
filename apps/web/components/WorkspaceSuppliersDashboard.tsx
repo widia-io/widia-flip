@@ -117,7 +117,7 @@ export function WorkspaceSuppliersDashboard({
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterRating, setFilterRating] = useState<string>("all");
   const [filterPrice, setFilterPrice] = useState<string>("all");
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const handleDelete = async (supplierId: string) => {
     startTransition(async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Phone,
@@ -14,7 +14,6 @@ import {
 
 import {
   type Supplier,
-  type SupplierCategory,
   SUPPLIER_CATEGORY_LABELS,
   SupplierCategoryEnum,
 } from "@widia/shared";

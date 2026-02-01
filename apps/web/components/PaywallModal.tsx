@@ -2,7 +2,7 @@
 
 import { useState, useTransition, createContext, useContext, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowRight, Loader2, CreditCard, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, Loader2, CreditCard } from "lucide-react";
 import { type EnforcementErrorResponse, type BillingTier, TIER_LIMITS } from "@widia/shared";
 
 import { Button } from "@/components/ui/button";

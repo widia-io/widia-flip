@@ -266,25 +266,6 @@ export function WorkspaceCostsDashboard({
 
   const budgetColor = getBudgetColor(metrics.budgetExecution);
 
-  // Calculate days info for table status
-  const getDaysInfo = (cost: WorkspaceCostItem) => {
-    if (cost.status === "paid") return null;
-    if (!cost.due_date) return null;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const due = new Date(cost.due_date);
-    due.setHours(0, 0, 0, 0);
-
-    const diff = Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diff < 0) return { label: `${Math.abs(diff)}d atrasado`, isOverdue: true };
-    if (diff === 0) return { label: "Hoje", isUrgent: true };
-    if (diff === 1) return { label: "Amanha", isUrgent: true };
-    if (diff <= 7) return { label: `em ${diff}d`, isUrgent: true };
-    return { label: `em ${diff}d`, isUrgent: false };
-  };
-
   if (items.length === 0) {
     return (
       <Card className="border-dashed">
