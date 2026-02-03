@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeuFlip Brand Assets — MF Monogram + Arrow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1E293B;
+      --accent: #14B8A6;
+      --light: #F1F5F9;
+      --muted: #475569;
+      --white: #FFFFFF;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0A0A0A;
+      color: #fff;
+      padding: 40px;
+      line-height: 1.5;
+    }
+    
+    h1 {
+      font-family: 'Manrope', sans-serif;
+      text-align: center;
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 48px;
+      font-size: 14px;
+    }
+    
+    .section {
+      margin-bottom: 64px;
+    }
+    
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--accent);
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #222;
+      font-weight: 600;
+    }
+    
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      justify-content: center;
+    }
+    
+    .item {
+      text-align: center;
+    }
+    
+    .item-label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 12px;
+    }
+    
+    /* Instagram Post */
+    .instagram-post {
+      width: 400px;
+      height: 400px;
+      background: var(--primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+    }
+    
+    .instagram-post::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(20,184,166,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    
+    .instagram-post::after {
+      content: '';
+      position: absolute;
+      bottom: -50px;
+      left: -50px;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(20,184,166,0.08) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    
+    .brand-name {
+      font-family: 'Manrope', sans-serif;
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-top: 24px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .brand-name.light {
+      color: var(--primary);
+    }
+    
+    .tagline {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      margin-top: 8px;
+      position: relative;
+      z-index: 1;
+      font-weight: 500;
+    }
+    
+    /* Instagram Story */
+    .instagram-story {
+      width: 225px;
+      height: 400px;
+      background: linear-gradient(180deg, var(--primary) 0%, #0F172A 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      border-radius: 16px;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+    }
+    
+    .instagram-story::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), rgba(20,184,166,0.3));
+    }
+    
+    .instagram-story .brand-name {
+      font-size: 26px;
+      margin-top: 20px;
+    }
+    
+    .instagram-story .divider {
+      width: 48px;
+      height: 2px;
+      background: var(--accent);
+      margin: 16px 0;
+      border-radius: 1px;
+    }
+    
+    .instagram-story .tagline {
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    
+    /* Profile Picture */
+    .profile-picture {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+      border: 3px solid rgba(20,184,166,0.3);
+    }
+    
+    /* Website Headers */
+    .website-header {
+      width: 100%;
+      max-width: 900px;
+      height: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 12px;
+      padding: 20px 32px;
+    }
+    
+    .website-header.light {
+      background: var(--white);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    
+    .website-header.light .brand-name {
+      color: var(--primary);
+      font-size: 22px;
+      margin: 0;
+    }
+    
+    .website-header.dark {
+      background: var(--primary);
+      box-shadow: 0 24px 48px rgba(0,0,0,0.3);
+    }
+    
+    .website-header.dark .brand-name {
+      font-size: 22px;
+      margin: 0;
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    
+    .header-nav span {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .header-nav .nav-link {
+      color: var(--muted);
+    }
+    
+    .header-nav .nav-link.dark {
+      color: rgba(255,255,255,0.7);
+    }
+    
+    .cta-button {
+      background: var(--accent);
+      color: var(--white);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    /* Icons */
+    .icon-grid {
+      display: flex;
+      gap: 24px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .icon-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    
+    .icon-box.light {
+      background: var(--white);
+    }
+    
+    .icon-box.dark {
+      background: var(--primary);
+    }
+    
+    /* Color palette */
+    .palette {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .color-swatch {
+      text-align: center;
+    }
+    
+    .color-box {
+      width: 80px;
+      height: 80px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    
+    .color-swatch .color-name {
+      font-size: 13px;
+      color: #fff;
+      font-weight: 500;
+      display: block;
+      margin-bottom: 4px;
+    }
+    
+    .color-swatch .color-hex {
+      font-size: 12px;
+      color: #666;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+    
+    /* Typography */
+    .type-sample {
+      background: #111;
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+    }
+    
+    .type-sample h3 {
+      margin-bottom: 8px;
+    }
+    
+    .type-sample p {
+      color: #666;
+      font-size: 13px;
+    }
+    
+    /* Logo SVG component */
+    .logo-container {
+      position: relative;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <h1>MeuFlip</h1>
+  <p class="subtitle">Brand Assets • MF Monogram + Arrow • Navy + Teal</p>
+  
+  <!-- Color Palette -->
+  <div class="section">
+    <h2 class="section-title">Paleta de Cores — Navy + Teal</h2>
+    <div class="palette">
+      <div class="color-swatch">
+        <div class="color-box" style="background: #1E293B;"></div>
+        <span class="color-name">Primary</span>
+        <span class="color-hex">#1E293B</span>
+      </div>
+      <div class="color-swatch">
+        <div class="color-box" style="background: #14B8A6;"></div>
+        <span class="color-name">Accent</span>
+        <span class="color-hex">#14B8A6</span>
+      </div>
+      <div class="color-swatch">
+        <div class="color-box" style="background: #F1F5F9; border: 1px solid #333;"></div>
+        <span class="color-name">Light</span>
+        <span class="color-hex">#F1F5F9</span>
+      </div>
+      <div class="color-swatch">
+        <div class="color-box" style="background: #475569;"></div>
+        <span class="color-name">Muted</span>
+        <span class="color-hex">#475569</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Typography -->
+  <div class="section">
+    <h2 class="section-title">Tipografia</h2>
+    <div class="grid">
+      <div class="type-sample" style="flex: 1; min-width: 280px;">
+        <h3 style="font-family: 'Manrope', sans-serif; font-size: 32px; font-weight: 700; color: #fff; letter-spacing: -0.02em;">Manrope Bold</h3>
+        <p>Wordmark, Headlines, Títulos</p>
+      </div>
+      <div class="type-sample" style="flex: 1; min-width: 280px;">
+        <h3 style="font-family: 'Inter', sans-serif; font-size: 28px; font-weight: 500; color: #fff;">Inter Medium</h3>
+        <p>Body, UI, Navegação</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logo Principal -->
+  <div class="section">
+    <h2 class="section-title">Logo Principal — MF Monogram + Arrow</h2>
+    <div class="grid">
+      <div class="item">
+        <div style="background: #fff; border-radius: 16px; padding: 40px 48px; display: flex; align-items: center; gap: 16px;">
+          <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+            <!-- M com seta integrada -->
+            <path d="M4 32V8L14 20L24 8L28 4" stroke="#1E293B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <!-- Ponta da seta -->
+            <path d="M23 4H28V9" stroke="#1E293B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <!-- F -->
+            <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 22H30" stroke="#14B8A6" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+          <span style="font-family: 'Manrope', sans-serif; font-size: 28px; font-weight: 700; color: #1E293B; letter-spacing: -0.02em;">meuflip</span>
+        </div>
+        <div class="item-label">Fundo Claro</div>
+      </div>
+      
+      <div class="item">
+        <div style="background: #1E293B; border-radius: 16px; padding: 40px 48px; display: flex; align-items: center; gap: 16px;">
+          <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+            <!-- M com seta integrada -->
+            <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <!-- Ponta da seta -->
+            <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <!-- F -->
+            <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 22H30" stroke="#14B8A6" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+          <span style="font-family: 'Manrope', sans-serif; font-size: 28px; font-weight: 700; color: #fff; letter-spacing: -0.02em;">meuflip</span>
+        </div>
+        <div class="item-label">Fundo Escuro</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Instagram Post -->
+  <div class="section">
+    <h2 class="section-title">Post Instagram (1080×1080)</h2>
+    <div class="grid">
+      <div class="item">
+        <div class="instagram-post">
+          <div class="logo-container">
+            <svg width="120" height="120" viewBox="0 0 40 40" fill="none">
+              <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M20 22H30" stroke="#14B8A6" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="brand-name" style="color: #fff;">meuflip</div>
+          <div class="tagline" style="color: rgba(255,255,255,0.6);">Gestão inteligente de house flipping</div>
+        </div>
+        <div class="item-label">Post Feed Principal</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Instagram Story -->
+  <div class="section">
+    <h2 class="section-title">Story Instagram (1080×1920)</h2>
+    <div class="grid">
+      <div class="item">
+        <div class="instagram-story">
+          <div class="logo-container">
+            <svg width="80" height="80" viewBox="0 0 40 40" fill="none">
+              <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M20 22H30" stroke="#14B8A6" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="brand-name" style="color: #fff;">meuflip</div>
+          <div class="divider"></div>
+          <div class="tagline">House Flipping</div>
+        </div>
+        <div class="item-label">Story Template</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Profile Picture -->
+  <div class="section">
+    <h2 class="section-title">Foto de Perfil</h2>
+    <div class="grid">
+      <div class="item">
+        <div class="profile-picture">
+          <svg width="80" height="80" viewBox="0 0 40 40" fill="none">
+            <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 22H30" stroke="#14B8A6" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="item-label">Instagram / WhatsApp / LinkedIn</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Website Headers -->
+  <div class="section">
+    <h2 class="section-title">Header Website</h2>
+    <div style="display: flex; flex-direction: column; gap: 24px; align-items: center;">
+      <div class="item" style="width: 100%; max-width: 900px;">
+        <div class="website-header light">
+          <div class="header-left">
+            <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+              <path d="M4 32V8L14 20L24 8L28 4" stroke="#1E293B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M23 4H28V9" stroke="#1E293B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M20 22H30" stroke="#14B8A6" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+            <span class="brand-name light">meuflip</span>
+          </div>
+          <div class="header-nav">
+            <span class="nav-link">Recursos</span>
+            <span class="nav-link">Preços</span>
+            <span class="nav-link">Blog</span>
+            <span class="cta-button">Começar grátis</span>
+          </div>
+        </div>
+        <div class="item-label">Versão Clara</div>
+      </div>
+      
+      <div class="item" style="width: 100%; max-width: 900px;">
+        <div class="website-header dark">
+          <div class="header-left">
+            <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+              <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M20 22H30" stroke="#14B8A6" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+            <span class="brand-name" style="color: #fff;">meuflip</span>
+          </div>
+          <div class="header-nav">
+            <span class="nav-link dark">Recursos</span>
+            <span class="nav-link dark">Preços</span>
+            <span class="nav-link dark">Blog</span>
+            <span class="cta-button">Começar grátis</span>
+          </div>
+        </div>
+        <div class="item-label">Versão Escura</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- App Icons -->
+  <div class="section">
+    <h2 class="section-title">App Icons</h2>
+    <div class="icon-grid">
+      <div class="item">
+        <div class="icon-box dark" style="width: 120px; height: 120px; border-radius: 28px;">
+          <svg width="64" height="64" viewBox="0 0 40 40" fill="none">
+            <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 22H30" stroke="#14B8A6" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="item-label">iOS / Android</div>
+      </div>
+      
+      <div class="item">
+        <div class="icon-box light" style="width: 120px; height: 120px; border-radius: 28px;">
+          <svg width="64" height="64" viewBox="0 0 40 40" fill="none">
+            <path d="M4 32V8L14 20L24 8L28 4" stroke="#1E293B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M23 4H28V9" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 22H30" stroke="#14B8A6" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="item-label">Alternativo</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Favicons -->
+  <div class="section">
+    <h2 class="section-title">Favicons</h2>
+    <div class="icon-grid">
+      <div class="item">
+        <div class="icon-box dark" style="width: 64px; height: 64px; border-radius: 12px;">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 22H30" stroke="#14B8A6" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="item-label">64px</div>
+      </div>
+      <div class="item">
+        <div class="icon-box dark" style="width: 48px; height: 48px; border-radius: 10px;">
+          <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+            <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 22H30" stroke="#14B8A6" stroke-width="4.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="item-label">48px</div>
+      </div>
+      <div class="item">
+        <div class="icon-box dark" style="width: 32px; height: 32px; border-radius: 6px;">
+          <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
+            <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 22H30" stroke="#14B8A6" stroke-width="5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="item-label">32px</div>
+      </div>
+      <div class="item">
+        <div class="icon-box dark" style="width: 16px; height: 16px; border-radius: 3px;">
+          <svg width="12" height="12" viewBox="0 0 40 40" fill="none">
+            <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 22H30" stroke="#14B8A6" stroke-width="6" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="item-label">16px</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logo Variations -->
+  <div class="section">
+    <h2 class="section-title">Variações do Ícone</h2>
+    <div class="grid" style="gap: 48px;">
+      <div class="item">
+        <div style="background: #fff; border-radius: 12px; padding: 32px; display: flex; align-items: center; justify-content: center;">
+          <svg width="80" height="80" viewBox="0 0 40 40" fill="none">
+            <path d="M4 32V8L14 20L24 8L28 4" stroke="#1E293B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M23 4H28V9" stroke="#1E293B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 22H30" stroke="#14B8A6" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="item-label">Colorido / Light</div>
+      </div>
+      
+      <div class="item">
+        <div style="background: #1E293B; border-radius: 12px; padding: 32px; display: flex; align-items: center; justify-content: center;">
+          <svg width="80" height="80" viewBox="0 0 40 40" fill="none">
+            <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 22H30" stroke="#14B8A6" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="item-label">Colorido / Dark</div>
+      </div>
+      
+      <div class="item">
+        <div style="background: #fff; border-radius: 12px; padding: 32px; display: flex; align-items: center; justify-content: center;">
+          <svg width="80" height="80" viewBox="0 0 40 40" fill="none">
+            <path d="M4 32V8L14 20L24 8L28 4" stroke="#1E293B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M23 4H28V9" stroke="#1E293B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M20 32V12H34" stroke="#1E293B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 22H30" stroke="#1E293B" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="item-label">Monocromático</div>
+      </div>
+      
+      <div class="item">
+        <div style="background: #1E293B; border-radius: 12px; padding: 32px; display: flex; align-items: center; justify-content: center;">
+          <svg width="80" height="80" viewBox="0 0 40 40" fill="none">
+            <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M20 32V12H34" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 22H30" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="item-label">Monocromático Invertido</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Usage Guidelines -->
+  <div class="section">
+    <h2 class="section-title">Diretrizes de Uso</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+      <div style="background: #111; border-radius: 12px; padding: 24px; border-left: 3px solid #14B8A6;">
+        <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #fff;">✓ Espaçamento</h3>
+        <p style="font-size: 13px; color: #888;">Mantenha área livre ao redor do logo igual à altura do ícone.</p>
+      </div>
+      <div style="background: #111; border-radius: 12px; padding: 24px; border-left: 3px solid #14B8A6;">
+        <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #fff;">✓ Tamanho mínimo</h3>
+        <p style="font-size: 13px; color: #888;">Ícone: 16px. Logo completo: 80px de largura.</p>
+      </div>
+      <div style="background: #111; border-radius: 12px; padding: 24px; border-left: 3px solid #EF4444;">
+        <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #fff;">✗ Não fazer</h3>
+        <p style="font-size: 13px; color: #888;">Não distorcer, rotacionar ou alterar as cores fora da paleta.</p>
+      </div>
+    </div>
+  </div>
+  
+</body>
+</html>

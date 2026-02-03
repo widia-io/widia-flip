@@ -1,0 +1,9 @@
+<svg width="200" height="200" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- M com seta integrada -->
+  <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Ponta da seta -->
+  <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- F -->
+  <path d="M20 32V12H34" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M20 22H30" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+</svg>

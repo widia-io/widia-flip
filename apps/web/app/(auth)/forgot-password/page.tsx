@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { MeuFlipLogo } from "@/components/MeuFlipLogo";
+import { Logo } from "@/components/Logo";
 import { ForgotPasswordForm } from "@/components/ForgotPasswordForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -14,8 +14,7 @@ export default async function ForgotPasswordPage(props: {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
       <Link href="/" className="mb-8 flex items-center gap-2">
-        <MeuFlipLogo size={40} />
-        <span className="text-xl font-semibold">Meu Flip</span>
+        <Logo size="full" iconSize={40} />
       </Link>
 
       <Card className="w-full max-w-md">
