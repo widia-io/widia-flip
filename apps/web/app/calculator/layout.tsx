@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { getServerSession } from "@/lib/serverAuth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { MeuFlipLogo } from "@/components/MeuFlipLogo";
+import { Logo } from "@/components/Logo";
 
 export const metadata = {
   title: "Calculadora de Viabilidade | Meu Flip",
@@ -27,8 +27,7 @@ export default async function CalculatorLayout({
       <header className="border-b border-border">
         <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <MeuFlipLogo size={32} />
-            <span className="text-lg font-semibold">Meu Flip</span>
+            <Logo size="full" iconSize={32} />
           </Link>
           <nav className="flex items-center gap-3">
             <ThemeToggle />

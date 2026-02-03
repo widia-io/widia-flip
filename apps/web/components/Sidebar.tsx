@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Search, Building2, FolderKanban, CreditCard, LineChart, Shield, MessageCircle, Users, CalendarCheck, FileText, DollarSign } from "lucide-react";
-import { MeuFlipLogo } from "@/components/MeuFlipLogo";
+import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useSidebar } from "@/lib/hooks/useSidebar";
@@ -28,8 +28,7 @@ function SidebarContent({ onNavigate, isAdmin }: { onNavigate?: () => void; isAd
     <div className="flex h-full flex-col">
       <div className="border-b border-border px-4 py-4">
         <Link href="/app" className="flex items-center gap-2" onClick={onNavigate}>
-          <MeuFlipLogo size={32} />
-          <span className="text-lg font-semibold tracking-tight">Meu Flip</span>
+          <Logo size="full" iconSize={32} />
         </Link>
       </div>
 

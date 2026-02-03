@@ -12,7 +12,7 @@ import { SUPPORT_WHATSAPP_URL } from "@/components/WhatsAppButton";
 import { getServerSession } from "@/lib/serverAuth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { MeuFlipLogo } from "@/components/MeuFlipLogo";
+import { Logo } from "@/components/Logo";
 import { HeroAnimation } from "@/components/landing/HeroAnimation";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { ConceptsSection } from "@/components/landing/ConceptsSection";
@@ -34,8 +34,7 @@ export default async function HomePage() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <Link href="/" className="flex items-center gap-2">
-            <MeuFlipLogo size={36} />
-            <span className="text-lg font-bold">Meu Flip</span>
+            <Logo size="full" iconSize={36} />
           </Link>
 
           <nav className="flex items-center gap-3">
@@ -290,8 +289,7 @@ export default async function HomePage() {
         <div className="mx-auto max-w-6xl px-4 py-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
-              <MeuFlipLogo size={28} />
-              <span className="text-sm font-medium">Meu Flip</span>
+              <Logo size="full" iconSize={28} />
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <Link href="/calculator" className="hover:text-foreground">
