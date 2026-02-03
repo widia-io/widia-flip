@@ -1787,3 +1787,78 @@ export const DashboardResponseSchema = z.object({
   recent_events: z.array(DashboardTimelineEventSchema),
 });
 export type DashboardResponse = z.infer<typeof DashboardResponseSchema>;
+
+// Opportunities (POC)
+
+export const OpportunityScoreBreakdownSchema = z.object({
+  discount: z.number(),
+  area: z.number(),
+  bedrooms: z.number(),
+  parking: z.number(),
+  keywords: z.number(),
+  penalties: z.number(),
+  decay: z.number(),
+});
+export type OpportunityScoreBreakdown = z.infer<typeof OpportunityScoreBreakdownSchema>;
+
+export const OpportunityStatusEnum = z.enum(["new", "viewed", "contacted", "discarded"]);
+export type OpportunityStatus = z.infer<typeof OpportunityStatusEnum>;
+
+export const OpportunitySchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  source_listing_id: z.string(),
+  canonical_url: z.string(),
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  price_cents: z.number(),
+  area_m2: z.number().nullable(),
+  bedrooms: z.number().nullable(),
+  bathrooms: z.number().nullable(),
+  parking_spots: z.number().nullable(),
+  condo_fee_cents: z.number().nullable(),
+  iptu_cents: z.number().nullable(),
+  address: z.string().nullable(),
+  neighborhood: z.string().nullable(),
+  city: z.string().nullable(),
+  state: z.string().nullable(),
+  images: z.array(z.string()).nullable(),
+  score: z.number(),
+  score_breakdown: OpportunityScoreBreakdownSchema,
+  price_per_m2: z.number().nullable(),
+  market_median_m2: z.number().nullable(),
+  discount_pct: z.number().nullable(),
+  status: OpportunityStatusEnum,
+  first_seen_at: z.string(),
+  last_seen_at: z.string(),
+});
+export type Opportunity = z.infer<typeof OpportunitySchema>;
+
+export const ListOpportunitiesResponseSchema = z.object({
+  data: z.array(OpportunitySchema),
+  total: z.number(),
+  limit: z.number(),
+  offset: z.number(),
+});
+export type ListOpportunitiesResponse = z.infer<typeof ListOpportunitiesResponseSchema>;
+
+export const JobRunStatusEnum = z.enum(["pending", "running", "completed", "failed"]);
+export type JobRunStatus = z.infer<typeof JobRunStatusEnum>;
+
+export const JobRunSchema = z.object({
+  id: z.string(),
+  job_name: z.string(),
+  status: JobRunStatusEnum,
+  trigger_type: z.string(),
+  triggered_by: z.string().nullable().optional(),
+  started_at: z.string().nullable(),
+  finished_at: z.string().nullable(),
+  params: z.record(z.any()).nullable(),
+  stats: z.record(z.any()).nullable(),
+  error_message: z.string().nullable().optional(),
+  created_at: z.string(),
+});
+export type JobRun = z.infer<typeof JobRunSchema>;
+
+export const ListJobRunsResponseSchema = z.array(JobRunSchema);
+export type ListJobRunsResponse = z.infer<typeof ListJobRunsResponseSchema>;

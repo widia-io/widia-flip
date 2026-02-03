@@ -103,6 +103,10 @@ func NewHandler(deps Deps) http.Handler {
 	// Internal routes (protected by X-Internal-Secret, no JWT auth)
 	internalMux := http.NewServeMux()
 	internalMux.HandleFunc("/api/v1/internal/billing/", api.handleInternalBillingSubroutes)
+	internalMux.HandleFunc("/api/v1/internal/opportunities/", api.handleInternalOpportunitiesSubroutes)
+	internalMux.HandleFunc("/api/v1/internal/opportunities", api.handleInternalOpportunitiesSubroutes)
+	internalMux.HandleFunc("/api/v1/internal/job-runs/", api.handleInternalJobRunsSubroutes)
+	internalMux.HandleFunc("/api/v1/internal/job-runs", api.handleInternalJobRunsSubroutes)
 	var internalHandler http.Handler = internalMux
 	internalHandler = internalSecretMiddleware(internalHandler)
 
