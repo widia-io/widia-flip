@@ -48,6 +48,8 @@ type listCampaignsResponse struct {
 
 type eligibleRecipientsResponse struct {
 	EligibleCount int `json:"eligibleCount"`
+	UserCount     int `json:"userCount"`
+	LeadCount     int `json:"leadCount"`
 }
 
 type eligibleRecipient struct {
@@ -56,6 +58,7 @@ type eligibleRecipient struct {
 	Name      string `json:"name"`
 	OptInAt   string `json:"optInAt"`
 	CreatedAt string `json:"createdAt"`
+	Source    string `json:"source"`
 }
 
 type listEligibleRecipientsResponse struct {
@@ -211,22 +214,26 @@ func (a *api) handlePublicUnsubscribe(w http.ResponseWriter, r *http.Request) {
 func (a *api) handleEmailRecipients(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var count int
+	var userCount, leadCount int
 	err := a.db.QueryRowContext(ctx, `
-		SELECT COUNT(*)
-		FROM "user"
-		WHERE "emailVerified" = true
-		AND is_active = true
-		AND marketing_opt_in_at IS NOT NULL
-		AND marketing_opt_out_at IS NULL
-	`).Scan(&count)
+		SELECT
+			(SELECT COUNT(*) FROM "user"
+			 WHERE "emailVerified" = true AND is_active = true
+			 AND marketing_opt_in_at IS NOT NULL AND marketing_opt_out_at IS NULL),
+			(SELECT COUNT(*) FROM flip.ebook_leads
+			 WHERE marketing_consent = true AND converted_at IS NULL)
+	`).Scan(&userCount, &leadCount)
 	if err != nil {
 		log.Printf("email recipients: error: %v", err)
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count recipients"})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, eligibleRecipientsResponse{EligibleCount: count})
+	writeJSON(w, http.StatusOK, eligibleRecipientsResponse{
+		EligibleCount: userCount + leadCount,
+		UserCount:     userCount,
+		LeadCount:     leadCount,
+	})
 }
 
 // List eligible recipients
@@ -234,13 +241,19 @@ func (a *api) handleListEligibleRecipients(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 
 	rows, err := a.db.QueryContext(ctx, `
-		SELECT id, email, name, marketing_opt_in_at, "createdAt"
-		FROM "user"
-		WHERE "emailVerified" = true
-		AND is_active = true
-		AND marketing_opt_in_at IS NOT NULL
-		AND marketing_opt_out_at IS NULL
-		ORDER BY marketing_opt_in_at DESC
+		SELECT id, email, name, opt_in_at, created_at, source FROM (
+			SELECT id, email, name, marketing_opt_in_at AS opt_in_at, "createdAt" AS created_at, 'user' AS source
+			FROM "user"
+			WHERE "emailVerified" = true AND is_active = true
+			AND marketing_opt_in_at IS NOT NULL AND marketing_opt_out_at IS NULL
+
+			UNION ALL
+
+			SELECT id, email, email AS name, created_at AS opt_in_at, created_at, 'lead' AS source
+			FROM flip.ebook_leads
+			WHERE marketing_consent = true AND converted_at IS NULL
+		) combined
+		ORDER BY opt_in_at DESC
 		LIMIT 500
 	`)
 	if err != nil {
@@ -254,7 +267,7 @@ func (a *api) handleListEligibleRecipients(w http.ResponseWriter, r *http.Reques
 	for rows.Next() {
 		var r eligibleRecipient
 		var optInAt, createdAt time.Time
-		if err := rows.Scan(&r.ID, &r.Email, &r.Name, &optInAt, &createdAt); err != nil {
+		if err := rows.Scan(&r.ID, &r.Email, &r.Name, &optInAt, &createdAt, &r.Source); err != nil {
 			log.Printf("list eligible recipients: scan error: %v", err)
 			continue
 		}
@@ -424,14 +437,11 @@ func (a *api) handleQueueCampaign(w http.ResponseWriter, r *http.Request, campai
 	defer tx.Rollback()
 
 	// Generate unsubscribe tokens for users who don't have one
-	// First, get all users who need tokens
 	rows, err := tx.QueryContext(ctx, `
 		SELECT id FROM "user"
 		WHERE unsubscribe_token IS NULL
-		AND "emailVerified" = true
-		AND is_active = true
-		AND marketing_opt_in_at IS NOT NULL
-		AND marketing_opt_out_at IS NULL
+		AND "emailVerified" = true AND is_active = true
+		AND marketing_opt_in_at IS NOT NULL AND marketing_opt_out_at IS NULL
 	`)
 	if err != nil {
 		log.Printf("queue campaign: query users error: %v", err)
@@ -448,7 +458,6 @@ func (a *api) handleQueueCampaign(w http.ResponseWriter, r *http.Request, campai
 	}
 	rows.Close()
 
-	// Generate and update tokens for each user
 	for _, userID := range userIDsNeedingTokens {
 		token := generateToken()
 		_, err = tx.ExecContext(ctx, `UPDATE "user" SET unsubscribe_token = $1 WHERE id = $2`, token, userID)
@@ -459,24 +468,75 @@ func (a *api) handleQueueCampaign(w http.ResponseWriter, r *http.Request, campai
 		}
 	}
 
-	// Insert eligible recipients into email_sends
+	// Generate unsubscribe tokens for ebook leads
+	leadRows, err := tx.QueryContext(ctx, `
+		SELECT id FROM flip.ebook_leads
+		WHERE unsubscribe_token IS NULL AND marketing_consent = true
+	`)
+	if err != nil {
+		log.Printf("queue campaign: query ebook leads error: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to query leads"})
+		return
+	}
+
+	leadIDsNeedingTokens := make([]string, 0)
+	for leadRows.Next() {
+		var leadID string
+		if err := leadRows.Scan(&leadID); err == nil {
+			leadIDsNeedingTokens = append(leadIDsNeedingTokens, leadID)
+		}
+	}
+	leadRows.Close()
+
+	for _, leadID := range leadIDsNeedingTokens {
+		token := generateToken()
+		_, err = tx.ExecContext(ctx, `UPDATE flip.ebook_leads SET unsubscribe_token = $1 WHERE id = $2`, token, leadID)
+		if err != nil {
+			log.Printf("queue campaign: update lead token error: %v", err)
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to generate lead tokens"})
+			return
+		}
+	}
+
+	// Insert registered users into email_sends
 	result, err := tx.ExecContext(ctx, `
 		INSERT INTO email_sends (campaign_id, user_id)
 		SELECT $1, id
 		FROM "user"
-		WHERE "emailVerified" = true
-		AND is_active = true
-		AND marketing_opt_in_at IS NOT NULL
-		AND marketing_opt_out_at IS NULL
+		WHERE "emailVerified" = true AND is_active = true
+		AND marketing_opt_in_at IS NOT NULL AND marketing_opt_out_at IS NULL
 		ON CONFLICT (campaign_id, user_id) DO NOTHING
 	`, campaignID)
 	if err != nil {
-		log.Printf("queue campaign: insert sends error: %v", err)
+		log.Printf("queue campaign: insert user sends error: %v", err)
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to queue recipients"})
 		return
 	}
+	userCount, _ := result.RowsAffected()
 
-	recipientCount, _ := result.RowsAffected()
+	// Insert ebook leads into email_sends (skip if email already in user table)
+	leadResult, err := tx.ExecContext(ctx, `
+		INSERT INTO email_sends (campaign_id, ebook_lead_id)
+		SELECT $1, el.id
+		FROM flip.ebook_leads el
+		WHERE el.marketing_consent = true
+		AND NOT EXISTS (
+			SELECT 1 FROM "user" u
+			WHERE u.email = el.email AND u."emailVerified" = true AND u.is_active = true
+			AND u.marketing_opt_in_at IS NOT NULL AND u.marketing_opt_out_at IS NULL
+		)
+		AND NOT EXISTS (
+			SELECT 1 FROM email_sends es WHERE es.campaign_id = $1 AND es.ebook_lead_id = el.id
+		)
+	`, campaignID)
+	if err != nil {
+		log.Printf("queue campaign: insert lead sends error: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to queue lead recipients"})
+		return
+	}
+	leadCount, _ := leadResult.RowsAffected()
+
+	recipientCount := userCount + leadCount
 
 	// Update campaign status
 	_, err = tx.ExecContext(ctx, `
@@ -528,11 +588,14 @@ func (a *api) handleSendCampaignBatch(w http.ResponseWriter, r *http.Request, ca
 		a.db.ExecContext(ctx, `UPDATE email_campaigns SET status = 'sending' WHERE id = $1`, campaignID)
 	}
 
-	// Get batch of queued sends
+	// Get batch of queued sends (registered users + ebook leads)
 	rows, err := a.db.QueryContext(ctx, `
-		SELECT es.id, u.email, u.name, u.unsubscribe_token
+		SELECT es.id, COALESCE(u.email, el.email) AS email,
+			COALESCE(u.name, el.email) AS name,
+			COALESCE(u.unsubscribe_token, el.unsubscribe_token) AS unsubscribe_token
 		FROM email_sends es
-		JOIN "user" u ON u.id = es.user_id
+		LEFT JOIN "user" u ON u.id = es.user_id
+		LEFT JOIN flip.ebook_leads el ON el.id = es.ebook_lead_id
 		WHERE es.campaign_id = $1 AND es.status = 'queued'
 		LIMIT 50
 	`, campaignID)
@@ -607,7 +670,6 @@ func (a *api) handleSendCampaignBatch(w http.ResponseWriter, r *http.Request, ca
 		Status:    responseStatus,
 	})
 }
-
 
 // resendEmailResponse represents the response from Resend API
 type resendEmailResponse struct {
@@ -863,10 +925,10 @@ type resendWebhookEvent struct {
 	Type      string `json:"type"`
 	CreatedAt string `json:"created_at"`
 	Data      struct {
-		EmailID string `json:"email_id"`
-		From    string `json:"from"`
+		EmailID string   `json:"email_id"`
+		From    string   `json:"from"`
 		To      []string `json:"to"`
-		Subject string `json:"subject"`
+		Subject string   `json:"subject"`
 	} `json:"data"`
 }
 
@@ -1072,7 +1134,7 @@ func (a *api) handleGetCampaignStats(w http.ResponseWriter, r *http.Request, cam
 		base = stats.Sent
 	}
 	if base > 0 {
-		stats.OpenRate = math.Round(float64(stats.Opened)/float64(base)*1000) / 10  // e.g. 53.8
+		stats.OpenRate = math.Round(float64(stats.Opened)/float64(base)*1000) / 10 // e.g. 53.8
 		stats.ClickRate = math.Round(float64(stats.Clicked)/float64(base)*1000) / 10
 	}
 
