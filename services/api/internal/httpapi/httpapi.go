@@ -32,6 +32,7 @@ func NewHandler(deps Deps) http.Handler {
 	publicMux.HandleFunc("/api/v1/public/cash-calc", api.handlePublicCashCalc)
 	publicMux.HandleFunc("/api/v1/public/promotions/active-banner", api.handlePublicActiveBanner)
 	publicMux.HandleFunc("/api/v1/public/unsubscribe/", api.handlePublicUnsubscribe)
+	publicMux.HandleFunc("/api/v1/public/ebook-leads", api.handlePublicEbookLead)
 	publicMux.HandleFunc("/api/v1/webhooks/resend", api.handleResendWebhook)
 
 	// Protected routes (auth required)

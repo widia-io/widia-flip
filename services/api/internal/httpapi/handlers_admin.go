@@ -528,22 +528,22 @@ func (a *api) handleUserAdminStatus(w http.ResponseWriter, r *http.Request) {
 // SaaS Metrics types
 
 type adminSaaSMetrics struct {
-	Period      string                   `json:"period"`
-	PeriodStart string                   `json:"periodStart"`
-	PeriodEnd   string                   `json:"periodEnd"`
-	MRR         adminMRRMetrics          `json:"mrr"`
-	Churn       adminChurnMetrics        `json:"churn"`
-	Leads       adminLeadsMetrics        `json:"leads"`
-	Conversion  adminConversionMetrics   `json:"conversion"`
-	TrialToPaid adminTrialToPaidMetrics  `json:"trialToPaid"`
-	Incomplete  adminIncompleteMetrics   `json:"incomplete"`
+	Period      string                  `json:"period"`
+	PeriodStart string                  `json:"periodStart"`
+	PeriodEnd   string                  `json:"periodEnd"`
+	MRR         adminMRRMetrics         `json:"mrr"`
+	Churn       adminChurnMetrics       `json:"churn"`
+	Leads       adminLeadsMetrics       `json:"leads"`
+	Conversion  adminConversionMetrics  `json:"conversion"`
+	TrialToPaid adminTrialToPaidMetrics `json:"trialToPaid"`
+	Incomplete  adminIncompleteMetrics  `json:"incomplete"`
 }
 
 type adminMRRMetrics struct {
-	Total       int64          `json:"total"`
+	Total       int64            `json:"total"`
 	ByTier      map[string]int64 `json:"byTier"`
-	ActiveCount int            `json:"activeCount"`
-	Delta       float64        `json:"delta"`
+	ActiveCount int              `json:"activeCount"`
+	Delta       float64          `json:"delta"`
 }
 
 type adminChurnMetrics struct {

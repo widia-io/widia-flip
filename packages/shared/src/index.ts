@@ -1787,3 +1787,12 @@ export const DashboardResponseSchema = z.object({
   recent_events: z.array(DashboardTimelineEventSchema),
 });
 export type DashboardResponse = z.infer<typeof DashboardResponseSchema>;
+
+// Ebook Lead Capture
+
+export const EbookLeadRequestSchema = z.object({
+  email: z.string().email("Email inválido"),
+  ebookSlug: z.string().default("acabamento-que-vende"),
+  marketingConsent: z.boolean(),
+});
+export type EbookLeadRequest = z.infer<typeof EbookLeadRequestSchema>;

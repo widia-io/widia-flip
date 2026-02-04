@@ -608,7 +608,6 @@ func (a *api) handleSendCampaignBatch(w http.ResponseWriter, r *http.Request, ca
 	})
 }
 
-
 // resendEmailResponse represents the response from Resend API
 type resendEmailResponse struct {
 	ID string `json:"id"`
@@ -863,10 +862,10 @@ type resendWebhookEvent struct {
 	Type      string `json:"type"`
 	CreatedAt string `json:"created_at"`
 	Data      struct {
-		EmailID string `json:"email_id"`
-		From    string `json:"from"`
+		EmailID string   `json:"email_id"`
+		From    string   `json:"from"`
 		To      []string `json:"to"`
-		Subject string `json:"subject"`
+		Subject string   `json:"subject"`
 	} `json:"data"`
 }
 
@@ -1072,7 +1071,7 @@ func (a *api) handleGetCampaignStats(w http.ResponseWriter, r *http.Request, cam
 		base = stats.Sent
 	}
 	if base > 0 {
-		stats.OpenRate = math.Round(float64(stats.Opened)/float64(base)*1000) / 10  // e.g. 53.8
+		stats.OpenRate = math.Round(float64(stats.Opened)/float64(base)*1000) / 10 // e.g. 53.8
 		stats.ClickRate = math.Round(float64(stats.Clicked)/float64(base)*1000) / 10
 	}
 
