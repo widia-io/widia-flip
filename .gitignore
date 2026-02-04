@@ -33,3 +33,6 @@ dist
 *.out
 
 
+
+# generated ebooks
+docs/ebooks/*.pdf

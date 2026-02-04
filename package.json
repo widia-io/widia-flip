@@ -17,7 +17,9 @@
     "typecheck:web": "npm -w apps/web run typecheck",
     "dev:api": "bash scripts/dev-api.sh",
     "fmt:api": "cd services/api && gofmt -w ."
+  },
+  "devDependencies": {
+    "marked": "^17.0.1",
+    "puppeteer": "^24.36.1"
   }
 }
-
-
