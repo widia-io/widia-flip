@@ -1808,6 +1808,8 @@ export const AdminEbookLeadSchema = z.object({
   ebookSlug: z.string(),
   marketingConsent: z.boolean(),
   ipAddress: z.string().nullable(),
+  convertedAt: z.string().nullable(),
+  convertedUserId: z.string().nullable(),
   createdAt: z.string(),
 });
 export type AdminEbookLead = z.infer<typeof AdminEbookLeadSchema>;
@@ -1817,3 +1819,8 @@ export const ListAdminEbookLeadsResponseSchema = z.object({
   total: z.number(),
 });
 export type ListAdminEbookLeadsResponse = z.infer<typeof ListAdminEbookLeadsResponseSchema>;
+
+export const ReconcileEbookLeadsResponseSchema = z.object({
+  reconciled: z.number(),
+});
+export type ReconcileEbookLeadsResponse = z.infer<typeof ReconcileEbookLeadsResponseSchema>;

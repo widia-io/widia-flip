@@ -134,6 +134,8 @@ type adminEbookLead struct {
 	EbookSlug        string  `json:"ebookSlug"`
 	MarketingConsent bool    `json:"marketingConsent"`
 	IPAddress        *string `json:"ipAddress"`
+	ConvertedAt      *string `json:"convertedAt"`
+	ConvertedUserID  *string `json:"convertedUserId"`
 	CreatedAt        string  `json:"createdAt"`
 }
 
@@ -146,7 +148,7 @@ func (a *api) handleAdminListEbookLeads(w http.ResponseWriter, r *http.Request) 
 	ctx := r.Context()
 
 	rows, err := a.db.QueryContext(ctx, `
-		SELECT id, email, ebook_slug, marketing_consent, ip_address, created_at
+		SELECT id, email, ebook_slug, marketing_consent, ip_address, converted_at, converted_user_id, created_at
 		FROM flip.ebook_leads
 		ORDER BY created_at DESC
 		LIMIT 200
@@ -162,12 +164,17 @@ func (a *api) handleAdminListEbookLeads(w http.ResponseWriter, r *http.Request) 
 	for rows.Next() {
 		var l adminEbookLead
 		var createdAt time.Time
+		var convertedAt *time.Time
 		var ip *string
-		if err := rows.Scan(&l.ID, &l.Email, &l.EbookSlug, &l.MarketingConsent, &ip, &createdAt); err != nil {
+		if err := rows.Scan(&l.ID, &l.Email, &l.EbookSlug, &l.MarketingConsent, &ip, &convertedAt, &l.ConvertedUserID, &createdAt); err != nil {
 			log.Printf("admin list ebook leads: scan error: %v", err)
 			continue
 		}
 		l.IPAddress = ip
+		if convertedAt != nil {
+			s := convertedAt.Format(time.RFC3339)
+			l.ConvertedAt = &s
+		}
 		l.CreatedAt = createdAt.Format(time.RFC3339)
 		items = append(items, l)
 	}
@@ -176,6 +183,43 @@ func (a *api) handleAdminListEbookLeads(w http.ResponseWriter, r *http.Request) 
 	a.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM flip.ebook_leads`).Scan(&total)
 
 	writeJSON(w, http.StatusOK, map[string]any{"items": items, "total": total})
+}
+
+// handleAdminEbookLeadsSubroutes dispatches /api/v1/admin/ebook-leads and subroutes
+func (a *api) handleAdminEbookLeadsSubroutes(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/admin/ebook-leads")
+	path = strings.TrimSuffix(path, "/")
+
+	switch {
+	case path == "" && r.Method == http.MethodGet:
+		a.handleAdminListEbookLeads(w, r)
+	case path == "/reconcile" && r.Method == http.MethodPost:
+		a.handleAdminReconcileEbookLeads(w, r)
+	default:
+		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
+// handleAdminReconcileEbookLeads matches ebook leads to registered users by email
+func (a *api) handleAdminReconcileEbookLeads(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	result, err := a.db.ExecContext(ctx, `
+		UPDATE flip.ebook_leads el
+		SET converted_at = now(), converted_user_id = u.id
+		FROM "user" u
+		WHERE u.email = el.email
+		  AND u."emailVerified" = true
+		  AND el.converted_at IS NULL
+	`)
+	if err != nil {
+		log.Printf("admin reconcile ebook leads: error: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to reconcile leads"})
+		return
+	}
+
+	n, _ := result.RowsAffected()
+	writeJSON(w, http.StatusOK, map[string]int64{"reconciled": n})
 }
 
 func buildEbookEmailHTML(downloadURL string) string {
