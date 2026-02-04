@@ -34,5 +34,6 @@ dist
 
 
 
-# generated ebooks
+# ebooks (source assets + generated PDFs)
+docs/ebooks/source/
 docs/ebooks/*.pdf

@@ -5,7 +5,7 @@ import { marked } from "marked";
 import puppeteer from "puppeteer";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const EBOOK_DIR = __dirname;
+const SOURCE_DIR = resolve(__dirname, "source");
 const LOGO_PATH = resolve(__dirname, "../../apps/web/public/logos/meuflip-arrow-logo-full-dark.svg");
 
 // Brand
@@ -55,7 +55,7 @@ function imgToDataUri(filePath) {
 function buildImageHtml(images) {
   return images
     .map((img) => {
-      const uri = imgToDataUri(resolve(EBOOK_DIR, img.file));
+      const uri = imgToDataUri(resolve(SOURCE_DIR, img.file));
       return `<figure class="chapter-img"><img src="${uri}" alt="${img.caption}"/><figcaption>${img.caption}</figcaption></figure>`;
     })
     .join("\n");
@@ -152,7 +152,7 @@ function buildChapterHtml(chapter) {
 
 function buildFullHtml(chapters) {
   const logoUri = imgToDataUri(LOGO_PATH);
-  const coverImgUri = imgToDataUri(resolve(EBOOK_DIR, "D26CDCEE-A4B4-4AE1-8A62-4F37A9C94EE9.png"));
+  const coverImgUri = imgToDataUri(resolve(SOURCE_DIR, "D26CDCEE-A4B4-4AE1-8A62-4F37A9C94EE9.png"));
 
   const toc = buildToc(chapters);
   const chaptersHtml = chapters.map(buildChapterHtml).join("\n");
@@ -477,7 +477,7 @@ ${chaptersHtml}
 
 async function main() {
   console.log("Reading markdown...");
-  const mdPath = resolve(EBOOK_DIR, "Ebook — Acabamento que Vende 2fc82b1dd9c081a495d9e11f2348dcae.md");
+  const mdPath = resolve(SOURCE_DIR, "Ebook — Acabamento que Vende 2fc82b1dd9c081a495d9e11f2348dcae.md");
   const md = readFileSync(mdPath, "utf-8");
 
   console.log("Parsing chapters...");
@@ -496,7 +496,7 @@ async function main() {
   await page.evaluate(() => document.fonts.ready);
   await new Promise((r) => setTimeout(r, 2000));
 
-  const outputPath = resolve(EBOOK_DIR, "acabamento-que-vende.pdf");
+  const outputPath = resolve(__dirname, "acabamento-que-vende.pdf");
   console.log("Generating PDF...");
   await page.pdf({
     path: outputPath,
