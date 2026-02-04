@@ -133,65 +133,223 @@ func buildEbookEmailHTML(downloadURL string) string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seu ebook: Acabamento que Vende</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  <table width="100%%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f5; padding: 40px 20px;">
+<body style="margin: 0; padding: 0; background-color: #f8f8f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table width="100%%" cellpadding="0" cellspacing="0" style="background-color: #f8f8f6; padding: 40px 16px;">
     <tr>
       <td align="center">
-        <table width="100%%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <!-- Header -->
+        <!-- Logo -->
+        <table width="100%%" cellpadding="0" cellspacing="0" style="max-width: 560px;">
           <tr>
-            <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #e4e4e7;">
-              <span style="font-size: 24px; font-weight: 700; color: #1e293b;">meuflip</span>
+            <td style="padding: 0 0 32px; text-align: center;">
+              <span style="font-size: 20px; font-weight: 700; color: #1e293b; letter-spacing: -0.5px;">meuflip</span>
             </td>
           </tr>
+        </table>
 
-          <!-- Content -->
+        <!-- Hero card — dark navy -->
+        <table width="100%%" cellpadding="0" cellspacing="0" style="max-width: 560px; background-color: #1e293b; border-radius: 16px 16px 0 0;">
           <tr>
-            <td style="padding: 32px;">
-              <h1 style="margin: 0 0 16px; font-size: 22px; font-weight: 700; color: #1e293b;">
-                Seu ebook está pronto!
+            <td style="padding: 48px 40px 40px; text-align: center;">
+              <!-- Teal accent line -->
+              <table cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
+                <tr>
+                  <td style="width: 48px; height: 3px; background-color: #14b8a6; border-radius: 2px;"></td>
+                </tr>
+              </table>
+
+              <p style="margin: 0 0 8px; font-size: 12px; font-weight: 600; color: #14b8a6; text-transform: uppercase; letter-spacing: 2px;">
+                Ebook Gratuito
+              </p>
+              <h1 style="margin: 0 0 16px; font-size: 32px; font-weight: 800; color: #ffffff; line-height: 1.15;">
+                Acabamento<br>que Vende
               </h1>
-              <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #52525b;">
-                Obrigado pelo interesse! Clique no botão abaixo para baixar o ebook
-                <strong>"Acabamento que Vende"</strong> — o guia do flipper pra não estourar
-                orçamento e não perder margem.
+              <p style="margin: 0 0 32px; font-size: 15px; line-height: 1.6; color: #94a3b8;">
+                O guia do flipper pra escolher piso, bancada, revestimento e metais — sem estourar orçamento.
               </p>
 
               <!-- CTA Button -->
-              <table cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
+              <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                 <tr>
-                  <td style="background-color: #14b8a6; border-radius: 8px;">
-                    <a href="%s" style="display: inline-block; padding: 14px 32px; font-size: 16px; font-weight: 600; color: white; text-decoration: none;">
-                      Baixar Ebook (PDF)
+                  <td style="background-color: #14b8a6; border-radius: 12px;">
+                    <a href="%s" style="display: inline-block; padding: 16px 40px; font-size: 16px; font-weight: 700; color: #0f172a; text-decoration: none; letter-spacing: -0.2px;">
+                      &#8595;&nbsp;&nbsp;Baixar Ebook (PDF)
                     </a>
                   </td>
                 </tr>
               </table>
 
-              <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #a1a1aa; text-align: center;">
-                Este link expira em 7 dias. Se precisar de um novo, basta acessar a página do ebook novamente.
-              </p>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding: 24px 32px; background-color: #fafafa; border-radius: 0 0 12px 12px; border-top: 1px solid #e4e4e7;">
-              <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #a1a1aa; text-align: center;">
-                Este é um email transacional do Meu Flip.<br>
-                Você recebeu porque solicitou o download do ebook.
+              <!-- Expiry note -->
+              <p style="margin: 20px 0 0; font-size: 12px; color: #475569;">
+                &#128274; Link expira em 7 dias
               </p>
             </td>
           </tr>
         </table>
 
-        <p style="margin: 24px 0 0; font-size: 12px; color: #a1a1aa; text-align: center;">
-          &copy; %d Meu Flip. Todos os direitos reservados.
-        </p>
+        <!-- Stats bar -->
+        <table width="100%%" cellpadding="0" cellspacing="0" style="max-width: 560px; background-color: #162032; border-top: 1px solid rgba(255,255,255,0.05);">
+          <tr>
+            <td width="33.33%%" style="padding: 20px 0; text-align: center; border-right: 1px solid rgba(255,255,255,0.05);">
+              <p style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff;">9</p>
+              <p style="margin: 4px 0 0; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">capítulos</p>
+            </td>
+            <td width="33.33%%" style="padding: 20px 0; text-align: center; border-right: 1px solid rgba(255,255,255,0.05);">
+              <p style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff;">85<span style="color: #14b8a6;">+</span></p>
+              <p style="margin: 4px 0 0; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">páginas</p>
+            </td>
+            <td width="33.33%%" style="padding: 20px 0; text-align: center;">
+              <p style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff;">100<span style="color: #14b8a6;">+</span></p>
+              <p style="margin: 4px 0 0; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">downloads</p>
+            </td>
+          </tr>
+        </table>
+
+        <!-- White content card -->
+        <table width="100%%" cellpadding="0" cellspacing="0" style="max-width: 560px; background-color: #ffffff; border-radius: 0 0 16px 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.06);">
+          <tr>
+            <td style="padding: 36px 40px;">
+              <h2 style="margin: 0 0 20px; font-size: 18px; font-weight: 700; color: #1e293b;">
+                O que você vai encontrar:
+              </h2>
+
+              <!-- Benefit 1 -->
+              <table width="100%%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+                <tr>
+                  <td width="36" valign="top">
+                    <table cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="width: 28px; height: 28px; background-color: #f0fdfa; border-radius: 8px; text-align: center; line-height: 28px; font-size: 14px;">
+                          &#128176;
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td style="padding-left: 12px;">
+                    <p style="margin: 0 0 2px; font-size: 14px; font-weight: 700; color: #1e293b;">Proteja sua margem</p>
+                    <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">Saiba onde gastar e onde cortar — com dados reais</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Benefit 2 -->
+              <table width="100%%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+                <tr>
+                  <td width="36" valign="top">
+                    <table cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="width: 28px; height: 28px; background-color: #f0fdfa; border-radius: 8px; text-align: center; line-height: 28px; font-size: 14px;">
+                          &#127968;
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td style="padding-left: 12px;">
+                    <p style="margin: 0 0 2px; font-size: 14px; font-weight: 700; color: #1e293b;">Guia por ambiente</p>
+                    <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">Decisões prontas pra cozinha, banheiro, sala e quartos</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Benefit 3 -->
+              <table width="100%%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+                <tr>
+                  <td width="36" valign="top">
+                    <table cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="width: 28px; height: 28px; background-color: #f0fdfa; border-radius: 8px; text-align: center; line-height: 28px; font-size: 14px;">
+                          &#128161;
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td style="padding-left: 12px;">
+                    <p style="margin: 0 0 2px; font-size: 14px; font-weight: 700; color: #1e293b;">3 intervenções que transformam</p>
+                    <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">Maior impacto visual com menor custo</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Benefit 4 -->
+              <table width="100%%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="36" valign="top">
+                    <table cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="width: 28px; height: 28px; background-color: #f0fdfa; border-radius: 8px; text-align: center; line-height: 28px; font-size: 14px;">
+                          &#9888;&#65039;
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td style="padding-left: 12px;">
+                    <p style="margin: 0 0 2px; font-size: 14px; font-weight: 700; color: #1e293b;">Erros reais evitados</p>
+                    <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">Histórias de quem perdeu dinheiro — e como evitar</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding: 0 40px;">
+              <table width="100%%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="height: 1px; background-color: #f1f5f9;"></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Secondary CTA -->
+          <tr>
+            <td style="padding: 28px 40px 36px; text-align: center;">
+              <p style="margin: 0 0 16px; font-size: 14px; color: #64748b;">
+                Não conseguiu clicar no botão? Copie o link:
+              </p>
+              <p style="margin: 0; font-size: 12px; color: #14b8a6; word-break: break-all;">
+                <a href="%s" style="color: #14b8a6; text-decoration: underline;">%s</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Conhecer meuflip -->
+        <table width="100%%" cellpadding="0" cellspacing="0" style="max-width: 560px; margin-top: 24px;">
+          <tr>
+            <td style="background-color: #ffffff; border-radius: 12px; padding: 24px 32px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+              <p style="margin: 0 0 4px; font-size: 13px; font-weight: 700; color: #1e293b;">
+                Quer gerenciar seus flips com dados reais?
+              </p>
+              <p style="margin: 0 0 16px; font-size: 13px; color: #64748b;">
+                Conheça o meuflip — a plataforma do flipper profissional.
+              </p>
+              <a href="https://meuflip.com/login?tab=signup" style="display: inline-block; padding: 10px 28px; font-size: 13px; font-weight: 700; color: #1e293b; text-decoration: none; border: 2px solid #1e293b; border-radius: 8px;">
+                Conhecer o meuflip&nbsp;&nbsp;&#8594;
+              </a>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Footer -->
+        <table width="100%%" cellpadding="0" cellspacing="0" style="max-width: 560px; margin-top: 32px;">
+          <tr>
+            <td style="text-align: center;">
+              <p style="margin: 0 0 8px; font-size: 11px; color: #94a3b8;">
+                Este é um email transacional do Meu Flip.<br>
+                Você recebeu porque solicitou o download do ebook.
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #cbd5e1;">
+                &copy; %d Meu Flip. Todos os direitos reservados.
+              </p>
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
   </table>
 </body>
-</html>`, downloadURL, time.Now().Year())
+</html>`, downloadURL, downloadURL, downloadURL, time.Now().Year())
 }
