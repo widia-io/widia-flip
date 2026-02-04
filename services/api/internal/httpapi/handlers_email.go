@@ -221,7 +221,7 @@ func (a *api) handleEmailRecipients(w http.ResponseWriter, r *http.Request) {
 			 WHERE "emailVerified" = true AND is_active = true
 			 AND marketing_opt_in_at IS NOT NULL AND marketing_opt_out_at IS NULL),
 			(SELECT COUNT(*) FROM flip.ebook_leads
-			 WHERE marketing_consent = true)
+			 WHERE marketing_consent = true AND converted_at IS NULL)
 	`).Scan(&userCount, &leadCount)
 	if err != nil {
 		log.Printf("email recipients: error: %v", err)
@@ -251,7 +251,7 @@ func (a *api) handleListEligibleRecipients(w http.ResponseWriter, r *http.Reques
 
 			SELECT id, email, email AS name, created_at AS opt_in_at, created_at, 'lead' AS source
 			FROM flip.ebook_leads
-			WHERE marketing_consent = true
+			WHERE marketing_consent = true AND converted_at IS NULL
 		) combined
 		ORDER BY opt_in_at DESC
 		LIMIT 500
