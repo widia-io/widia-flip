@@ -11,6 +11,7 @@ import {
   BarChart3,
   Mail,
   BookOpen,
+  Upload,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,6 +56,13 @@ export default async function AdminDashboardPage() {
           >
             <Mail className="h-4 w-4" />
             Email Marketing
+          </Link>
+          <Link
+            href="/app/admin/ebooks"
+            className="flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            <Upload className="h-4 w-4" />
+            Ebooks
           </Link>
           <Link
             href="/app/admin/promotions"

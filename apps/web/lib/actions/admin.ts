@@ -104,6 +104,27 @@ export async function listAdminEbookLeads(): Promise<ListAdminEbookLeadsResponse
   return apiFetch<ListAdminEbookLeadsResponse>("/api/v1/admin/ebook-leads");
 }
 
+export async function getEbookUploadUrl(
+  slug: string,
+  filename: string,
+  contentType: string,
+  sizeBytes: number
+): Promise<{ upload_url: string; storage_key: string }> {
+  return apiFetch<{ upload_url: string; storage_key: string }>(
+    "/api/v1/admin/ebooks/upload",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ebook_slug: slug,
+        filename,
+        content_type: contentType,
+        size_bytes: sizeBytes,
+      }),
+    }
+  );
+}
+
 export async function reconcileEbookLeads(): Promise<ReconcileEbookLeadsResponse> {
   return apiFetch<ReconcileEbookLeadsResponse>(
     "/api/v1/admin/ebook-leads/reconcile",
