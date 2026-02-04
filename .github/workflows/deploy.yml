@@ -59,7 +59,8 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /opt/stacks/meuflip
-            git pull
+            git checkout main
+            git pull origin main
 
             # Login to GHCR
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
