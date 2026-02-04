@@ -97,6 +97,7 @@ func NewHandler(deps Deps) http.Handler {
 	adminMux.HandleFunc("/api/v1/admin/users/", api.handleAdminUsersSubroutes)
 	adminMux.HandleFunc("/api/v1/admin/promotions", api.handleAdminPromotionsCollection)
 	adminMux.HandleFunc("/api/v1/admin/promotions/", api.handleAdminPromotionsSubroutes)
+	adminMux.HandleFunc("/api/v1/admin/ebook-leads", api.handleAdminListEbookLeads)
 	adminMux.HandleFunc("/api/v1/admin/email/", api.handleAdminEmailSubroutes)
 	var adminHandler http.Handler = adminMux
 	adminHandler = adminAuthMiddleware(api.tokenVerifier, api.db, adminHandler)

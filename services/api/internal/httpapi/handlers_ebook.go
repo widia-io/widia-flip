@@ -127,6 +127,57 @@ func sendEbookEmail(toEmail, downloadURL string) error {
 	return nil
 }
 
+// Admin: list all ebook leads
+type adminEbookLead struct {
+	ID               string  `json:"id"`
+	Email            string  `json:"email"`
+	EbookSlug        string  `json:"ebookSlug"`
+	MarketingConsent bool    `json:"marketingConsent"`
+	IPAddress        *string `json:"ipAddress"`
+	CreatedAt        string  `json:"createdAt"`
+}
+
+func (a *api) handleAdminListEbookLeads(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+
+	rows, err := a.db.QueryContext(ctx, `
+		SELECT id, email, ebook_slug, marketing_consent, ip_address, created_at
+		FROM flip.ebook_leads
+		ORDER BY created_at DESC
+		LIMIT 200
+	`)
+	if err != nil {
+		log.Printf("admin list ebook leads: error: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to list leads"})
+		return
+	}
+	defer rows.Close()
+
+	items := make([]adminEbookLead, 0)
+	for rows.Next() {
+		var l adminEbookLead
+		var createdAt time.Time
+		var ip *string
+		if err := rows.Scan(&l.ID, &l.Email, &l.EbookSlug, &l.MarketingConsent, &ip, &createdAt); err != nil {
+			log.Printf("admin list ebook leads: scan error: %v", err)
+			continue
+		}
+		l.IPAddress = ip
+		l.CreatedAt = createdAt.Format(time.RFC3339)
+		items = append(items, l)
+	}
+
+	var total int
+	a.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM flip.ebook_leads`).Scan(&total)
+
+	writeJSON(w, http.StatusOK, map[string]any{"items": items, "total": total})
+}
+
 func buildEbookEmailHTML(downloadURL string) string {
 	return fmt.Sprintf(`<!DOCTYPE html>
 <html>

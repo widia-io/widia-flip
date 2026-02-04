@@ -11,6 +11,7 @@ import type {
   AdminSaaSMetricsPeriod,
   ListMetricsUsersResponse,
   MetricsUserCategory,
+  ListAdminEbookLeadsResponse,
 } from "@widia/shared";
 
 import { apiFetch } from "@/lib/apiFetch";
@@ -96,4 +97,8 @@ export async function getMetricsUsers(
   return apiFetch<ListMetricsUsersResponse>(
     `/api/v1/admin/metrics/users?category=${category}`
   );
+}
+
+export async function listAdminEbookLeads(): Promise<ListAdminEbookLeadsResponse> {
+  return apiFetch<ListAdminEbookLeadsResponse>("/api/v1/admin/ebook-leads");
 }

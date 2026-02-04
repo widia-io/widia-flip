@@ -48,6 +48,8 @@ type listCampaignsResponse struct {
 
 type eligibleRecipientsResponse struct {
 	EligibleCount int `json:"eligibleCount"`
+	UserCount     int `json:"userCount"`
+	LeadCount     int `json:"leadCount"`
 }
 
 type eligibleRecipient struct {
@@ -56,6 +58,7 @@ type eligibleRecipient struct {
 	Name      string `json:"name"`
 	OptInAt   string `json:"optInAt"`
 	CreatedAt string `json:"createdAt"`
+	Source    string `json:"source"`
 }
 
 type listEligibleRecipientsResponse struct {
@@ -211,24 +214,26 @@ func (a *api) handlePublicUnsubscribe(w http.ResponseWriter, r *http.Request) {
 func (a *api) handleEmailRecipients(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var count int
+	var userCount, leadCount int
 	err := a.db.QueryRowContext(ctx, `
-		SELECT (
-			SELECT COUNT(*) FROM "user"
-			WHERE "emailVerified" = true AND is_active = true
-			AND marketing_opt_in_at IS NOT NULL AND marketing_opt_out_at IS NULL
-		) + (
-			SELECT COUNT(*) FROM flip.ebook_leads
-			WHERE marketing_consent = true
-		)
-	`).Scan(&count)
+		SELECT
+			(SELECT COUNT(*) FROM "user"
+			 WHERE "emailVerified" = true AND is_active = true
+			 AND marketing_opt_in_at IS NOT NULL AND marketing_opt_out_at IS NULL),
+			(SELECT COUNT(*) FROM flip.ebook_leads
+			 WHERE marketing_consent = true)
+	`).Scan(&userCount, &leadCount)
 	if err != nil {
 		log.Printf("email recipients: error: %v", err)
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count recipients"})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, eligibleRecipientsResponse{EligibleCount: count})
+	writeJSON(w, http.StatusOK, eligibleRecipientsResponse{
+		EligibleCount: userCount + leadCount,
+		UserCount:     userCount,
+		LeadCount:     leadCount,
+	})
 }
 
 // List eligible recipients
@@ -236,15 +241,15 @@ func (a *api) handleListEligibleRecipients(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 
 	rows, err := a.db.QueryContext(ctx, `
-		SELECT id, email, name, opt_in_at, created_at FROM (
-			SELECT id, email, name, marketing_opt_in_at AS opt_in_at, "createdAt" AS created_at
+		SELECT id, email, name, opt_in_at, created_at, source FROM (
+			SELECT id, email, name, marketing_opt_in_at AS opt_in_at, "createdAt" AS created_at, 'user' AS source
 			FROM "user"
 			WHERE "emailVerified" = true AND is_active = true
 			AND marketing_opt_in_at IS NOT NULL AND marketing_opt_out_at IS NULL
 
 			UNION ALL
 
-			SELECT id, email, email AS name, created_at AS opt_in_at, created_at
+			SELECT id, email, email AS name, created_at AS opt_in_at, created_at, 'lead' AS source
 			FROM flip.ebook_leads
 			WHERE marketing_consent = true
 		) combined
@@ -262,7 +267,7 @@ func (a *api) handleListEligibleRecipients(w http.ResponseWriter, r *http.Reques
 	for rows.Next() {
 		var r eligibleRecipient
 		var optInAt, createdAt time.Time
-		if err := rows.Scan(&r.ID, &r.Email, &r.Name, &optInAt, &createdAt); err != nil {
+		if err := rows.Scan(&r.ID, &r.Email, &r.Name, &optInAt, &createdAt, &r.Source); err != nil {
 			log.Printf("list eligible recipients: scan error: %v", err)
 			continue
 		}

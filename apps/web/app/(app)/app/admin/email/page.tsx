@@ -22,11 +22,13 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 };
 
 export default async function AdminEmailPage() {
-  const [{ items: campaigns }, { eligibleCount }, { items: recipients }] = await Promise.all([
+  const [{ items: campaigns }, recipientsCount, { items: recipients }] = await Promise.all([
     listEmailCampaigns(),
     getEligibleRecipientsCount(),
     listEligibleRecipients(),
   ]);
+
+  const { eligibleCount, userCount = 0, leadCount = 0 } = recipientsCount;
 
   return (
     <div className="space-y-6">
@@ -69,7 +71,7 @@ export default async function AdminEmailPage() {
               <span className="text-2xl font-bold">{eligibleCount}</span>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Usuarios com opt-in ativo e email verificado
+              {userCount} usuarios + {leadCount} leads
             </p>
           </CardContent>
         </Card>
@@ -173,6 +175,7 @@ export default async function AdminEmailPage() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Opt-in em</TableHead>
                   <TableHead>Cadastrado em</TableHead>
                 </TableRow>
@@ -182,6 +185,11 @@ export default async function AdminEmailPage() {
                   <TableRow key={recipient.id}>
                     <TableCell className="font-medium">{recipient.name || "—"}</TableCell>
                     <TableCell>{recipient.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={recipient.source === "lead" ? "secondary" : "default"}>
+                        {recipient.source === "lead" ? "Lead" : "Usuario"}
+                      </Badge>
+                    </TableCell>
                     <TableCell>{new Date(recipient.optInAt).toLocaleDateString("pt-BR")}</TableCell>
                     <TableCell>{new Date(recipient.createdAt).toLocaleDateString("pt-BR")}</TableCell>
                   </TableRow>
