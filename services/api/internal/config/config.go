@@ -21,6 +21,7 @@ type LLMConfig struct {
 
 type S3Config struct {
 	Endpoint       string
+	PublicEndpoint string
 	AccessKey      string
 	SecretKey      string
 	Bucket         string
@@ -37,6 +38,7 @@ func Load() (Config, error) {
 		InternalAPISecret: os.Getenv("INTERNAL_API_SECRET"),
 		S3: S3Config{
 			Endpoint:       getenv("S3_ENDPOINT", "http://localhost:8000/storage/v1/s3"),
+			PublicEndpoint: getenv("S3_PUBLIC_ENDPOINT", getenv("S3_ENDPOINT", "http://localhost:8000/storage/v1/s3")),
 			AccessKey:      os.Getenv("S3_ACCESS_KEY"),
 			SecretKey:      os.Getenv("S3_SECRET_KEY"),
 			Bucket:         getenv("S3_BUCKET", "documents"),
