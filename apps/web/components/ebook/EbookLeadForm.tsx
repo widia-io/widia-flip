@@ -24,6 +24,11 @@ export function EbookLeadForm({ variant = "default" }: { variant?: "default" | "
       return;
     }
 
+    if (!consent) {
+      setError("Aceite receber emails para baixar o ebook");
+      return;
+    }
+
     startTransition(async () => {
       const result = await submitEbookLead(email.trim(), consent);
       if (result.success) {
@@ -97,7 +102,7 @@ export function EbookLeadForm({ variant = "default" }: { variant?: "default" | "
           htmlFor={`ebook-consent-${variant}`}
           className={`text-xs leading-tight cursor-pointer ${isDark ? "text-white/50" : "text-slate-400"}`}
         >
-          Quero receber dicas de flip por email
+          Aceito receber dicas de flip por email
         </Label>
       </div>
 
