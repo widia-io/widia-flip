@@ -13,27 +13,27 @@
     --accent: 171 77% 40%;
     --accent-foreground: 222 47% 15%;
 
-    /* Background: Clean White */
-    --background: 0 0% 100%;
+    /* Background: Warm cream */
+    --background: 40 30% 97%;
     --foreground: 222 47% 15%;
 
     /* Secondary */
-    --secondary: 210 40% 96%;
+    --secondary: 40 20% 93%;
     --secondary-foreground: 222 47% 18%;
 
     /* Muted */
-    --muted: 210 40% 96%;
+    --muted: 40 15% 93%;
     --muted-foreground: 215 19% 35%;
 
-    /* Card/Popover */
-    --card: 0 0% 100%;
+    /* Card/Popover: Slightly warm white */
+    --card: 40 20% 99%;
     --card-foreground: 222 47% 15%;
-    --popover: 0 0% 100%;
+    --popover: 40 20% 99%;
     --popover-foreground: 222 47% 15%;
 
     /* Border/Input */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --border: 40 15% 88%;
+    --input: 40 15% 88%;
     --ring: 171 77% 40%;
 
     /* Destructive */
