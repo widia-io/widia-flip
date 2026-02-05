@@ -23,8 +23,8 @@ import {
   WelcomeHero,
   OnboardingJourney,
   QuickActions,
-  FeatureSpotlight,
   PlatformStats,
+  ConceptExplainer,
 } from "@/components/dashboard";
 
 async function getUserPreferences(): Promise<UserPreferences | null> {
@@ -100,11 +100,11 @@ export default async function AppHomePage() {
           {/* Onboarding Journey */}
           {showOnboarding && <OnboardingJourney checklist={checklist} />}
 
-          {/* Two-column layout: Quick Actions + Feature Spotlight */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <QuickActions hasWorkspaces={hasWorkspaces} />
-            <FeatureSpotlight />
-          </div>
+          {/* Concept Explainer - Educational content for first-time users */}
+          <ConceptExplainer />
+
+          {/* Quick Actions */}
+          <QuickActions hasWorkspaces={hasWorkspaces} />
 
           {/* Platform Stats */}
           <PlatformStats />
