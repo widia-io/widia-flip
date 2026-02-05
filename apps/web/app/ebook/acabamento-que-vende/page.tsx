@@ -147,7 +147,7 @@ export default function EbookLandingPage() {
           <div className="group relative overflow-hidden rounded-2xl">
             <div className="aspect-[4/3] relative">
               <Image
-                src="/ebook/before-empty.png"
+                src="/ebook/before-apto.png"
                 alt="Apartamento antes — sem acabamento"
                 fill
                 className="object-cover"
@@ -172,7 +172,7 @@ export default function EbookLandingPage() {
           <div className="group relative overflow-hidden rounded-2xl">
             <div className="aspect-[4/3] relative">
               <Image
-                src="/ebook/after-furnished.png"
+                src="/ebook/after-apto.png"
                 alt="Apartamento depois — acabamento estratégico"
                 fill
                 className="object-cover"

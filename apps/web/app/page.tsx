@@ -33,8 +33,11 @@ export default async function HomePage() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-3">
             <Logo size="full" iconSize={36} />
+            <span className="hidden lg:block text-sm text-muted-foreground border-l border-border pl-3">
+              A plataforma mais completa de House Flipping do Brasil
+            </span>
           </Link>
 
           <nav className="flex items-center gap-3">

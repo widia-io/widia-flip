@@ -22,8 +22,11 @@ export default function EbookLayout({ children }: { children: ReactNode }) {
       {/* Minimal header — no distractions */}
       <header className="py-5 px-4">
         <div className="mx-auto max-w-6xl flex items-center justify-between">
-          <Link href="/" className="opacity-70 hover:opacity-100 transition-opacity">
+          <Link href="/" className="flex flex-col lg:flex-row lg:items-center gap-1 lg:gap-3 opacity-70 hover:opacity-100 transition-opacity">
             <Logo size="full" iconSize={28} />
+            <span className="text-xs lg:text-sm text-muted-foreground lg:border-l lg:border-border lg:pl-3">
+              A plataforma mais completa de House Flipping do Brasil
+            </span>
           </Link>
           <span className="text-xs tracking-widest uppercase text-muted-foreground/60 font-medium hidden sm:block">
             Ebook gratuito
