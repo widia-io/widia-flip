@@ -1,5 +1,3 @@
-import { Building2 } from "lucide-react";
-import Link from "next/link";
 import {
   ListWorkspacesResponseSchema,
   UserPreferencesSchema,
@@ -14,17 +12,12 @@ import { getServerSession } from "@/lib/serverAuth";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { WorkspaceDashboard } from "@/components/WorkspaceDashboard";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   WelcomeHero,
   OnboardingJourney,
   QuickActions,
   PlatformStats,
   ConceptExplainer,
+  OtherWorkspaces,
 } from "@/components/dashboard";
 
 async function getUserPreferences(): Promise<UserPreferences | null> {
@@ -143,35 +136,12 @@ export default async function AppHomePage() {
         </>
       )}
 
-      {/* Workspace List (collapsed) - shown for users with multiple workspaces */}
+      {/* Workspace List - shown for users with multiple workspaces */}
       {hasWorkspaces && workspaces.items.length > 1 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">
-              Outros Projetos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="divide-y divide-border rounded-lg border border-border">
-              {workspaces.items
-                .filter((ws) => ws.id !== workspace?.id)
-                .map((ws) => (
-                  <Link
-                    key={ws.id}
-                    href={`/app/workspaces/${ws.id}/settings`}
-                    className="flex items-center justify-between p-3 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <span className="text-sm font-medium">{ws.name}</span>
-                    </div>
-                  </Link>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
+        <OtherWorkspaces
+          workspaces={workspaces.items}
+          currentWorkspaceId={workspace?.id}
+        />
       )}
     </div>
   );
