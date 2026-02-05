@@ -13,27 +13,27 @@
     --accent: 171 77% 40%;
     --accent-foreground: 222 47% 15%;
 
-    /* Background: Clean White */
-    --background: 0 0% 100%;
+    /* Background: Warm cream */
+    --background: 40 30% 97%;
     --foreground: 222 47% 15%;
 
     /* Secondary */
-    --secondary: 210 40% 96%;
+    --secondary: 40 20% 93%;
     --secondary-foreground: 222 47% 18%;
 
     /* Muted */
-    --muted: 210 40% 96%;
+    --muted: 40 15% 93%;
     --muted-foreground: 215 19% 35%;
 
-    /* Card/Popover */
-    --card: 0 0% 100%;
+    /* Card/Popover: Slightly warm white */
+    --card: 40 20% 99%;
     --card-foreground: 222 47% 15%;
-    --popover: 0 0% 100%;
+    --popover: 40 20% 99%;
     --popover-foreground: 222 47% 15%;
 
     /* Border/Input */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --border: 40 15% 88%;
+    --input: 40 15% 88%;
     --ring: 171 77% 40%;
 
     /* Destructive */
@@ -59,35 +59,35 @@
 
   /* ===== DARK MODE (App Logado) ===== */
   .dark {
-    /* Primary: Lighter Navy for dark bg */
-    --primary: 222 47% 70%;
+    /* Primary: Teal for dark bg (brand color) */
+    --primary: 171 77% 45%;
     --primary-foreground: 222 47% 10%;
 
-    /* Accent: Teal (brighter for dark) */
-    --accent: 171 77% 50%;
+    /* Accent: Lighter Teal */
+    --accent: 171 77% 55%;
     --accent-foreground: 222 47% 10%;
 
-    /* Background: Deep Navy-Black */
-    --background: 222 47% 8%;
-    --foreground: 0 0% 98%;
+    /* Background: Navy (lighter, more readable) */
+    --background: 222 40% 12%;
+    --foreground: 210 40% 96%;
 
-    /* Secondary: Dark Navy */
-    --secondary: 222 30% 15%;
-    --secondary-foreground: 0 0% 90%;
+    /* Secondary: Slightly lighter navy */
+    --secondary: 222 35% 18%;
+    --secondary-foreground: 210 40% 90%;
 
     /* Muted */
-    --muted: 222 30% 15%;
-    --muted-foreground: 215 19% 60%;
+    --muted: 222 35% 18%;
+    --muted-foreground: 215 20% 65%;
 
-    /* Card/Popover: Slightly lighter */
-    --card: 222 35% 12%;
-    --card-foreground: 0 0% 98%;
-    --popover: 222 35% 12%;
-    --popover-foreground: 0 0% 98%;
+    /* Card/Popover: Distinct from background */
+    --card: 222 38% 16%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 38% 16%;
+    --popover-foreground: 210 40% 96%;
 
     /* Border/Input */
-    --border: 222 20% 22%;
-    --input: 222 20% 18%;
+    --border: 222 25% 25%;
+    --input: 222 30% 20%;
     --ring: 171 77% 50%;
 
     /* Destructive */
