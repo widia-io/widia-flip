@@ -18,6 +18,7 @@ import {
   PlatformStats,
   ConceptExplainer,
   OtherWorkspaces,
+  DashboardHeader,
 } from "@/components/dashboard";
 
 async function getUserPreferences(): Promise<UserPreferences | null> {
@@ -105,10 +106,7 @@ export default async function AppHomePage() {
       ) : (
         <>
           {/* Returning user: Standard dashboard */}
-          <div>
-            <h1 className="text-2xl font-semibold">Visao Geral</h1>
-            <p className="text-sm text-muted-foreground">{workspace?.name}</p>
-          </div>
+          <DashboardHeader workspaceName={workspace?.name || ""} />
 
           {/* Show compact onboarding if not completed */}
           {showOnboarding && (
