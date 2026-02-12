@@ -355,9 +355,95 @@ docker exec -it meuflip-api wget -qO- http://web:3000/api/auth/jwks
 
 ---
 
+## Observabilidade (Loki + Grafana)
+
+### Arquitetura
+
+```
+                [meuflip-web]    [meuflip-api]
+                     |               |
+                     v               v
+                  Docker logs (json-file driver)
+                           |
+                     [Promtail]
+                           |
+                        [Loki]
+                           |
+                      [Grafana] <-- grafana.meuflip.com (via Traefik)
+```
+
+### Estrutura no Servidor
+
+```
+/opt/stacks/observability/
+├── docker-compose.yml
+├── loki-config.yaml
+├── promtail-config.yaml
+├── .env                    # GRAFANA_ADMIN_PASSWORD
+└── grafana/provisioning/
+    ├── datasources/
+    │   └── datasources.yaml
+    └── dashboards/
+        └── dashboards.yaml
+```
+
+### Redes
+
+| Rede | Uso |
+|------|-----|
+| `meuflip_meuflip` | Promtail acessa logs dos containers app |
+| `proxy` | Grafana exposto via Traefik |
+| `observability` | Comunicacao interna Loki/Promtail/Grafana |
+
+### Deploy
+
+```bash
+cd /opt/stacks/observability
+
+# Criar .env com senha forte
+echo "GRAFANA_ADMIN_PASSWORD=<senha>" > .env
+
+# Subir stack
+docker compose up -d
+```
+
+### Acesso
+
+- **URL:** https://grafana.meuflip.com
+- **Usuario:** admin
+- **Senha:** definida em `.env`
+
+### Queries Uteis (Loki)
+
+```logql
+# Logs do API
+{service="api"}
+
+# Erros apenas
+{service="api"} |= "error"
+
+# Requests HTTP
+{service="api"} | json | msg="http_request"
+
+# Por request_id
+{service="api"} | json | request_id="abc123"
+
+# Por user_id
+{service="api"} | json | user_id="user-uuid"
+```
+
+### Retencao
+
+- **Padrao:** 30 dias
+- **Config:** `loki-config.yaml` -> `limits_config.retention_period`
+
+---
+
 ## Contatos e Referencias
 
 - **Repositorio:** github.com/widia-io/meuflip
 - **Registry:** ghcr.io/widia-io/meuflip-*
 - **Dominio:** meuflip.com
+- **Grafana:** grafana.meuflip.com
 - **VPS Path:** /opt/stacks/meuflip
+- **Observability Path:** /opt/stacks/observability
