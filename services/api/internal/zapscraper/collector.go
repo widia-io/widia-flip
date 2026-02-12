@@ -23,6 +23,12 @@ func NewCollector(verbose bool) *Collector {
 // CollectListings coleta a lista de anúncios da página de busca
 func (c *Collector) CollectListings(ctx context.Context, params CollectParams) ([]ListingSummary, error) {
 	candidates := buildSearchURLCandidates(params)
+	state := strings.TrimSpace(strings.ToLower(params.State))
+	city := normalizeLocationSlug(params.City)
+	neighborhood := normalizeLocationSlug(params.Neighborhood)
+	if state == "" {
+		state = defaultState
+	}
 	if c.verbose {
 		log.Printf("[collector] URLs candidatas: %d", len(candidates))
 	}
@@ -66,22 +72,28 @@ func (c *Collector) CollectListings(ctx context.Context, params CollectParams) (
 
 		successfulAttempts++
 		summaries := parseListingsHTML(html)
+		matchedSummaries := filterSummariesByLocation(
+			summaries,
+			city,
+			buildNeighborhoodSlugVariants(neighborhood),
+			state,
+		)
 
 		if c.verbose {
-			log.Printf("[collector] tentativa %d/%d: %s | title=%q | html=%d bytes | listings=%d",
-				idx+1, len(candidates), url, title, len(html), len(summaries))
+			log.Printf("[collector] tentativa %d/%d: %s | title=%q | html=%d bytes | listings=%d | location_match=%d",
+				idx+1, len(candidates), url, title, len(html), len(summaries), len(matchedSummaries))
 		}
 
-		if len(summaries) == 0 {
+		if len(matchedSummaries) == 0 {
 			continue
 		}
 
 		// Limitar quantidade
-		if params.MaxListings > 0 && len(summaries) > params.MaxListings {
-			summaries = summaries[:params.MaxListings]
+		if params.MaxListings > 0 && len(matchedSummaries) > params.MaxListings {
+			matchedSummaries = matchedSummaries[:params.MaxListings]
 		}
 
-		return summaries, nil
+		return matchedSummaries, nil
 	}
 
 	if successfulAttempts == 0 && lastErr != nil {
@@ -277,4 +289,193 @@ func dedupeURLCandidates(values []string) []string {
 		out = append(out, value)
 	}
 	return out
+}
+
+func filterSummariesByLocation(
+	summaries []ListingSummary,
+	citySlug string,
+	neighborhoodSlugs []string,
+	state string,
+) []ListingSummary {
+	const minNeighborhoodStrictMatches = 5
+	baseMatches := make([]ListingSummary, 0, len(summaries))
+	stateMatches := make([]ListingSummary, 0, len(summaries))
+	neighborhoodMatches := make([]ListingSummary, 0, len(summaries))
+
+	for _, summary := range summaries {
+		url := strings.ToLower(summary.URL)
+		if url == "" {
+			continue
+		}
+
+		if citySlug != "" {
+			if !strings.Contains(url, citySlug) {
+				continue
+			}
+		} else if state != "" && !hasStateToken(url, state) {
+			continue
+		}
+
+		if state != "" && citySlug != "" && !hasStateToken(url, state) && hasAnyKnownStateToken(url) {
+			// Se a URL declara uma UF diferente da solicitada, descarta.
+			continue
+		}
+
+		baseMatches = append(baseMatches, summary)
+		if state != "" && hasStateToken(url, state) {
+			stateMatches = append(stateMatches, summary)
+		}
+		if matchesAnyNeighborhoodSlug(url, neighborhoodSlugs) {
+			neighborhoodMatches = append(neighborhoodMatches, summary)
+		}
+	}
+
+	if len(neighborhoodSlugs) == 0 {
+		if citySlug == "" && state != "" && len(stateMatches) > 0 {
+			return stateMatches
+		}
+		return baseMatches
+	}
+	if len(neighborhoodMatches) >= minNeighborhoodStrictMatches {
+		return neighborhoodMatches
+	}
+
+	// Em cenários onde o portal expande para micro-regiões, manter cidade
+	// evita amostras muito pequenas sem vazar para outra praça.
+	return baseMatches
+}
+
+func matchesAnyNeighborhoodSlug(url string, slugs []string) bool {
+	if len(slugs) == 0 {
+		return true
+	}
+	for _, slug := range slugs {
+		if slug == "" {
+			continue
+		}
+		if strings.Contains(url, strings.ToLower(slug)) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasStateToken(url string, state string) bool {
+	state = strings.TrimSpace(strings.ToLower(state))
+	if state == "" {
+		return true
+	}
+
+	candidates := stateSlugCandidates(state)
+	for _, candidate := range candidates {
+		if candidate == "" {
+			continue
+		}
+		if strings.Contains(url, "-"+candidate+"-") || strings.Contains(url, "-"+candidate+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAnyKnownStateToken(url string) bool {
+	for _, candidate := range allStateSlugTokens() {
+		if strings.Contains(url, "-"+candidate+"-") || strings.Contains(url, "-"+candidate+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+func allStateSlugTokens() []string {
+	return []string{
+		"ac", "acre",
+		"al", "alagoas",
+		"ap", "amapa",
+		"am", "amazonas",
+		"ba", "bahia",
+		"ce", "ceara",
+		"df", "distrito-federal",
+		"es", "espirito-santo",
+		"go", "goias",
+		"ma", "maranhao",
+		"mt", "mato-grosso",
+		"ms", "mato-grosso-do-sul",
+		"mg", "minas-gerais",
+		"pa", "para",
+		"pb", "paraiba",
+		"pr", "parana",
+		"pe", "pernambuco",
+		"pi", "piaui",
+		"rj", "rio-de-janeiro",
+		"rn", "rio-grande-do-norte",
+		"rs", "rio-grande-do-sul",
+		"ro", "rondonia",
+		"rr", "roraima",
+		"sc", "santa-catarina",
+		"sp", "sao-paulo",
+		"se", "sergipe",
+		"to", "tocantins",
+	}
+}
+
+func stateSlugCandidates(state string) []string {
+	switch state {
+	case "ac":
+		return []string{"ac", "acre"}
+	case "al":
+		return []string{"al", "alagoas"}
+	case "ap":
+		return []string{"ap", "amapa"}
+	case "am":
+		return []string{"am", "amazonas"}
+	case "ba":
+		return []string{"ba", "bahia"}
+	case "ce":
+		return []string{"ce", "ceara"}
+	case "df":
+		return []string{"df", "distrito-federal"}
+	case "es":
+		return []string{"es", "espirito-santo"}
+	case "go":
+		return []string{"go", "goias"}
+	case "ma":
+		return []string{"ma", "maranhao"}
+	case "mt":
+		return []string{"mt", "mato-grosso"}
+	case "ms":
+		return []string{"ms", "mato-grosso-do-sul"}
+	case "mg":
+		return []string{"mg", "minas-gerais"}
+	case "pa":
+		return []string{"pa", "para"}
+	case "pb":
+		return []string{"pb", "paraiba"}
+	case "pr":
+		return []string{"pr", "parana"}
+	case "pe":
+		return []string{"pe", "pernambuco"}
+	case "pi":
+		return []string{"pi", "piaui"}
+	case "rj":
+		return []string{"rj", "rio-de-janeiro"}
+	case "rn":
+		return []string{"rn", "rio-grande-do-norte"}
+	case "rs":
+		return []string{"rs", "rio-grande-do-sul"}
+	case "ro":
+		return []string{"ro", "rondonia"}
+	case "rr":
+		return []string{"rr", "roraima"}
+	case "sc":
+		return []string{"sc", "santa-catarina"}
+	case "sp":
+		return []string{"sp", "sao-paulo"}
+	case "se":
+		return []string{"se", "sergipe"}
+	case "to":
+		return []string{"to", "tocantins"}
+	default:
+		return []string{state}
+	}
 }

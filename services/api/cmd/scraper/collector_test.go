@@ -41,6 +41,64 @@ func TestBuildSearchURLCandidatesIncludesVilaAlias(t *testing.T) {
 	}
 }
 
+func TestFilterSummariesByLocationFallbackToCityStateWhenNeighborhoodIsSparse(t *testing.T) {
+	summaries := []ListingSummary{
+		{URL: "https://www.zapimoveis.com.br/imovel/venda-apartamento-vila-izabel-curitiba-pr-80m2-id-1/"},
+		{URL: "https://www.zapimoveis.com.br/imovel/venda-apartamento-mooca-sao-paulo-sp-70m2-id-2/"},
+		{URL: "https://www.zapimoveis.com.br/imovel/venda-apartamento-centro-curitiba-pr-65m2-id-3/"},
+		{URL: "https://www.zapimoveis.com.br/imovel/venda-apartamento-vila-izabel-curitiba-sp-75m2-id-4/"},
+	}
+
+	filtered := filterSummariesByLocation(summaries, "curitiba", []string{"vl-izabel", "vila-izabel"}, "pr")
+	if len(filtered) != 2 {
+		t.Fatalf("expected 2 listings after fallback to city/state filter, got %d", len(filtered))
+	}
+	if filtered[0].URL != summaries[0].URL {
+		t.Fatalf("unexpected first listing kept after filter: %s", filtered[0].URL)
+	}
+	if filtered[1].URL != summaries[2].URL {
+		t.Fatalf("unexpected second listing kept after filter: %s", filtered[1].URL)
+	}
+}
+
+func TestFilterSummariesByLocationKeepsNeighborhoodWhenSufficientResults(t *testing.T) {
+	summaries := []ListingSummary{
+		{URL: "https://www.zapimoveis.com.br/imovel/venda-apartamento-vila-izabel-curitiba-pr-80m2-id-1/"},
+		{URL: "https://www.zapimoveis.com.br/imovel/venda-apartamento-vl-izabel-curitiba-pr-81m2-id-2/"},
+		{URL: "https://www.zapimoveis.com.br/imovel/venda-apartamento-vila-izabel-curitiba-pr-82m2-id-3/"},
+		{URL: "https://www.zapimoveis.com.br/imovel/venda-apartamento-vl-izabel-curitiba-pr-83m2-id-4/"},
+		{URL: "https://www.zapimoveis.com.br/imovel/venda-apartamento-vila-izabel-curitiba-pr-84m2-id-5/"},
+		{URL: "https://www.zapimoveis.com.br/imovel/venda-apartamento-centro-curitiba-pr-65m2-id-6/"},
+	}
+
+	filtered := filterSummariesByLocation(summaries, "curitiba", []string{"vl-izabel", "vila-izabel"}, "pr")
+	if len(filtered) != 5 {
+		t.Fatalf("expected strict neighborhood filter to keep 5 listings, got %d", len(filtered))
+	}
+}
+
+func TestHasStateTokenAcceptsFullStateNameSlug(t *testing.T) {
+	url := "https://www.zapimoveis.com.br/imovel/venda-apartamento-vila-izabel-curitiba-parana-90m2-id-1/"
+	if !hasStateToken(url, "pr") {
+		t.Fatal("expected state token matcher to accept full state name slug for PR")
+	}
+}
+
+func TestFilterSummariesByLocationAllowsMissingStateTokenWhenCityMatches(t *testing.T) {
+	summaries := []ListingSummary{
+		{URL: "https://www.zapimoveis.com.br/imovel/venda-apartamento-vila-izabel-curitiba-80m2-id-1/"},
+		{URL: "https://www.zapimoveis.com.br/imovel/venda-apartamento-mooca-sao-paulo-sp-70m2-id-2/"},
+	}
+
+	filtered := filterSummariesByLocation(summaries, "curitiba", []string{"vl-izabel", "vila-izabel"}, "pr")
+	if len(filtered) != 1 {
+		t.Fatalf("expected 1 listing even without explicit state token, got %d", len(filtered))
+	}
+	if filtered[0].URL != summaries[0].URL {
+		t.Fatalf("unexpected listing kept after filter: %s", filtered[0].URL)
+	}
+}
+
 func containsCandidate(values []string, target string) bool {
 	for _, value := range values {
 		if value == target {
