@@ -1098,6 +1098,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-14` — 2026-02-12 — Deploy scraper-ready: `services/api/Dockerfile` atualizado para builder `golang:1.24-alpine` e runtime com `chromium` + dependências/fontes (`CHROME_PATH`), garantindo execução do scraper de oportunidades em produção sem setup manual no host.
 * `CP-14` — 2026-02-12 — Hotfix scraper: validação de aderência geográfica (cidade+bairro+UF) antes de aceitar listagens de fallback, evitando dry-run de `Curitiba/Vila Izabel` retornar imóveis de outras praças (ex.: SP) em páginas genéricas do Zap.
 * `CP-14` — 2026-02-12 — Hotfix scraper (filtro geográfico v2): UF passou a ser validação flexível (aceita URLs sem token de estado, mas bloqueia UF explícita divergente), mantendo trava por cidade e fallback inteligente por bairro; dry-run `Curitiba/Vila Izabel` subiu de 3 para 24 itens mantendo consistência de praça.
+* `CP-14` — 2026-02-12 — Oportunidades/UI hotfix: removido filtro implícito `min_score=50` na página (`/app/opportunities`), evitando lista vazia em produção quando o scraper retorna oportunidades com score < 50 (agora default sem corte e chip/slider de score só aplicam quando configurados).
 
 ---
 

@@ -56,7 +56,7 @@ export default async function OpportunitiesPage(props: {
   const state = getParam(searchParams, "state")?.toLowerCase();
   const city = getParam(searchParams, "city");
   const neighborhood = getParam(searchParams, "neighborhood");
-  const minScore = parseNumberParam(getParam(searchParams, "min_score")) ?? 50;
+  const minScore = parseNumberParam(getParam(searchParams, "min_score")) ?? 0;
   const minPrice = parseNumberParam(getParam(searchParams, "min_price"));
   const maxPrice = parseNumberParam(getParam(searchParams, "max_price"));
   const minArea = parseNumberParam(getParam(searchParams, "min_area"));
@@ -83,7 +83,7 @@ export default async function OpportunitiesPage(props: {
     state,
     city,
     neighborhood,
-    minScore,
+    minScore: minScore > 0 ? minScore : undefined,
     minPrice,
     maxPrice,
     minArea,
