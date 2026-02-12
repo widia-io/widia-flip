@@ -181,11 +181,11 @@ export function OpportunityFilters({
       onRemove: () => setScalarFilter("neighborhood"),
     });
   }
-  if (filters.minScore !== 50) {
+  if (filters.minScore > 0) {
     activeFilterChips.push({
       key: "min_score",
       label: `Score >= ${filters.minScore}`,
-      onRemove: () => setScalarFilter("min_score", 50),
+      onRemove: () => setScalarFilter("min_score"),
     });
   }
   if (filters.minPrice) {
@@ -400,7 +400,9 @@ export function OpportunityFilters({
           </Label>
           <Slider
             value={[filters.minScore]}
-            onValueCommit={(values) => setScalarFilter("min_score", values[0])}
+            onValueCommit={(values) =>
+              setScalarFilter("min_score", values[0] > 0 ? values[0] : undefined)
+            }
             min={0}
             max={100}
             step={5}
