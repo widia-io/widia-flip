@@ -1,4 +1,4 @@
-package main
+package zapscraper
 
 import (
 	"context"
@@ -190,8 +190,6 @@ func (c *Collector) enrichOne(allocCtx context.Context, summary ListingSummary) 
 	return detail, nil
 }
 
-const defaultState = "pr"
-
 func buildSearchURLCandidates(params CollectParams) []string {
 	state := strings.TrimSpace(strings.ToLower(params.State))
 	city := normalizeLocationSlug(params.City)
@@ -279,43 +277,4 @@ func dedupeURLCandidates(values []string) []string {
 		out = append(out, value)
 	}
 	return out
-}
-
-func normalizeLocationSlug(value string) string {
-	value = strings.TrimSpace(strings.ToLower(value))
-	if value == "" {
-		return ""
-	}
-
-	replacer := strings.NewReplacer(
-		"á", "a", "à", "a", "ã", "a", "â", "a", "ä", "a",
-		"é", "e", "ê", "e", "è", "e", "ë", "e",
-		"í", "i", "ì", "i", "î", "i", "ï", "i",
-		"ó", "o", "ô", "o", "õ", "o", "ò", "o", "ö", "o",
-		"ú", "u", "ù", "u", "û", "u", "ü", "u",
-		"ç", "c",
-	)
-	value = replacer.Replace(value)
-
-	var b strings.Builder
-	lastDash := false
-	for _, r := range value {
-		switch {
-		case (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9'):
-			b.WriteRune(r)
-			lastDash = false
-		case r == ' ' || r == '-' || r == '_' || r == '/' || r == '.':
-			if !lastDash && b.Len() > 0 {
-				b.WriteRune('-')
-				lastDash = true
-			}
-		}
-	}
-
-	normalized := strings.Trim(b.String(), "-")
-	if normalized == "" {
-		return value
-	}
-
-	return normalized
 }
