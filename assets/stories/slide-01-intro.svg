@@ -1,0 +1,88 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Noise texture filter -->
+    <filter id="noise1" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" result="noise"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feBlend in="SourceGraphic" in2="noise" mode="overlay" result="blend"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.03"/>
+      </feComponentTransfer>
+      <feBlend in="SourceGraphic" mode="normal"/>
+    </filter>
+
+    <!-- Teal glow gradient -->
+    <radialGradient id="tealGlow1" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#14B8A6" stop-opacity="0.15"/>
+      <stop offset="50%" stop-color="#14B8A6" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#14B8A6" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Logo glow -->
+    <filter id="logoGlow1" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="20" flood-color="#14B8A6" flood-opacity="0.4"/>
+    </filter>
+
+    <!-- Subtle gradient bg -->
+    <linearGradient id="bgGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="50%" stop-color="#0D1425"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="url(#bgGrad1)"/>
+  <rect width="1080" height="1920" fill="url(#bgGrad1)" filter="url(#noise1)"/>
+
+  <!-- Teal ambient glow -->
+  <ellipse cx="540" cy="700" rx="500" ry="400" fill="url(#tealGlow1)"/>
+
+  <!-- Geometric accents -->
+  <line x1="0" y1="300" x2="150" y2="300" stroke="#14B8A6" stroke-width="2" opacity="0.3"/>
+  <line x1="930" y1="1620" x2="1080" y2="1620" stroke="#14B8A6" stroke-width="2" opacity="0.3"/>
+  <circle cx="100" cy="1700" r="60" fill="none" stroke="#1E293B" stroke-width="1"/>
+  <circle cx="980" cy="220" r="40" fill="none" stroke="#1E293B" stroke-width="1"/>
+
+  <!-- Corner accents -->
+  <path d="M0 0 L80 0 L80 4 L4 4 L4 80 L0 80 Z" fill="#14B8A6" opacity="0.4"/>
+  <path d="M1080 1920 L1000 1920 L1000 1916 L1076 1916 L1076 1840 L1080 1840 Z" fill="#14B8A6" opacity="0.4"/>
+
+  <!-- Logo - exact paths, scaled 8x -->
+  <g transform="translate(380, 340) scale(8)" filter="url(#logoGlow1)">
+    <!-- M with integrated arrow - White for dark theme -->
+    <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- Arrow tip -->
+    <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- F - Teal -->
+    <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M20 22H30" stroke="#14B8A6" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- Headline -->
+  <text x="540" y="750" text-anchor="middle" font-family="Manrope, sans-serif" font-size="52" font-weight="400" fill="#94A3B8">Você sabe seu</text>
+
+  <text x="540" y="870" text-anchor="middle" font-family="Manrope, sans-serif" font-size="88" font-weight="800" fill="#14B8A6" letter-spacing="-3">LUCRO REAL</text>
+
+  <text x="540" y="980" text-anchor="middle" font-family="Manrope, sans-serif" font-size="52" font-weight="400" fill="#94A3B8">antes de comprar?</text>
+
+  <!-- Decorative line -->
+  <line x1="380" y1="1080" x2="700" y2="1080" stroke="#1E293B" stroke-width="2"/>
+  <circle cx="540" cy="1080" r="4" fill="#14B8A6"/>
+
+  <!-- CTA -->
+  <text x="540" y="1180" text-anchor="middle" font-family="Manrope, sans-serif" font-size="28" font-weight="500" fill="#64748B">Desliza para descobrir</text>
+  <text x="720" y="1180" font-family="Manrope, sans-serif" font-size="28" fill="#14B8A6">→</text>
+
+  <!-- Brand footer -->
+  <text x="540" y="1800" text-anchor="middle" font-family="Manrope, sans-serif" font-size="32" font-weight="700" fill="#14B8A6" letter-spacing="-1">meuflip</text>
+
+  <!-- Slide indicator -->
+  <g transform="translate(480, 1850)">
+    <circle cx="0" cy="0" r="4" fill="#14B8A6"/>
+    <circle cx="24" cy="0" r="4" fill="#1E293B"/>
+    <circle cx="48" cy="0" r="4" fill="#1E293B"/>
+    <circle cx="72" cy="0" r="4" fill="#1E293B"/>
+    <circle cx="96" cy="0" r="4" fill="#1E293B"/>
+  </g>
+</svg>

@@ -8,6 +8,7 @@ out
 # local env
 .env
 .env.*.local
+.env.local.shared
 supabase/.env
 supabase/volumes/
 

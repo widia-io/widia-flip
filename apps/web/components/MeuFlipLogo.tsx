@@ -4,6 +4,9 @@ interface MeuFlipLogoProps {
 }
 
 export function MeuFlipLogo({ className = "", size = 32 }: MeuFlipLogoProps) {
+  const strokes =
+    size <= 12 ? { main: 6, secondary: 5 } : size <= 20 ? { main: 5, secondary: 4 } : size <= 28 ? { main: 4.5, secondary: 3.5 } : { main: 4, secondary: 3 };
+
   return (
     <svg
       width={size}
@@ -13,46 +16,34 @@ export function MeuFlipLogo({ className = "", size = 32 }: MeuFlipLogoProps) {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      {/* Casa - corpo */}
       <path
-        d="M6 18L18 8L30 18V32H6V18Z"
-        fill="currentColor"
-        className="text-primary"
+        d="M4 32V8L14 20L24 8L28 4"
+        stroke="#1E293B"
+        strokeWidth={strokes.main}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
       />
-      {/* Casa - telhado */}
       <path
-        d="M18 4L2 18H6L18 8L30 18H34L18 4Z"
-        fill="currentColor"
-        className="text-primary"
+        d="M23 4H28V9"
+        stroke="#1E293B"
+        strokeWidth={strokes.secondary}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
       />
-      {/* Casa - porta */}
-      <rect
-        x="14"
-        y="22"
-        width="8"
-        height="10"
-        fill="currentColor"
-        className="text-primary-foreground"
+      <path
+        d="M20 32V12H34"
+        stroke="#14B8A6"
+        strokeWidth={strokes.main}
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      {/* Martelo - cabo */}
-      <rect
-        x="32"
-        y="14"
-        width="3"
-        height="16"
-        rx="1"
-        fill="currentColor"
-        className="text-primary"
-      />
-      {/* Martelo - cabeça */}
-      <rect
-        x="28"
-        y="8"
-        width="12"
-        height="6"
-        rx="1"
-        fill="currentColor"
-        className="text-primary"
+      <path
+        d="M20 22H30"
+        stroke="#14B8A6"
+        strokeWidth={strokes.main}
+        strokeLinecap="round"
       />
     </svg>
   );
@@ -65,7 +56,7 @@ export function MeuFlipLogoWithText({
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <MeuFlipLogo size={size} />
-      <span className="font-bold text-lg">Meu Flip</span>
+      <span className="font-bold text-lg">meuflip</span>
     </div>
   );
 }
