@@ -475,7 +475,7 @@ func (a *api) handleListOpportunities(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var opportunities []OpportunityResponse
+	opportunities := make([]OpportunityResponse, 0)
 	for rows.Next() {
 		var opp OpportunityResponse
 		var imagesJSON, scoreBreakdownJSON []byte
