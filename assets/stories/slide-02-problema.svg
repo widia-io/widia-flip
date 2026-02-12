@@ -1,0 +1,107 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Noise texture filter -->
+    <filter id="noise2" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" result="noise"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feBlend in="SourceGraphic" in2="noise" mode="overlay" result="blend"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.03"/>
+      </feComponentTransfer>
+      <feBlend in="SourceGraphic" mode="normal"/>
+    </filter>
+
+    <!-- Red glow gradient -->
+    <radialGradient id="redGlow2" cx="50%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#EF4444" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#EF4444" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Card gradient -->
+    <linearGradient id="cardGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#172033"/>
+    </linearGradient>
+
+    <!-- Subtle gradient bg -->
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="50%" stop-color="#0D1425"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="url(#bgGrad2)"/>
+  <rect width="1080" height="1920" fill="url(#bgGrad2)" filter="url(#noise2)"/>
+
+  <!-- Red ambient glow -->
+  <ellipse cx="540" cy="500" rx="400" ry="300" fill="url(#redGlow2)"/>
+
+  <!-- Geometric accents -->
+  <line x1="60" y1="0" x2="60" y2="200" stroke="#EF4444" stroke-width="1" opacity="0.2"/>
+  <line x1="1020" y1="1720" x2="1020" y2="1920" stroke="#EF4444" stroke-width="1" opacity="0.2"/>
+
+  <!-- Corner accents - red theme -->
+  <path d="M0 0 L80 0 L80 4 L4 4 L4 80 L0 80 Z" fill="#EF4444" opacity="0.3"/>
+  <path d="M1080 1920 L1000 1920 L1000 1916 L1076 1916 L1076 1840 L1080 1840 Z" fill="#EF4444" opacity="0.3"/>
+
+  <!-- Title -->
+  <text x="540" y="180" text-anchor="middle" font-family="Manrope, sans-serif" font-size="56" font-weight="700" fill="#F8FAFC">O problema</text>
+  <line x1="400" y1="220" x2="680" y2="220" stroke="#EF4444" stroke-width="3"/>
+
+  <!-- Problem 1 -->
+  <g transform="translate(100, 340)">
+    <rect x="0" y="-30" width="880" height="130" rx="12" fill="url(#cardGrad2)" opacity="0.6"/>
+    <rect x="0" y="-30" width="880" height="130" rx="12" fill="none" stroke="#EF4444" stroke-width="1" opacity="0.2"/>
+    <text x="40" y="30" font-family="Manrope, sans-serif" font-size="40" font-weight="600" fill="#EF4444">✕</text>
+    <text x="100" y="30" font-family="Manrope, sans-serif" font-size="36" font-weight="700" fill="#F8FAFC">ITBI esquecido</text>
+    <text x="100" y="75" font-family="Manrope, sans-serif" font-size="24" font-weight="400" fill="#64748B">2-3% do valor que ninguém lembra</text>
+  </g>
+
+  <!-- Problem 2 -->
+  <g transform="translate(100, 520)">
+    <rect x="0" y="-30" width="880" height="130" rx="12" fill="url(#cardGrad2)" opacity="0.6"/>
+    <rect x="0" y="-30" width="880" height="130" rx="12" fill="none" stroke="#EF4444" stroke-width="1" opacity="0.2"/>
+    <text x="40" y="30" font-family="Manrope, sans-serif" font-size="40" font-weight="600" fill="#EF4444">✕</text>
+    <text x="100" y="30" font-family="Manrope, sans-serif" font-size="36" font-weight="700" fill="#F8FAFC">Corretagem não calculada</text>
+    <text x="100" y="75" font-family="Manrope, sans-serif" font-size="24" font-weight="400" fill="#64748B">6% na venda que some do lucro</text>
+  </g>
+
+  <!-- Problem 3 -->
+  <g transform="translate(100, 700)">
+    <rect x="0" y="-30" width="880" height="130" rx="12" fill="url(#cardGrad2)" opacity="0.6"/>
+    <rect x="0" y="-30" width="880" height="130" rx="12" fill="none" stroke="#EF4444" stroke-width="1" opacity="0.2"/>
+    <text x="40" y="30" font-family="Manrope, sans-serif" font-size="40" font-weight="600" fill="#EF4444">✕</text>
+    <text x="100" y="30" font-family="Manrope, sans-serif" font-size="36" font-weight="700" fill="#F8FAFC">Reforma que estoura</text>
+    <text x="100" y="75" font-family="Manrope, sans-serif" font-size="24" font-weight="400" fill="#64748B">Sem controle, sem previsão</text>
+  </g>
+
+  <!-- Problem 4 -->
+  <g transform="translate(100, 880)">
+    <rect x="0" y="-30" width="880" height="130" rx="12" fill="url(#cardGrad2)" opacity="0.6"/>
+    <rect x="0" y="-30" width="880" height="130" rx="12" fill="none" stroke="#EF4444" stroke-width="1" opacity="0.2"/>
+    <text x="40" y="30" font-family="Manrope, sans-serif" font-size="40" font-weight="600" fill="#EF4444">✕</text>
+    <text x="100" y="30" font-family="Manrope, sans-serif" font-size="36" font-weight="700" fill="#F8FAFC">Imposto na venda</text>
+    <text x="100" y="75" font-family="Manrope, sans-serif" font-size="24" font-weight="400" fill="#64748B">Ganho de capital que pega de surpresa</text>
+  </g>
+
+  <!-- Result box - prominent -->
+  <g transform="translate(100, 1120)">
+    <rect x="0" y="0" width="880" height="120" rx="16" fill="#EF4444" opacity="0.15"/>
+    <rect x="0" y="0" width="880" height="120" rx="16" fill="none" stroke="#EF4444" stroke-width="2"/>
+    <text x="440" y="72" text-anchor="middle" font-family="Manrope, sans-serif" font-size="36" font-weight="700" fill="#EF4444">Resultado: lucro vira prejuízo</text>
+  </g>
+
+  <!-- Brand footer -->
+  <text x="540" y="1800" text-anchor="middle" font-family="Manrope, sans-serif" font-size="32" font-weight="700" fill="#14B8A6" letter-spacing="-1">meuflip</text>
+
+  <!-- Slide indicator -->
+  <g transform="translate(480, 1850)">
+    <circle cx="0" cy="0" r="4" fill="#1E293B"/>
+    <circle cx="24" cy="0" r="4" fill="#EF4444"/>
+    <circle cx="48" cy="0" r="4" fill="#1E293B"/>
+    <circle cx="72" cy="0" r="4" fill="#1E293B"/>
+    <circle cx="96" cy="0" r="4" fill="#1E293B"/>
+  </g>
+</svg>
