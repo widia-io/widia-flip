@@ -606,13 +606,13 @@ type supplierUsageStats struct {
 }
 
 type suppliersSummary struct {
-	TotalCount    int                     `json:"total_count"`
+	TotalCount    int                      `json:"total_count"`
 	ByCategory    []suppliersByCategoryAgg `json:"by_category"`
-	AvgRating     *float64                `json:"avg_rating"`
-	AvgHourlyRate *float64                `json:"avg_hourly_rate"`
-	TopRated      []supplier              `json:"top_rated"`
-	PriceAnalysis []categoryPriceAnalysis `json:"price_analysis"`
-	UsageStats    []supplierUsageStats    `json:"usage_stats"`
+	AvgRating     *float64                 `json:"avg_rating"`
+	AvgHourlyRate *float64                 `json:"avg_hourly_rate"`
+	TopRated      []supplier               `json:"top_rated"`
+	PriceAnalysis []categoryPriceAnalysis  `json:"price_analysis"`
+	UsageStats    []supplierUsageStats     `json:"usage_stats"`
 }
 
 type listWorkspaceSuppliersResponse struct {

@@ -17,12 +17,13 @@ import (
 
 // S3Client wraps the AWS S3 client for presigned URL operations
 type S3Client struct {
-	client        *s3.Client
-	presignClient *s3.PresignClient
-	bucket        string
-	endpoint      string
-	region        string
-	creds         aws.Credentials
+	client         *s3.Client
+	presignClient  *s3.PresignClient
+	bucket         string
+	endpoint       string
+	publicEndpoint string
+	region         string
+	creds          aws.Credentials
 }
 
 // NewS3Client creates a new S3 client configured for MinIO or AWS S3
@@ -55,12 +56,47 @@ func NewS3Client(cfg appconfig.S3Config) (*S3Client, error) {
 		o.UsePathStyle = cfg.ForcePathStyle
 	})
 
+	// Determine public endpoint (for presigned URLs accessible by browsers)
+	publicEndpoint := cfg.PublicEndpoint
+	if publicEndpoint == "" {
+		publicEndpoint = cfg.Endpoint
+	}
+
+	// Create a separate S3 client for presigning using the public endpoint
+	publicResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+		if publicEndpoint != "" {
+			return aws.Endpoint{
+				URL:               publicEndpoint,
+				HostnameImmutable: true,
+			}, nil
+		}
+		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
+	})
+
+	publicAwsCfg, err := config.LoadDefaultConfig(context.Background(),
+		config.WithRegion(cfg.Region),
+		config.WithEndpointResolverWithOptions(publicResolver),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+			cfg.AccessKey,
+			cfg.SecretKey,
+			"",
+		)),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load AWS config for public endpoint: %w", err)
+	}
+
+	publicClient := s3.NewFromConfig(publicAwsCfg, func(o *s3.Options) {
+		o.UsePathStyle = cfg.ForcePathStyle
+	})
+
 	return &S3Client{
-		client:        client,
-		presignClient: s3.NewPresignClient(client),
-		bucket:        cfg.Bucket,
-		endpoint:      cfg.Endpoint,
-		region:        cfg.Region,
+		client:         client,
+		presignClient:  s3.NewPresignClient(publicClient),
+		bucket:         cfg.Bucket,
+		endpoint:       cfg.Endpoint,
+		publicEndpoint: publicEndpoint,
+		region:         cfg.Region,
 		creds: aws.Credentials{
 			AccessKeyID:     cfg.AccessKey,
 			SecretAccessKey: cfg.SecretKey,
@@ -73,7 +109,7 @@ func NewS3Client(cfg appconfig.S3Config) (*S3Client, error) {
 func (c *S3Client) GeneratePresignedUploadURL(ctx context.Context, key, contentType string, expiresIn time.Duration) (string, error) {
 	// Build the URL path with expiration in query string (must be signed)
 	path := fmt.Sprintf("/%s/%s", c.bucket, key)
-	fullURL := fmt.Sprintf("%s%s?X-Amz-Expires=%d", c.endpoint, path, int(expiresIn.Seconds()))
+	fullURL := fmt.Sprintf("%s%s?X-Amz-Expires=%d", c.publicEndpoint, path, int(expiresIn.Seconds()))
 
 	// Create the HTTP request
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, fullURL, nil)

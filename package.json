@@ -9,6 +9,7 @@
     "db:up": "docker compose -f supabase/docker-compose.yml -f supabase/docker-compose.override.yml --env-file supabase/.env up -d",
     "db:down": "docker compose -f supabase/docker-compose.yml -f supabase/docker-compose.override.yml --env-file supabase/.env down",
     "db:migrate": "bash scripts/apply-migrations.sh",
+    "db:repair": "bash scripts/db-repair.sh",
     "db:legacy:up": "docker compose -f docker-compose.legacy.yml up -d db",
     "db:legacy:down": "docker compose -f docker-compose.legacy.yml down -v",
     "dev:web": "npm -w apps/web run dev",
@@ -17,7 +18,9 @@
     "typecheck:web": "npm -w apps/web run typecheck",
     "dev:api": "bash scripts/dev-api.sh",
     "fmt:api": "cd services/api && gofmt -w ."
+  },
+  "devDependencies": {
+    "marked": "^17.0.1",
+    "puppeteer": "^24.36.1"
   }
 }
-
-

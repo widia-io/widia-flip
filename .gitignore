@@ -8,6 +8,7 @@ out
 # local env
 .env
 .env.*.local
+.env.local.shared
 supabase/.env
 supabase/volumes/
 
@@ -33,3 +34,7 @@ dist
 *.out
 
 
+
+# ebooks (source assets + generated PDFs)
+docs/ebooks/source/
+docs/ebooks/*.pdf

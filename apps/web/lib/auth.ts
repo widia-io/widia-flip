@@ -23,11 +23,10 @@ function getResend() {
 // SVG logo inline for emails (emails don't support CSS classes)
 const logoSvg = `
 <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M6 18L18 8L30 18V32H6V18Z" fill="#2563eb"/>
-  <path d="M18 4L2 18H6L18 8L30 18H34L18 4Z" fill="#2563eb"/>
-  <rect x="14" y="22" width="8" height="10" fill="white"/>
-  <rect x="32" y="14" width="3" height="16" rx="1" fill="#2563eb"/>
-  <rect x="28" y="8" width="12" height="6" rx="1" fill="#2563eb"/>
+  <path d="M4 32V8L14 20L24 8L28 4" stroke="#1E293B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M23 4H28V9" stroke="#1E293B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M20 22H30" stroke="#14B8A6" stroke-width="4" stroke-linecap="round"/>
 </svg>`;
 
 function getResetPasswordEmailHtml(userName: string, resetUrl: string) {
@@ -52,7 +51,7 @@ function getResetPasswordEmailHtml(userName: string, resetUrl: string) {
                     ${logoSvg}
                   </td>
                   <td style="vertical-align: middle;">
-                    <span style="font-size: 24px; font-weight: 700; color: #18181b;">Meu Flip</span>
+                    <span style="font-size: 24px; font-weight: 700; color: #18181b;">meuflip</span>
                   </td>
                 </tr>
               </table>
@@ -102,7 +101,7 @@ function getResetPasswordEmailHtml(userName: string, resetUrl: string) {
 
         <!-- Footer branding -->
         <p style="margin: 24px 0 0; font-size: 12px; color: #a1a1aa; text-align: center;">
-          © ${new Date().getFullYear()} Meu Flip. Todos os direitos reservados.
+          © ${new Date().getFullYear()} meuflip. Todos os direitos reservados.
         </p>
       </td>
     </tr>
@@ -133,7 +132,7 @@ function getVerificationEmailHtml(userName: string, verificationUrl: string) {
                     ${logoSvg}
                   </td>
                   <td style="vertical-align: middle;">
-                    <span style="font-size: 24px; font-weight: 700; color: #18181b;">Meu Flip</span>
+                    <span style="font-size: 24px; font-weight: 700; color: #18181b;">meuflip</span>
                   </td>
                 </tr>
               </table>
@@ -183,7 +182,7 @@ function getVerificationEmailHtml(userName: string, verificationUrl: string) {
 
         <!-- Footer branding -->
         <p style="margin: 24px 0 0; font-size: 12px; color: #a1a1aa; text-align: center;">
-          © ${new Date().getFullYear()} Meu Flip. Todos os direitos reservados.
+          © ${new Date().getFullYear()} meuflip. Todos os direitos reservados.
         </p>
       </td>
     </tr>
@@ -255,5 +254,4 @@ export const auth = betterAuth({
     }),
   ],
 });
-
 

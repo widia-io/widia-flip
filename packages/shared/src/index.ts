@@ -1667,6 +1667,8 @@ export type ListEmailCampaignsResponse = z.infer<typeof ListEmailCampaignsRespon
 
 export const EligibleRecipientsResponseSchema = z.object({
   eligibleCount: z.number(),
+  userCount: z.number().optional(),
+  leadCount: z.number().optional(),
 });
 export type EligibleRecipientsResponse = z.infer<typeof EligibleRecipientsResponseSchema>;
 
@@ -1676,6 +1678,7 @@ export const EligibleRecipientSchema = z.object({
   name: z.string(),
   optInAt: z.string(),
   createdAt: z.string(),
+  source: z.enum(["user", "lead"]).optional(),
 });
 export type EligibleRecipient = z.infer<typeof EligibleRecipientSchema>;
 
@@ -1862,3 +1865,37 @@ export type JobRun = z.infer<typeof JobRunSchema>;
 
 export const ListJobRunsResponseSchema = z.array(JobRunSchema);
 export type ListJobRunsResponse = z.infer<typeof ListJobRunsResponseSchema>;
+
+// Ebook Lead Capture
+
+export const EbookLeadRequestSchema = z.object({
+  email: z.string().email("Email inválido"),
+  ebookSlug: z.string().default("acabamento-que-vende"),
+  marketingConsent: z.boolean(),
+});
+export type EbookLeadRequest = z.infer<typeof EbookLeadRequestSchema>;
+
+// Admin Ebook Leads
+
+export const AdminEbookLeadSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  ebookSlug: z.string(),
+  marketingConsent: z.boolean(),
+  ipAddress: z.string().nullable(),
+  convertedAt: z.string().nullable(),
+  convertedUserId: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type AdminEbookLead = z.infer<typeof AdminEbookLeadSchema>;
+
+export const ListAdminEbookLeadsResponseSchema = z.object({
+  items: z.array(AdminEbookLeadSchema),
+  total: z.number(),
+});
+export type ListAdminEbookLeadsResponse = z.infer<typeof ListAdminEbookLeadsResponseSchema>;
+
+export const ReconcileEbookLeadsResponseSchema = z.object({
+  reconciled: z.number(),
+});
+export type ReconcileEbookLeadsResponse = z.infer<typeof ReconcileEbookLeadsResponseSchema>;

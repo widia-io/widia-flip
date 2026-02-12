@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MailX, CheckCircle2, AlertCircle } from "lucide-react";
 
-import { MeuFlipLogo } from "@/components/MeuFlipLogo";
+import { Logo } from "@/components/Logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -28,8 +28,7 @@ export default async function UnsubscribePage(props: {
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
       {/* Logo */}
       <Link href="/" className="mb-8 flex items-center gap-2">
-        <MeuFlipLogo size={40} />
-        <span className="text-xl font-semibold">Meu Flip</span>
+        <Logo size="full" iconSize={40} />
       </Link>
 
       <Card className="w-full max-w-md">

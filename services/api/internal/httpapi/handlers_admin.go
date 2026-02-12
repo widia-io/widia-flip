@@ -90,6 +90,61 @@ type updateUserStatusRequest struct {
 	IsActive bool `json:"isActive"`
 }
 
+// Ebook upload types
+type adminUploadEbookRequest struct {
+	EbookSlug   string `json:"ebook_slug"`
+	Filename    string `json:"filename"`
+	ContentType string `json:"content_type"`
+	SizeBytes   int64  `json:"size_bytes"`
+}
+
+type adminUploadEbookResponse struct {
+	UploadURL  string `json:"upload_url"`
+	StorageKey string `json:"storage_key"`
+}
+
+// Handler for POST /api/v1/admin/ebooks/upload
+func (a *api) handleAdminUploadEbook(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req adminUploadEbookRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "invalid json body", Details: []string{err.Error()}})
+		return
+	}
+
+	if req.EbookSlug == "" {
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "ebook_slug is required"})
+		return
+	}
+	if req.ContentType != "application/pdf" {
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "content_type must be application/pdf"})
+		return
+	}
+	if req.SizeBytes <= 0 || req.SizeBytes > 100*1024*1024 {
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "size_bytes must be between 1 and 100MB"})
+		return
+	}
+
+	storageKey := "ebooks/" + req.EbookSlug + ".pdf"
+	uploadURL, err := a.s3Client.GeneratePresignedUploadURL(r.Context(), storageKey, req.ContentType, 15*time.Minute)
+	if err != nil {
+		log.Printf("admin upload ebook: presign error: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "STORAGE_ERROR", Message: "failed to generate upload URL"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, adminUploadEbookResponse{
+		UploadURL:  uploadURL,
+		StorageKey: storageKey,
+	})
+}
+
 // Handler for /api/v1/admin/stats
 func (a *api) handleAdminStats(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -528,22 +583,22 @@ func (a *api) handleUserAdminStatus(w http.ResponseWriter, r *http.Request) {
 // SaaS Metrics types
 
 type adminSaaSMetrics struct {
-	Period      string                   `json:"period"`
-	PeriodStart string                   `json:"periodStart"`
-	PeriodEnd   string                   `json:"periodEnd"`
-	MRR         adminMRRMetrics          `json:"mrr"`
-	Churn       adminChurnMetrics        `json:"churn"`
-	Leads       adminLeadsMetrics        `json:"leads"`
-	Conversion  adminConversionMetrics   `json:"conversion"`
-	TrialToPaid adminTrialToPaidMetrics  `json:"trialToPaid"`
-	Incomplete  adminIncompleteMetrics   `json:"incomplete"`
+	Period      string                  `json:"period"`
+	PeriodStart string                  `json:"periodStart"`
+	PeriodEnd   string                  `json:"periodEnd"`
+	MRR         adminMRRMetrics         `json:"mrr"`
+	Churn       adminChurnMetrics       `json:"churn"`
+	Leads       adminLeadsMetrics       `json:"leads"`
+	Conversion  adminConversionMetrics  `json:"conversion"`
+	TrialToPaid adminTrialToPaidMetrics `json:"trialToPaid"`
+	Incomplete  adminIncompleteMetrics  `json:"incomplete"`
 }
 
 type adminMRRMetrics struct {
-	Total       int64          `json:"total"`
+	Total       int64            `json:"total"`
 	ByTier      map[string]int64 `json:"byTier"`
-	ActiveCount int            `json:"activeCount"`
-	Delta       float64        `json:"delta"`
+	ActiveCount int              `json:"activeCount"`
+	Delta       float64          `json:"delta"`
 }
 
 type adminChurnMetrics struct {

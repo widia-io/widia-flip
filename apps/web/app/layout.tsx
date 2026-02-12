@@ -2,19 +2,19 @@ import "./globals.css";
 
 import type { ReactNode } from "react";
 import Script from "next/script";
-import { Fraunces, Manrope } from "next/font/google";
+import { Manrope, Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { PromoBanner } from "@/components/PromoBanner";
 
-const displayFont = Fraunces({
+const displayFont = Manrope({
   subsets: ["latin"],
-  weight: ["400", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-display",
 });
 
-const bodyFont = Manrope({
+const bodyFont = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-body",

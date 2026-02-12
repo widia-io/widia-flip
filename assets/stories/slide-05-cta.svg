@@ -1,0 +1,118 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Noise texture filter -->
+    <filter id="noise5" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" result="noise"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feBlend in="SourceGraphic" in2="noise" mode="overlay" result="blend"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.03"/>
+      </feComponentTransfer>
+      <feBlend in="SourceGraphic" mode="normal"/>
+    </filter>
+
+    <!-- Large teal glow -->
+    <radialGradient id="tealGlow5" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#14B8A6" stop-opacity="0.2"/>
+      <stop offset="50%" stop-color="#14B8A6" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#14B8A6" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Logo glow -->
+    <filter id="logoGlow5" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="30" flood-color="#14B8A6" flood-opacity="0.6"/>
+    </filter>
+
+    <!-- Button gradient -->
+    <linearGradient id="buttonGrad5" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#14B8A6"/>
+      <stop offset="100%" stop-color="#0D9488"/>
+    </linearGradient>
+
+    <!-- Button shadow -->
+    <filter id="buttonShadow5" x="-20%" y="-20%" width="140%" height="180%">
+      <feDropShadow dx="0" dy="8" stdDeviation="20" flood-color="#14B8A6" flood-opacity="0.4"/>
+    </filter>
+
+    <!-- Subtle gradient bg -->
+    <linearGradient id="bgGrad5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="50%" stop-color="#0D1425"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="url(#bgGrad5)"/>
+  <rect width="1080" height="1920" fill="url(#bgGrad5)" filter="url(#noise5)"/>
+
+  <!-- Large teal ambient glow -->
+  <ellipse cx="540" cy="600" rx="600" ry="500" fill="url(#tealGlow5)"/>
+
+  <!-- Geometric accents converging to CTA -->
+  <line x1="0" y1="500" x2="200" y2="700" stroke="#14B8A6" stroke-width="1" opacity="0.2"/>
+  <line x1="1080" y1="500" x2="880" y2="700" stroke="#14B8A6" stroke-width="1" opacity="0.2"/>
+
+  <!-- Corner accents -->
+  <path d="M0 0 L80 0 L80 4 L4 4 L4 80 L0 80 Z" fill="#14B8A6" opacity="0.4"/>
+  <path d="M1080 1920 L1000 1920 L1000 1916 L1076 1916 L1076 1840 L1080 1840 Z" fill="#14B8A6" opacity="0.4"/>
+
+  <!-- Logo - exact paths, scaled 10x, prominent -->
+  <g transform="translate(340, 200) scale(10)" filter="url(#logoGlow5)">
+    <!-- M with integrated arrow - White for dark theme -->
+    <path d="M4 32V8L14 20L24 8L28 4" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- Arrow tip -->
+    <path d="M23 4H28V9" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- F - Teal -->
+    <path d="M20 32V12H34" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M20 22H30" stroke="#14B8A6" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- Brand name -->
+  <text x="540" y="620" text-anchor="middle" font-family="Manrope, sans-serif" font-size="72" font-weight="800" fill="#F8FAFC" letter-spacing="-2">meuflip</text>
+
+  <!-- Headline -->
+  <text x="540" y="740" text-anchor="middle" font-family="Manrope, sans-serif" font-size="40" font-weight="400" fill="#94A3B8">Teste grátis por</text>
+  <text x="540" y="850" text-anchor="middle" font-family="Manrope, sans-serif" font-size="100" font-weight="800" fill="#14B8A6" letter-spacing="-3">7 DIAS</text>
+
+  <!-- Checklist - clean dark style -->
+  <g transform="translate(540, 960)">
+    <text x="0" y="0" text-anchor="middle" font-family="Manrope, sans-serif" font-size="26" font-weight="400" fill="#64748B">
+      <tspan fill="#14B8A6" font-weight="600">✓</tspan>  Sem cartão de crédito
+    </text>
+    <text x="0" y="50" text-anchor="middle" font-family="Manrope, sans-serif" font-size="26" font-weight="400" fill="#64748B">
+      <tspan fill="#14B8A6" font-weight="600">✓</tspan>  Cancele quando quiser
+    </text>
+    <text x="0" y="100" text-anchor="middle" font-family="Manrope, sans-serif" font-size="26" font-weight="400" fill="#64748B">
+      <tspan fill="#14B8A6" font-weight="600">✓</tspan>  Suporte via WhatsApp
+    </text>
+  </g>
+
+  <!-- CTA Button - premium style -->
+  <g transform="translate(240, 1160)" filter="url(#buttonShadow5)">
+    <rect x="0" y="0" width="600" height="100" rx="50" fill="url(#buttonGrad5)"/>
+    <text x="300" y="62" text-anchor="middle" font-family="Manrope, sans-serif" font-size="32" font-weight="700" fill="#0F172A" letter-spacing="2">LINK NA BIO</text>
+    <text x="510" y="64" font-family="Manrope, sans-serif" font-size="28" fill="#0F172A">👆</text>
+  </g>
+
+  <!-- URL -->
+  <text x="540" y="1380" text-anchor="middle" font-family="Manrope, sans-serif" font-size="36" font-weight="600" fill="#64748B">meuflip.com</text>
+
+  <!-- Tagline -->
+  <text x="540" y="1780" text-anchor="middle" font-family="Manrope, sans-serif" font-size="18" font-weight="600" fill="#64748B" letter-spacing="6">FLIP COM INTELIGÊNCIA</text>
+
+  <!-- Decorative elements around button -->
+  <circle cx="180" cy="1210" r="6" fill="#14B8A6" opacity="0.4"/>
+  <circle cx="900" cy="1210" r="6" fill="#14B8A6" opacity="0.4"/>
+  <circle cx="160" cy="1180" r="3" fill="#14B8A6" opacity="0.25"/>
+  <circle cx="920" cy="1240" r="3" fill="#14B8A6" opacity="0.25"/>
+
+  <!-- Slide indicator -->
+  <g transform="translate(480, 1850)">
+    <circle cx="0" cy="0" r="4" fill="#1E293B"/>
+    <circle cx="24" cy="0" r="4" fill="#1E293B"/>
+    <circle cx="48" cy="0" r="4" fill="#1E293B"/>
+    <circle cx="72" cy="0" r="4" fill="#1E293B"/>
+    <circle cx="96" cy="0" r="4" fill="#14B8A6"/>
+  </g>
+</svg>

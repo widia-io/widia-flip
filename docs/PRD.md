@@ -1085,6 +1085,11 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-13` — 2026-01-30 — PRD: auditoria no código confirma M13 (Email Marketing) ainda não implementado; Resend existe apenas para emails transacionais.
 * `CP-13` — 2026-01-30 — PRD: auditoria rápida do código para M0–M12 (presença de migrations/handlers/rotas) + resumo de pendências.
 * `CP-14` — 2026-01-30 — M13 entregue: Email Marketing MVP com LGPD compliance. Migration 0032 (email_campaigns, email_sends, user fields). Go API (handlers_email.go): admin routes + public unsubscribe. Web: SignupForm checkbox, MarketingConsentBanner, server actions, admin UI (/app/admin/email). Resend integration reutilizada.
+* `CP-14` — 2026-02-12 — Branding: monograma SVG MF+seta padronizado conforme manual (componentes web + templates de email Next/Go), removendo variação antiga de ícone.
+* `CP-14` — 2026-02-12 — Branding: stories (slides 01/03/05) alinhados ao branco oficial do monograma (`#FFFFFF`) e sistema `.interface-design/system.md` salvo com regras de logo/tokens.
+* `CP-14` — 2026-02-12 — Dev setup local: `dev:api` passou a carregar `.env.local.shared` + `.env`; `DATABASE_URL` alinhado ao Supabase ativo (`supabase_admin@54322`) e API validada sem erro de autenticação.
+* `CP-14` — 2026-02-12 — Migrations: `scripts/apply-migrations.sh` ajustado para detectar rede/credenciais do container Supabase ativo; reparo de estado `dirty` e aplicação concluída até `0036` (corrigido `0020_admin_flag` para idempotência).
+* `CP-14` — 2026-02-12 — Dev tooling: adicionado `npm run db:repair` (script `scripts/db-repair.sh`) para reparar estado `schema_migrations` dirty automaticamente; README atualizado com fluxo de recovery.
 
 ---
 
