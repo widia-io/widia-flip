@@ -67,6 +67,10 @@ func NewHandler(deps Deps) http.Handler {
 	protectedMux.HandleFunc("/api/v1/suppliers", api.handleSuppliersCollection)
 	protectedMux.HandleFunc("/api/v1/suppliers/", api.handleSuppliersSubroutes)
 
+	// Opportunities
+	protectedMux.HandleFunc("/api/v1/opportunities", api.handleOpportunitiesSubroutes)
+	protectedMux.HandleFunc("/api/v1/opportunities/", api.handleOpportunitiesSubroutes)
+
 	// M10 - Billing (protected - requires user auth)
 	protectedMux.HandleFunc("/api/v1/billing/", api.handleBillingSubroutes)
 

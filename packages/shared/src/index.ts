@@ -1845,6 +1845,53 @@ export const ListOpportunitiesResponseSchema = z.object({
 });
 export type ListOpportunitiesResponse = z.infer<typeof ListOpportunitiesResponseSchema>;
 
+export const OpportunityFacetItemSchema = z.object({
+  value: z.string(),
+  label: z.string(),
+  count: z.number(),
+  state: z.string().optional(),
+  city: z.string().optional(),
+});
+export type OpportunityFacetItem = z.infer<typeof OpportunityFacetItemSchema>;
+
+export const OpportunityFacetNumberItemSchema = z.object({
+  value: z.number(),
+  count: z.number(),
+});
+export type OpportunityFacetNumberItem = z.infer<typeof OpportunityFacetNumberItemSchema>;
+
+export const OpportunityFacetRangesSchema = z.object({
+  score_min: z.number(),
+  score_max: z.number(),
+  price_min_cents: z.number(),
+  price_max_cents: z.number(),
+  area_min: z.number(),
+  area_max: z.number(),
+});
+export type OpportunityFacetRanges = z.infer<typeof OpportunityFacetRangesSchema>;
+
+export const OpportunityFacetsResponseSchema = z.object({
+  states: z.array(OpportunityFacetItemSchema),
+  cities: z.array(OpportunityFacetItemSchema),
+  neighborhoods: z.array(OpportunityFacetItemSchema),
+  statuses: z.array(OpportunityFacetItemSchema),
+  bedrooms: z.array(OpportunityFacetNumberItemSchema),
+  ranges: OpportunityFacetRangesSchema,
+});
+export type OpportunityFacetsResponse = z.infer<typeof OpportunityFacetsResponseSchema>;
+
+export const UpdateOpportunityStatusRequestSchema = z.object({
+  status: OpportunityStatusEnum,
+});
+export type UpdateOpportunityStatusRequest = z.infer<typeof UpdateOpportunityStatusRequestSchema>;
+
+export const UpdateOpportunityStatusResponseSchema = z.object({
+  id: z.string(),
+  status: OpportunityStatusEnum,
+  updated_at: z.string(),
+});
+export type UpdateOpportunityStatusResponse = z.infer<typeof UpdateOpportunityStatusResponseSchema>;
+
 export const JobRunStatusEnum = z.enum(["pending", "running", "completed", "failed"]);
 export type JobRunStatus = z.infer<typeof JobRunStatusEnum>;
 

@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import type { Opportunity } from "@widia/shared";
+import type { Opportunity, OpportunityStatus } from "@widia/shared";
 import { ExternalLink, Bed, Bath, Car, Ruler, MapPin, TrendingDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { OpportunityDetailModal } from "./OpportunityDetailModal";
+import { OpportunityStatusControl } from "./OpportunityStatusControl";
 import { cn } from "@/lib/utils";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
+  onStatusUpdated?: (status: OpportunityStatus) => void;
 }
 
 function formatPrice(cents: number): string {
@@ -36,7 +38,7 @@ function getScoreLabel(score: number): string {
   return "Regular";
 }
 
-export function OpportunityCard({ opportunity }: OpportunityCardProps) {
+export function OpportunityCard({ opportunity, onStatusUpdated }: OpportunityCardProps) {
   const [showDetail, setShowDetail] = useState(false);
 
   const discountPct = opportunity.discount_pct
@@ -71,6 +73,19 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
             >
               {opportunity.score}
             </Badge>
+          </div>
+
+          <div
+            className="mb-3"
+            onClick={(event) => event.stopPropagation()}
+            role="presentation"
+          >
+            <OpportunityStatusControl
+              opportunityId={opportunity.id}
+              status={opportunity.status}
+              onUpdated={onStatusUpdated}
+              compact
+            />
           </div>
 
           {/* Price */}
@@ -153,6 +168,7 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
         opportunity={opportunity}
         open={showDetail}
         onOpenChange={setShowDetail}
+        onStatusUpdated={onStatusUpdated}
       />
     </>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Opportunity } from "@widia/shared";
+import type { Opportunity, OpportunityStatus } from "@widia/shared";
 import { ExternalLink, Bed, Bath, Car, Ruler, MapPin, Building, Calendar, TrendingDown } from "lucide-react";
 import {
   Dialog,
@@ -11,12 +11,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { OpportunityStatusControl } from "./OpportunityStatusControl";
 import { cn } from "@/lib/utils";
 
 interface OpportunityDetailModalProps {
   opportunity: Opportunity;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onStatusUpdated?: (status: OpportunityStatus) => void;
 }
 
 function formatPrice(cents: number): string {
@@ -45,6 +47,7 @@ export function OpportunityDetailModal({
   opportunity,
   open,
   onOpenChange,
+  onStatusUpdated,
 }: OpportunityDetailModalProps) {
   const discountPct = opportunity.discount_pct
     ? Math.round(opportunity.discount_pct * 100)
@@ -88,6 +91,11 @@ export function OpportunityDetailModal({
                 )}
               </div>
             </div>
+            <OpportunityStatusControl
+              opportunityId={opportunity.id}
+              status={opportunity.status}
+              onUpdated={onStatusUpdated}
+            />
           </div>
 
           {/* Location */}
