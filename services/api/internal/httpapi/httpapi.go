@@ -67,6 +67,10 @@ func NewHandler(deps Deps) http.Handler {
 	protectedMux.HandleFunc("/api/v1/suppliers", api.handleSuppliersCollection)
 	protectedMux.HandleFunc("/api/v1/suppliers/", api.handleSuppliersSubroutes)
 
+	// Opportunities
+	protectedMux.HandleFunc("/api/v1/opportunities", api.handleOpportunitiesSubroutes)
+	protectedMux.HandleFunc("/api/v1/opportunities/", api.handleOpportunitiesSubroutes)
+
 	// M10 - Billing (protected - requires user auth)
 	protectedMux.HandleFunc("/api/v1/billing/", api.handleBillingSubroutes)
 
@@ -101,12 +105,18 @@ func NewHandler(deps Deps) http.Handler {
 	adminMux.HandleFunc("/api/v1/admin/ebook-leads/", api.handleAdminEbookLeadsSubroutes)
 	adminMux.HandleFunc("/api/v1/admin/ebooks/upload", api.handleAdminUploadEbook)
 	adminMux.HandleFunc("/api/v1/admin/email/", api.handleAdminEmailSubroutes)
+	adminMux.HandleFunc("/api/v1/admin/opportunities/scraper", api.handleAdminOpportunityScraperSubroutes)
+	adminMux.HandleFunc("/api/v1/admin/opportunities/scraper/", api.handleAdminOpportunityScraperSubroutes)
 	var adminHandler http.Handler = adminMux
 	adminHandler = adminAuthMiddleware(api.tokenVerifier, api.db, adminHandler)
 
 	// Internal routes (protected by X-Internal-Secret, no JWT auth)
 	internalMux := http.NewServeMux()
 	internalMux.HandleFunc("/api/v1/internal/billing/", api.handleInternalBillingSubroutes)
+	internalMux.HandleFunc("/api/v1/internal/opportunities/", api.handleInternalOpportunitiesSubroutes)
+	internalMux.HandleFunc("/api/v1/internal/opportunities", api.handleInternalOpportunitiesSubroutes)
+	internalMux.HandleFunc("/api/v1/internal/job-runs/", api.handleInternalJobRunsSubroutes)
+	internalMux.HandleFunc("/api/v1/internal/job-runs", api.handleInternalJobRunsSubroutes)
 	var internalHandler http.Handler = internalMux
 	internalHandler = internalSecretMiddleware(internalHandler)
 

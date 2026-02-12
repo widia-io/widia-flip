@@ -1791,6 +1791,195 @@ export const DashboardResponseSchema = z.object({
 });
 export type DashboardResponse = z.infer<typeof DashboardResponseSchema>;
 
+// Opportunities (POC)
+
+export const OpportunityScoreBreakdownSchema = z.object({
+  discount: z.number(),
+  area: z.number(),
+  bedrooms: z.number(),
+  parking: z.number(),
+  keywords: z.number(),
+  penalties: z.number(),
+  decay: z.number(),
+});
+export type OpportunityScoreBreakdown = z.infer<typeof OpportunityScoreBreakdownSchema>;
+
+export const OpportunityStatusEnum = z.enum(["new", "viewed", "contacted", "discarded"]);
+export type OpportunityStatus = z.infer<typeof OpportunityStatusEnum>;
+
+export const OpportunitySchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  source_listing_id: z.string(),
+  canonical_url: z.string(),
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  price_cents: z.number(),
+  area_m2: z.number().nullable(),
+  bedrooms: z.number().nullable(),
+  bathrooms: z.number().nullable(),
+  parking_spots: z.number().nullable(),
+  condo_fee_cents: z.number().nullable(),
+  iptu_cents: z.number().nullable(),
+  address: z.string().nullable(),
+  neighborhood: z.string().nullable(),
+  city: z.string().nullable(),
+  state: z.string().nullable(),
+  images: z.array(z.string()).nullable(),
+  score: z.number(),
+  score_breakdown: OpportunityScoreBreakdownSchema,
+  price_per_m2: z.number().nullable(),
+  market_median_m2: z.number().nullable(),
+  discount_pct: z.number().nullable(),
+  status: OpportunityStatusEnum,
+  first_seen_at: z.string(),
+  last_seen_at: z.string(),
+});
+export type Opportunity = z.infer<typeof OpportunitySchema>;
+
+export const ListOpportunitiesResponseSchema = z.object({
+  data: z.array(OpportunitySchema),
+  total: z.number(),
+  limit: z.number(),
+  offset: z.number(),
+});
+export type ListOpportunitiesResponse = z.infer<typeof ListOpportunitiesResponseSchema>;
+
+export const OpportunityFacetItemSchema = z.object({
+  value: z.string(),
+  label: z.string(),
+  count: z.number(),
+  state: z.string().optional(),
+  city: z.string().optional(),
+});
+export type OpportunityFacetItem = z.infer<typeof OpportunityFacetItemSchema>;
+
+export const OpportunityFacetNumberItemSchema = z.object({
+  value: z.number(),
+  count: z.number(),
+});
+export type OpportunityFacetNumberItem = z.infer<typeof OpportunityFacetNumberItemSchema>;
+
+export const OpportunityFacetRangesSchema = z.object({
+  score_min: z.number(),
+  score_max: z.number(),
+  price_min_cents: z.number(),
+  price_max_cents: z.number(),
+  area_min: z.number(),
+  area_max: z.number(),
+});
+export type OpportunityFacetRanges = z.infer<typeof OpportunityFacetRangesSchema>;
+
+export const OpportunityFacetsResponseSchema = z.object({
+  states: z.array(OpportunityFacetItemSchema),
+  cities: z.array(OpportunityFacetItemSchema),
+  neighborhoods: z.array(OpportunityFacetItemSchema),
+  statuses: z.array(OpportunityFacetItemSchema),
+  bedrooms: z.array(OpportunityFacetNumberItemSchema),
+  ranges: OpportunityFacetRangesSchema,
+});
+export type OpportunityFacetsResponse = z.infer<typeof OpportunityFacetsResponseSchema>;
+
+export const UpdateOpportunityStatusRequestSchema = z.object({
+  status: OpportunityStatusEnum,
+});
+export type UpdateOpportunityStatusRequest = z.infer<typeof UpdateOpportunityStatusRequestSchema>;
+
+export const UpdateOpportunityStatusResponseSchema = z.object({
+  id: z.string(),
+  status: OpportunityStatusEnum,
+  updated_at: z.string(),
+});
+export type UpdateOpportunityStatusResponse = z.infer<typeof UpdateOpportunityStatusResponseSchema>;
+
+export const JobRunStatusEnum = z.enum(["pending", "running", "completed", "failed"]);
+export type JobRunStatus = z.infer<typeof JobRunStatusEnum>;
+
+export const JobRunSchema = z.object({
+  id: z.string(),
+  job_name: z.string(),
+  status: JobRunStatusEnum,
+  trigger_type: z.string(),
+  triggered_by: z.string().nullable().optional(),
+  started_at: z.string().nullable(),
+  finished_at: z.string().nullable(),
+  params: z.record(z.any()).nullable(),
+  stats: z.record(z.any()).nullable(),
+  error_message: z.string().nullable().optional(),
+  created_at: z.string(),
+});
+export type JobRun = z.infer<typeof JobRunSchema>;
+
+export const ListJobRunsResponseSchema = z.array(JobRunSchema);
+export type ListJobRunsResponse = z.infer<typeof ListJobRunsResponseSchema>;
+
+export const OpportunityScraperPlaceholderSchema = z.object({
+  id: z.string(),
+  state: z.string(),
+  city: z.string(),
+  neighborhood: z.string(),
+  last_run_at: z.string().nullable(),
+  last_job_run_id: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type OpportunityScraperPlaceholder = z.infer<typeof OpportunityScraperPlaceholderSchema>;
+
+export const ListOpportunityScraperPlaceholdersResponseSchema = z.object({
+  items: z.array(OpportunityScraperPlaceholderSchema),
+});
+export type ListOpportunityScraperPlaceholdersResponse = z.infer<typeof ListOpportunityScraperPlaceholdersResponseSchema>;
+
+export const UpsertOpportunityScraperPlaceholderRequestSchema = z.object({
+  state: z.string().min(2).max(2),
+  city: z.string().min(1),
+  neighborhood: z.string().min(1),
+});
+export type UpsertOpportunityScraperPlaceholderRequest = z.infer<typeof UpsertOpportunityScraperPlaceholderRequestSchema>;
+
+export const RunOpportunityScraperRequestSchema = z.object({
+  state: z.string().optional().default(""),
+  city: z.string().optional().default(""),
+  neighborhood: z.string().optional().default(""),
+  placeholder_id: z.string().uuid().optional(),
+  limit: z.number().int().min(1).max(200).optional(),
+  dry_run: z.boolean().optional().default(false),
+});
+export type RunOpportunityScraperRequest = z.infer<typeof RunOpportunityScraperRequestSchema>;
+
+export const OpportunityScraperResultListingSchema = z.object({
+  source_listing_id: z.string(),
+  canonical_url: z.string(),
+  title: z.string(),
+  neighborhood: z.string(),
+  city: z.string(),
+  state: z.string(),
+  price_cents: z.number(),
+  area_m2: z.number(),
+  bedrooms: z.number(),
+  bathrooms: z.number(),
+  parking_spots: z.number(),
+  score: z.number(),
+  price_per_m2: z.number(),
+  market_median_m2: z.number(),
+  discount_pct: z.number(),
+});
+export type OpportunityScraperResultListing = z.infer<typeof OpportunityScraperResultListingSchema>;
+
+export const RunOpportunityScraperResponseSchema = z.object({
+  job_run_id: z.string(),
+  dry_run: z.boolean(),
+  stats: z.object({
+    total_received: z.number(),
+    new_listings: z.number(),
+    updated: z.number(),
+    median_price_m2: z.number(),
+  }),
+  listings: z.array(OpportunityScraperResultListingSchema),
+  placeholder: OpportunityScraperPlaceholderSchema.optional(),
+});
+export type RunOpportunityScraperResponse = z.infer<typeof RunOpportunityScraperResponseSchema>;
+
 // Ebook Lead Capture
 
 export const EbookLeadRequestSchema = z.object({

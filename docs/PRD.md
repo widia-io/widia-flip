@@ -53,7 +53,7 @@
 * **Current Checkpoint:** `CP-14 — Email Marketing (Mini Mailchimp)`
 * **Milestone em andamento:** `M13 — Email Marketing (CONCLUÍDO)`
 * **Próximo milestone (planejado):** N/A (MVP Complete)
-* **Última atualização:** `2026-01-30`
+* **Última atualização:** `2026-02-12`
 
 ## 1.2 Milestones (visão macro)
 
@@ -1090,6 +1090,12 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-14` — 2026-02-12 — Dev setup local: `dev:api` passou a carregar `.env.local.shared` + `.env`; `DATABASE_URL` alinhado ao Supabase ativo (`supabase_admin@54322`) e API validada sem erro de autenticação.
 * `CP-14` — 2026-02-12 — Migrations: `scripts/apply-migrations.sh` ajustado para detectar rede/credenciais do container Supabase ativo; reparo de estado `dirty` e aplicação concluída até `0036` (corrigido `0020_admin_flag` para idempotência).
 * `CP-14` — 2026-02-12 — Dev tooling: adicionado `npm run db:repair` (script `scripts/db-repair.sh`) para reparar estado `schema_migrations` dirty automaticamente; README atualizado com fluxo de recovery.
+* `CP-14` — 2026-02-12 — Oportunidades/Admin: tela de execução do scraper com parâmetros (cidade/bairro), placeholders salvos (criar/editar/executar) e registro de última execução por placeholder; API admin + migration `0038` para persistência.
+* `CP-14` — 2026-02-12 — Oportunidades/Admin: execução do scraper agora suporta `dry_run` (sem persistência) e retorna lista de imóveis na própria resposta; UI exibe resultados da última execução (score/preço/área/link) para validação imediata.
+* `CP-14` — 2026-02-12 — Oportunidades/Admin: parâmetro `state` adicionado na execução e nos placeholders, persistido em DB (migration `0039`) e normalizado em lowercase (ex: `pr`) antes de chamar o scraper.
+* `CP-14` — 2026-02-12 — Oportunidades/Scraper: fallback inteligente de URL por localidade (formato legado `++`, formato `+`, zonas para capitais como São Paulo e aliases `vila`/`vl`, `jardim`/`jd`), destravando buscas como `São Paulo/Mooca` e `Curitiba/Vila Izabel` sem exigir slug manual.
+* `CP-14` — 2026-02-12 — Oportunidades V2: API protegida (`GET /opportunities`, `GET /opportunities/facets`, `PATCH /opportunities/:id/status`) com filtros canônicos+aliases, facets dinâmicos (UF/cidade/bairro/status/quartos/ranges), actions web via Bearer e UI refeita com faixa de mercado ativa, filtros dependentes, chips removíveis e toggle Cards/Tabela com atualização de status em tempo real.
+* `CP-14` — 2026-02-12 — Deploy scraper-ready: `services/api/Dockerfile` atualizado para builder `golang:1.24-alpine` e runtime com `chromium` + dependências/fontes (`CHROME_PATH`), garantindo execução do scraper de oportunidades em produção sem setup manual no host.
 
 ---
 

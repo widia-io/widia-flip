@@ -10,8 +10,10 @@ import {
   Megaphone,
   BarChart3,
   Mail,
+  Sparkles,
   BookOpen,
   Upload,
+  Play,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +44,20 @@ export default async function AdminDashboardPage() {
           >
             <BarChart3 className="h-4 w-4" />
             SaaS Metrics
+          </Link>
+          <Link
+            href="/app/admin/job-runs"
+            className="flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            <Sparkles className="h-4 w-4" />
+            Job Runs
+          </Link>
+          <Link
+            href="/app/admin/opportunities"
+            className="flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            <Play className="h-4 w-4" />
+            Scraper
           </Link>
           <Link
             href="/app/admin/leads"
