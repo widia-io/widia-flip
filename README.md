@@ -24,6 +24,7 @@ Use `env.example` como referência e exporte as variáveis no seu shell (ou copi
 - **Web (Next / Better Auth)**
   - `BETTER_AUTH_SECRET` (**obrigatório**, >= 32 chars)
   - `GO_API_BASE_URL` (default: `http://localhost:8080`)
+  - `NEXT_PUBLIC_SITE_URL` (opcional, default: `https://meuflip.com`, usado por canonical/sitemap/OG)
 - **API (Go)**
   - `DATABASE_URL` (**obrigatório**)
   - `API_PORT` (default: `8080`)
@@ -40,6 +41,7 @@ Exemplo (dev):
 ```bash
 export BETTER_AUTH_SECRET="dev_secret_please_change_me_32_chars_minimum"
 export GO_API_BASE_URL="http://localhost:8080"
+export NEXT_PUBLIC_SITE_URL="https://meuflip.com"
 export DATABASE_URL="postgres://widia:widia@localhost:5432/widia_flip?sslmode=disable"
 export BETTER_AUTH_JWKS_URL="http://localhost:3000/api/auth/jwks"
 export S3_ENDPOINT="http://localhost:9000"
@@ -49,6 +51,11 @@ export S3_BUCKET="widia-flip-dev"
 export S3_REGION="us-east-1"
 export S3_FORCE_PATH_STYLE="true"
 ```
+
+### SEO técnico (web público)
+
+- `robots.txt` e `sitemap.xml` são gerados pelo App Router em `apps/web/app/robots.ts` e `apps/web/app/sitemap.ts`.
+- Canonical/Open Graph/Twitter cards usam `NEXT_PUBLIC_SITE_URL` (fallback para `https://meuflip.com`).
 
 #### 2) Subir Postgres + MinIO + aplicar migrations
 
@@ -104,4 +111,3 @@ Abra:
 - **Auth tokens (Go)**: a API valida JWT via **JWKS** exposto pelo Better Auth em `GET /api/auth/jwks` (config em `BETTER_AUTH_JWKS_URL`).
 - **Persistência do Better Auth**: no CP-01 o Better Auth roda com storage **em memória** (dev). Reiniciar o servidor do Next reseta as contas/sessões.
 - **Warning Ed25519**: o warning `ExperimentalWarning: The Ed25519 Web Crypto API algorithm` é esperado e não afeta funcionalidade. É causado pelo Better Auth que usa Ed25519 para assinatura de tokens. O script `dev` já suprime warnings experimentais automaticamente.
-

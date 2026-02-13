@@ -1,13 +1,33 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
-export const metadata = {
+import { absoluteUrl, buildPublicMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPublicMetadata({
   title: "Termos de Uso - Meu Flip",
   description: "Termos de uso da plataforma Meu Flip",
+  path: "/terms",
+});
+
+const termsStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Termos de Uso - Meu Flip",
+  description: "Termos de uso da plataforma Meu Flip",
+  url: absoluteUrl("/terms"),
+  inLanguage: "pt-BR",
 };
 
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(termsStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
+
       <div className="mx-auto max-w-3xl px-4 py-16">
         <Link
           href="/"

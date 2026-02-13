@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { EbookLeadForm } from "@/components/ebook/EbookLeadForm";
+import { absoluteUrl } from "@/lib/seo";
 
 const CHAPTERS = [
   { num: "00", title: "Antes de tudo: 3 regras do flipper" },
@@ -32,9 +33,26 @@ const STATS = [
   { value: "100", label: "downloads", suffix: "+" },
 ];
 
+const ebookStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Acabamento que Vende — Ebook Grátis | Meu Flip",
+  description:
+    "Guia prático do flipper para escolher piso, bancada, revestimento e metais sem estourar orçamento e sem perder margem. Baixe grátis.",
+  url: absoluteUrl("/ebook/acabamento-que-vende"),
+  inLanguage: "pt-BR",
+};
+
 export default function EbookLandingPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(ebookStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
+
       {/* ====== HERO — Photo-driven ====== */}
       <section className="relative overflow-hidden bg-[#1e293b]">
         {/* Background moodboard photo */}

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -14,6 +15,13 @@ import { getServerSession } from "@/lib/serverAuth";
 import { apiFetch } from "@/lib/apiFetch";
 import { getActiveWorkspaceId } from "@/lib/workspace";
 import { auth } from "@/lib/auth";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 async function getUserPreferences() {
   try {

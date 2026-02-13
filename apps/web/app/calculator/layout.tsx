@@ -1,16 +1,29 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { getServerSession } from "@/lib/serverAuth";
+import { absoluteUrl, buildPublicMetadata } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 
-export const metadata = {
+export const metadata: Metadata = buildPublicMetadata({
   title: "Calculadora de Viabilidade | Meu Flip",
   description:
     "Calcule a viabilidade do seu flip imobiliário. Descubra lucro, ROI e investimento total em segundos.",
+  path: "/calculator",
+});
+
+const calculatorStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Calculadora de Viabilidade | Meu Flip",
+  description:
+    "Calcule a viabilidade do seu flip imobiliário. Descubra lucro, ROI e investimento total em segundos.",
+  url: absoluteUrl("/calculator"),
+  inLanguage: "pt-BR",
 };
 
 export default async function CalculatorLayout({
@@ -23,6 +36,13 @@ export default async function CalculatorLayout({
 
   return (
     <div className="min-h-screen flex flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(calculatorStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
+
       {/* Header */}
       <header className="border-b border-border">
         <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
@@ -65,5 +85,4 @@ export default async function CalculatorLayout({
     </div>
   );
 }
-
 

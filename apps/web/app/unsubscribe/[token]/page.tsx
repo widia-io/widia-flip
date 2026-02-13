@@ -1,9 +1,17 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { MailX, CheckCircle2, AlertCircle } from "lucide-react";
 
 import { Logo } from "@/components/Logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 async function unsubscribe(token: string) {
   const apiUrl = process.env.GO_API_URL || "http://localhost:8080";
