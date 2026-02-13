@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent, useMemo, useTransition } from "react";
+import { type KeyboardEvent, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, SlidersHorizontal, X } from "lucide-react";
 import type { OpportunityFacetsResponse, OpportunityStatus } from "@widia/shared";
@@ -77,6 +77,11 @@ export function OpportunityFilters({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const [scoreDraft, setScoreDraft] = useState(filters.minScore);
+
+  useEffect(() => {
+    setScoreDraft(filters.minScore);
+  }, [filters.minScore]);
 
   const availableCities = useMemo(() => {
     if (!facets) return [];
@@ -396,10 +401,11 @@ export function OpportunityFilters({
       <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label>
-            Score minimo: <span className="font-semibold">{filters.minScore}</span>
+            Score minimo: <span className="font-semibold">{scoreDraft}</span>
           </Label>
           <Slider
-            value={[filters.minScore]}
+            value={[scoreDraft]}
+            onValueChange={(values) => setScoreDraft(values[0] ?? 0)}
             onValueCommit={(values) =>
               setScalarFilter("min_score", values[0] > 0 ? values[0] : undefined)
             }
