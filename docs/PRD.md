@@ -1100,6 +1100,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-14` — 2026-02-12 — Hotfix scraper (filtro geográfico v2): UF passou a ser validação flexível (aceita URLs sem token de estado, mas bloqueia UF explícita divergente), mantendo trava por cidade e fallback inteligente por bairro; dry-run `Curitiba/Vila Izabel` subiu de 3 para 24 itens mantendo consistência de praça.
 * `CP-14` — 2026-02-12 — Oportunidades/UI hotfix: removido filtro implícito `min_score=50` na página (`/app/opportunities`), evitando lista vazia em produção quando o scraper retorna oportunidades com score < 50 (agora default sem corte e chip/slider de score só aplicam quando configurados).
 * `CP-14` — 2026-02-13 — Oportunidades/UI hotfix: slider de score mínimo deixou de ficar travado (controle local com `onValueChange` + persistência no `onValueCommit`), permitindo ajuste livre do valor na tela.
+* `CP-14` — 2026-02-13 — SEO técnico: adicionados `robots.txt` e `sitemap.xml` (App Router), canonical + Open Graph/Twitter padrão e por páginas públicas (`/`, `/calculator`, `/ebook/acabamento-que-vende`, `/terms`, `/privacy`), JSON-LD nessas rotas indexáveis e `noindex` aplicado em rotas autenticadas/sensíveis (`/app`, auth, `/deck`, `/unsubscribe`, `/ebook/.../obrigado`).
 
 ---
 

@@ -1,5 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { CheckCircle2, Mail, ArrowRight, Inbox } from "lucide-react";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: null,
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function EbookThankYouPage() {
   return (

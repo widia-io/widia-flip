@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   ArrowRight,
   Calculator,
@@ -23,6 +24,31 @@ import { AuthoritySection } from "@/components/landing/AuthoritySection";
 import { AppScreenshots } from "@/components/landing/AppScreenshots";
 import { MobileStickyBar } from "@/components/landing/MobileStickyBar";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { SITE_URL, absoluteUrl, buildPublicMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPublicMetadata({
+  title: "Meu Flip - Analise flips em 30 segundos",
+  description:
+    "Flip Score, viabilidade cash/financiada, custos e documentos. O sistema completo para investidores imobiliários.",
+  path: "/",
+});
+
+const homeStructuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Meu Flip",
+    url: SITE_URL,
+    logo: absoluteUrl("/logos/meuflip-arrow-icon-dark.svg"),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Meu Flip",
+    url: SITE_URL,
+    inLanguage: "pt-BR",
+  },
+];
 
 export default async function HomePage() {
   const session = await getServerSession();
@@ -30,6 +56,13 @@ export default async function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(homeStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">

@@ -1,13 +1,33 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
-export const metadata = {
+import { absoluteUrl, buildPublicMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPublicMetadata({
   title: "Politica de Privacidade - Meu Flip",
   description: "Politica de privacidade da plataforma Meu Flip",
+  path: "/privacy",
+});
+
+const privacyStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Politica de Privacidade - Meu Flip",
+  description: "Politica de privacidade da plataforma Meu Flip",
+  url: absoluteUrl("/privacy"),
+  inLanguage: "pt-BR",
 };
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(privacyStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
+
       <div className="mx-auto max-w-3xl px-4 py-16">
         <Link
           href="/"
