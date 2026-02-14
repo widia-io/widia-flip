@@ -834,6 +834,12 @@ export const PublicCashCalcRequestSchema = z.object({
 });
 export type PublicCashCalcRequest = z.infer<typeof PublicCashCalcRequestSchema>;
 
+export const PublicCashBasicOutputsSchema = z.object({
+  roi: z.number(),
+  is_partial: z.boolean(),
+});
+export type PublicCashBasicOutputs = z.infer<typeof PublicCashBasicOutputsSchema>;
+
 export const PublicCashCalcResponseSchema = z.object({
   inputs: z.object({
     purchase_price: z.number().nullable(),
@@ -841,7 +847,7 @@ export const PublicCashCalcResponseSchema = z.object({
     other_costs: z.number().nullable(),
     sale_price: z.number().nullable(),
   }),
-  outputs: CashOutputsSchema,
+  outputs: PublicCashBasicOutputsSchema,
 });
 export type PublicCashCalcResponse = z.infer<typeof PublicCashCalcResponseSchema>;
 
@@ -860,6 +866,27 @@ export const SaveCalculatorResponseSchema = z.object({
   snapshot_id: z.string(),
 });
 export type SaveCalculatorResponse = z.infer<typeof SaveCalculatorResponseSchema>;
+
+export const PublicCalculatorLeadRequestSchema = z.object({
+  name: z.string().min(2, "Nome inválido"),
+  email: z.string().email("Email inválido"),
+  whatsapp: z.string().regex(/^\d{11}$/, "WhatsApp inválido"),
+  marketingConsent: z
+    .boolean()
+    .refine((value) => value, "É obrigatório aceitar receber e-mails de marketing"),
+  purchase_price: z.number().nonnegative().optional(),
+  renovation_cost: z.number().nonnegative().optional(),
+  other_costs: z.number().nonnegative().optional(),
+  sale_price: z.number().nonnegative().optional(),
+});
+export type PublicCalculatorLeadRequest = z.infer<typeof PublicCalculatorLeadRequestSchema>;
+
+export const PublicCalculatorLeadResponseSchema = z.object({
+  status: z.string(),
+  lead_id: z.string(),
+  outputs: CashOutputsSchema,
+});
+export type PublicCalculatorLeadResponse = z.infer<typeof PublicCalculatorLeadResponseSchema>;
 
 // URL Scraper - Extração de dados de imóveis via URL
 
@@ -2013,3 +2040,28 @@ export const ReconcileEbookLeadsResponseSchema = z.object({
   reconciled: z.number(),
 });
 export type ReconcileEbookLeadsResponse = z.infer<typeof ReconcileEbookLeadsResponseSchema>;
+
+export const AdminCalculatorLeadSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  whatsapp: z.string(),
+  marketingConsent: z.boolean(),
+  purchasePrice: z.number().nullable(),
+  renovationCost: z.number().nullable(),
+  otherCosts: z.number().nullable(),
+  salePrice: z.number().nullable(),
+  roi: z.number(),
+  netProfit: z.number(),
+  investmentTotal: z.number(),
+  isPartial: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type AdminCalculatorLead = z.infer<typeof AdminCalculatorLeadSchema>;
+
+export const ListAdminCalculatorLeadsResponseSchema = z.object({
+  items: z.array(AdminCalculatorLeadSchema),
+  total: z.number(),
+});
+export type ListAdminCalculatorLeadsResponse = z.infer<typeof ListAdminCalculatorLeadsResponseSchema>;

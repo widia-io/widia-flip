@@ -5,6 +5,9 @@
  * - view_calculator: Page load
  * - calculate_submitted: User submitted calculation
  * - save_clicked: User clicked save button
+ * - full_report_requested: User requested full report
+ * - lead_capture_submitted: User submitted lead form
+ * - full_report_unlocked: Full report unlocked after lead capture
  * - auth_modal_opened: Auth modal was opened
  * - signup_completed: User completed signup
  * - property_saved: Property was created from calculator
@@ -69,6 +72,9 @@ export const EVENTS = {
   VIEW_CALCULATOR: "view_calculator",
   CALCULATE_SUBMITTED: "calculate_submitted",
   SAVE_CLICKED: "save_clicked",
+  FULL_REPORT_REQUESTED: "full_report_requested",
+  LEAD_CAPTURE_SUBMITTED: "lead_capture_submitted",
+  FULL_REPORT_UNLOCKED: "full_report_unlocked",
   AUTH_MODAL_OPENED: "auth_modal_opened",
   SIGNUP_STARTED: "signup_started",
   SIGNUP_COMPLETED: "signup_completed",
@@ -77,4 +83,3 @@ export const EVENTS = {
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];
-

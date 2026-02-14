@@ -1,12 +1,21 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
-import { listAdminEbookLeads, reconcileEbookLeads } from "@/lib/actions/admin";
+import {
+  listAdminCalculatorLeads,
+  listAdminEbookLeads,
+  reconcileEbookLeads,
+} from "@/lib/actions/admin";
 import { LeadsPageClient } from "./LeadsPageClient";
 
 export default async function AdminLeadsPage() {
-  const [{ items: leads, total }, { reconciled }] = await Promise.all([
+  const [
+    { items: ebookLeads, total: ebookTotal },
+    { items: calculatorLeads, total: calculatorTotal },
+    { reconciled },
+  ] = await Promise.all([
     listAdminEbookLeads(),
+    listAdminCalculatorLeads(),
     reconcileEbookLeads(),
   ]);
 
@@ -22,7 +31,13 @@ export default async function AdminLeadsPage() {
         </Link>
       </div>
 
-      <LeadsPageClient leads={leads} total={total} reconciled={reconciled} />
+      <LeadsPageClient
+        ebookLeads={ebookLeads}
+        ebookTotal={ebookTotal}
+        calculatorLeads={calculatorLeads}
+        calculatorTotal={calculatorTotal}
+        reconciled={reconciled}
+      />
     </div>
   );
 }

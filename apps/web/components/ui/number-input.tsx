@@ -12,6 +12,7 @@ interface NumberInputProps
   suffix?: string;
   allowDecimals?: boolean;
   decimalPlaces?: number;
+  formatWhileTyping?: boolean;
 }
 
 const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
@@ -24,6 +25,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       suffix = "",
       allowDecimals = false,
       decimalPlaces = 2,
+      formatWhileTyping = false,
       onBlur,
       onFocus,
       ...props
@@ -48,10 +50,15 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
-      setDisplayValue(raw);
-
       const parsed = parseFormattedNumber(raw);
       onChange(parsed);
+
+      if (formatWhileTyping) {
+        setDisplayValue(formatValue(parsed));
+        return;
+      }
+
+      setDisplayValue(raw);
     };
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
