@@ -2,7 +2,9 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SUPABASE_ENV_FILE="$PROJECT_ROOT/supabase/.env"
+# shellcheck source=./lib-supabase-dir.sh
+source "$PROJECT_ROOT/scripts/lib-supabase-dir.sh"
+resolve_supabase_dir
 DB_CONTAINER="${SUPABASE_DB_CONTAINER:-supabase-db}"
 TARGET_VERSION="${1:-}"
 
