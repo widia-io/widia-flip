@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { PublicCashCalcRequestSchema } from "@widia/shared";
+import {
+  PublicCashCalcRequestSchema,
+  PublicCashCalcResponseSchema,
+} from "@widia/shared";
 import { logEvent } from "@/lib/analytics";
 
 const GO_API_BASE_URL = process.env.GO_API_BASE_URL ?? "http://localhost:8080";
@@ -51,7 +54,24 @@ export async function POST(request: Request) {
     }
 
     const data = await res.json();
-    return NextResponse.json(data);
+    const parsedResponse = PublicCashCalcResponseSchema.safeParse(data);
+    if (!parsedResponse.success) {
+      console.error(
+        "[calculator/calculate] Invalid Go API response:",
+        parsedResponse.error.flatten(),
+      );
+      return NextResponse.json(
+        {
+          error: {
+            code: "CALC_ERROR",
+            message: "Invalid calculator response",
+          },
+        },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json(parsedResponse.data);
   } catch (error) {
     console.error("[calculator/calculate] Error:", error);
     return NextResponse.json(
@@ -65,4 +85,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

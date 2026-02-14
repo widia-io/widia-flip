@@ -12,6 +12,7 @@ import type {
   ListMetricsUsersResponse,
   MetricsUserCategory,
   ListAdminEbookLeadsResponse,
+  ListAdminCalculatorLeadsResponse,
   ReconcileEbookLeadsResponse,
 } from "@widia/shared";
 
@@ -102,6 +103,10 @@ export async function getMetricsUsers(
 
 export async function listAdminEbookLeads(): Promise<ListAdminEbookLeadsResponse> {
   return apiFetch<ListAdminEbookLeadsResponse>("/api/v1/admin/ebook-leads");
+}
+
+export async function listAdminCalculatorLeads(): Promise<ListAdminCalculatorLeadsResponse> {
+  return apiFetch<ListAdminCalculatorLeadsResponse>("/api/v1/admin/calculator-leads");
 }
 
 export async function getEbookUploadUrl(

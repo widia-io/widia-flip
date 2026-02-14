@@ -24,8 +24,8 @@ type publicCashSettings struct {
 }
 
 type publicCashCalcResponse struct {
-	Inputs  publicCashInputs  `json:"inputs"`
-	Outputs publicCashOutputs `json:"outputs"`
+	Inputs  publicCashInputs       `json:"inputs"`
+	Outputs publicCashBasicOutputs `json:"outputs"`
 }
 
 type publicCashInputs struct {
@@ -35,7 +35,12 @@ type publicCashInputs struct {
 	SalePrice      *float64 `json:"sale_price"`
 }
 
-type publicCashOutputs struct {
+type publicCashBasicOutputs struct {
+	ROI       float64 `json:"roi"`
+	IsPartial bool    `json:"is_partial"`
+}
+
+type publicCashDetailedOutputs struct {
 	ITBIValue       float64 `json:"itbi_value"`
 	RegistryValue   float64 `json:"registry_value"`
 	AcquisitionCost float64 `json:"acquisition_cost"`
@@ -149,17 +154,9 @@ func (a *api) handlePublicCashCalc(w http.ResponseWriter, r *http.Request) {
 			OtherCosts:     req.OtherCosts,
 			SalePrice:      req.SalePrice,
 		},
-		Outputs: publicCashOutputs{
-			ITBIValue:       result.ITBIValue,
-			RegistryValue:   result.RegistryValue,
-			AcquisitionCost: result.AcquisitionCost,
-			InvestmentTotal: result.InvestmentTotal,
-			BrokerFee:       result.BrokerFee,
-			GrossProfit:     result.GrossProfit,
-			PJTaxValue:      result.PJTaxValue,
-			NetProfit:       result.NetProfit,
-			ROI:             result.ROI,
-			IsPartial:       result.IsPartial,
+		Outputs: publicCashBasicOutputs{
+			ROI:       result.ROI,
+			IsPartial: result.IsPartial,
 		},
 	}
 

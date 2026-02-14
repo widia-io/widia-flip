@@ -1,14 +1,20 @@
 "use client";
 
-import type { CashOutputs } from "@widia/shared";
+import type { CashOutputs, PublicCashBasicOutputs } from "@widia/shared";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-interface CalculatorOutputsProps {
-  outputs: CashOutputs;
-}
+type CalculatorOutputsProps =
+  | {
+      mode: "basic";
+      outputs: PublicCashBasicOutputs;
+    }
+  | {
+      mode?: "full";
+      outputs: CashOutputs;
+    };
 
-export function CalculatorOutputs({ outputs }: CalculatorOutputsProps) {
+export function CalculatorOutputs(props: CalculatorOutputsProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -20,6 +26,29 @@ export function CalculatorOutputs({ outputs }: CalculatorOutputsProps) {
   const formatPercent = (value: number) => {
     return `${value.toFixed(2)}%`;
   };
+
+  if (props.mode === "basic") {
+    return (
+      <div className="space-y-4">
+        {props.outputs.is_partial && (
+          <Badge variant="outline" className="mb-2">
+            Dados incompletos
+          </Badge>
+        )}
+
+        <div className="grid grid-cols-1 gap-3">
+          <OutputItem
+            label="ROI"
+            value={formatPercent(props.outputs.roi)}
+            highlight
+            variant={props.outputs.roi > 0 ? "positive" : props.outputs.roi < 0 ? "negative" : "default"}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const outputs = props.outputs;
 
   return (
     <div className="space-y-4">
@@ -107,5 +136,3 @@ function OutputItem({
     </div>
   );
 }
-
-
