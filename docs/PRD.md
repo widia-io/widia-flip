@@ -1104,6 +1104,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-14` — 2026-02-13 — Calculadora: funil em 2 etapas com resultado básico gratuito (ROI) e relatório completo mediante captura de lead (nome+email+WhatsApp), persistência deduplicada em `calculator_leads`, novo endpoint admin (`/api/v1/admin/calculator-leads`) e seção adicional em `/app/admin/leads`.
 * `CP-14` — 2026-02-14 — Calculadora: inputs financeiros com máscara em tempo real (`700.000`), WhatsApp no padrão `(DD) 9 XXXX-XXXX` e captura de consentimento de email marketing no formulário/DB/admin.
 * `CP-14` — 2026-02-14 — Calculadora: consentimento de email marketing passou a ser obrigatório para liberar relatório completo (UI + schema + validação Go), com erros detalhados de JSON no endpoint de leads para facilitar diagnóstico.
+* `CP-14` — 2026-02-14 — Dev infra: troca limpa para Supabase externo em `~/Developer/infra/supabase` (`db:up/down/migrate/repair` atualizados + README), removendo configs Docker de `supabase/` deste repositório.
 
 ---
 

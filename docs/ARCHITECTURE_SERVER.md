@@ -89,8 +89,8 @@ Este documento descreve a arquitetura do MeuFlip hospedada em produção. Use-o 
 │       └── src/index.ts          # API contracts
 ├── migrations/                   # SQL migrations
 │   └── NNNN_name.{up,down}.sql
-└── supabase/                     # Supabase self-hosted config
-    ├── docker-compose.yml
+└── (externo) ~/Developer/infra/supabase
+    ├── docker-compose.yml        # Supabase self-hosted config
     └── .env                      # Supabase secrets
 ```
 

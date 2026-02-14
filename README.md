@@ -59,6 +59,13 @@ export S3_FORCE_PATH_STYLE="true"
 
 #### 2) Subir Postgres + MinIO + aplicar migrations
 
+Por padrão, os scripts usam o Supabase em `~/Developer/infra/supabase`.
+Se o diretório for diferente, exporte:
+
+```bash
+export SUPABASE_DIR="/caminho/para/seu/supabase"
+```
+
 ```bash
 npm run db:up
 npm run db:migrate
