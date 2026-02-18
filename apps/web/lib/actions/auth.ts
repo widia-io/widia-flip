@@ -26,7 +26,7 @@ export async function signInEmailAction(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(message)}`);
   }
 
-  redirect("/app");
+  redirect("/app?auth=login");
 }
 
 export async function signUpEmailAction(formData: FormData) {
@@ -108,5 +108,4 @@ export async function resetPasswordAction(formData: FormData) {
 
   redirect("/login?success=password_reset");
 }
-
 

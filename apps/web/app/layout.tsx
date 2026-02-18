@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import Script from "next/script";
 import { Manrope, Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AnalyticsSessionBootstrap } from "@/components/AnalyticsSessionBootstrap";
 import { Toaster } from "@/components/ui/sonner";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { PromoBanner } from "@/components/PromoBanner";
@@ -77,6 +78,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         suppressHydrationWarning
       >
         <ThemeProvider>
+          <AnalyticsSessionBootstrap />
           <PromoBanner />
           {children}
           <Toaster />

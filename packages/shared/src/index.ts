@@ -1669,6 +1669,72 @@ export const ListMetricsUsersResponseSchema = z.object({
 });
 export type ListMetricsUsersResponse = z.infer<typeof ListMetricsUsersResponseSchema>;
 
+// Funnel Analytics (Onda 0)
+
+export const FunnelDeviceEnum = z.enum(["mobile", "desktop", "tablet", "unknown"]);
+export type FunnelDevice = z.infer<typeof FunnelDeviceEnum>;
+
+export const TrackFunnelEventRequestSchema = z.object({
+  event: z.string().min(1).max(100),
+  session_id: z.string().min(1).max(120),
+  variant: z.string().min(1).max(50).optional(),
+  source: z.string().min(1).max(80).optional(),
+  device: FunnelDeviceEnum.optional(),
+  path: z.string().min(1).max(255).optional(),
+  request_id: z.string().max(120).optional(),
+  workspace_id: z.string().optional(),
+  occurred_at: z.string().optional(),
+  properties: z.record(z.string(), z.unknown()).optional(),
+});
+export type TrackFunnelEventRequest = z.infer<typeof TrackFunnelEventRequestSchema>;
+
+export const TrackFunnelEventResponseSchema = z.object({
+  status: z.literal("accepted"),
+});
+export type TrackFunnelEventResponse = z.infer<typeof TrackFunnelEventResponseSchema>;
+
+export const AdminFunnelDailyItemSchema = z.object({
+  date: z.string(),
+  homeViews: z.number(),
+  signupStarted: z.number(),
+  signupCompleted: z.number(),
+  loginCompleted: z.number(),
+  firstSnapshotSaved: z.number(),
+  calculatorFullReportRequested: z.number(),
+  calculatorSaveClicked: z.number(),
+});
+export type AdminFunnelDailyItem = z.infer<typeof AdminFunnelDailyItemSchema>;
+
+export const AdminFunnelDailyTotalsSchema = z.object({
+  homeViews: z.number(),
+  signupStarted: z.number(),
+  signupCompleted: z.number(),
+  loginCompleted: z.number(),
+  firstSnapshotSaved: z.number(),
+  calculatorFullReportRequested: z.number(),
+  calculatorSaveClicked: z.number(),
+});
+export type AdminFunnelDailyTotals = z.infer<typeof AdminFunnelDailyTotalsSchema>;
+
+export const AdminFunnelDailyRatesSchema = z.object({
+  homeToSignupStartPct: z.number(),
+  signupStartToCompletePct: z.number(),
+  signupCompleteToLoginPct: z.number(),
+  loginToFirstSnapshotPct: z.number(),
+  homeToFirstSnapshotPct: z.number(),
+  calculatorToSaveClickPct: z.number(),
+  calculatorToReportRequestPct: z.number(),
+});
+export type AdminFunnelDailyRates = z.infer<typeof AdminFunnelDailyRatesSchema>;
+
+export const AdminFunnelDailyResponseSchema = z.object({
+  days: z.number(),
+  items: z.array(AdminFunnelDailyItemSchema),
+  totals: AdminFunnelDailyTotalsSchema,
+  rates: AdminFunnelDailyRatesSchema,
+});
+export type AdminFunnelDailyResponse = z.infer<typeof AdminFunnelDailyResponseSchema>;
+
 // Email Marketing (LGPD-compliant)
 
 export const EmailCampaignStatusEnum = z.enum(["draft", "queued", "sending", "sent"]);

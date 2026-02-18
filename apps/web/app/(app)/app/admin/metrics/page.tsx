@@ -1,6 +1,6 @@
 import type { AdminSaaSMetricsPeriod } from "@widia/shared";
 
-import { getAdminSaaSMetrics } from "@/lib/actions/admin";
+import { getAdminSaaSMetrics, getAdminFunnelDaily } from "@/lib/actions/admin";
 
 import { MetricsDashboard } from "./MetricsDashboard";
 
@@ -13,8 +13,12 @@ export default async function AdminMetricsPage({ searchParams }: Props) {
   const period = (params.period || "30d") as AdminSaaSMetricsPeriod;
   const validPeriods = ["30d", "90d", "all"];
   const validPeriod = validPeriods.includes(period) ? period : "30d";
+  const funnelDays = validPeriod === "90d" || validPeriod === "all" ? 90 : 30;
 
-  const metrics = await getAdminSaaSMetrics(validPeriod);
+  const [metrics, funnel] = await Promise.all([
+    getAdminSaaSMetrics(validPeriod),
+    getAdminFunnelDaily(funnelDays),
+  ]);
 
-  return <MetricsDashboard metrics={metrics} />;
+  return <MetricsDashboard metrics={metrics} funnel={funnel} />;
 }

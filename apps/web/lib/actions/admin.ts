@@ -9,6 +9,7 @@ import type {
   BillingTier,
   AdminSaaSMetricsResponse,
   AdminSaaSMetricsPeriod,
+  AdminFunnelDailyResponse,
   ListMetricsUsersResponse,
   MetricsUserCategory,
   ListAdminEbookLeadsResponse,
@@ -99,6 +100,12 @@ export async function getMetricsUsers(
   return apiFetch<ListMetricsUsersResponse>(
     `/api/v1/admin/metrics/users?category=${category}`
   );
+}
+
+export async function getAdminFunnelDaily(
+  days: number
+): Promise<AdminFunnelDailyResponse> {
+  return apiFetch<AdminFunnelDailyResponse>(`/api/v1/admin/funnel/daily?days=${days}`);
 }
 
 export async function listAdminEbookLeads(): Promise<ListAdminEbookLeadsResponse> {

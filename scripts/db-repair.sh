@@ -84,7 +84,7 @@ if [ -z "$CURRENT_VERSION" ] || [ -z "$CURRENT_DIRTY" ]; then
   exit 1
 fi
 
-if [ "$CURRENT_DIRTY" != "t" ]; then
+if [ "$CURRENT_DIRTY" != "t" ] && [ "$CURRENT_DIRTY" != "true" ]; then
   echo "schema_migrations is clean (version=$CURRENT_VERSION). No repair needed."
   exit 0
 fi

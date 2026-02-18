@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/widia-projects/widia-flip/services/api/internal/auth"
@@ -344,6 +345,23 @@ func (a *api) handleCreateCashSnapshot(w http.ResponseWriter, r *http.Request, p
 		"net_profit":  outputs.NetProfit,
 		"roi":         outputs.ROI,
 	}, userID)
+
+	path := r.Header.Get("X-Widia-Path")
+	if strings.TrimSpace(path) == "" {
+		path = "/app/properties/" + propertyID + "/viability"
+	}
+	a.trackFirstSnapshotIfNeeded(
+		r.Context(),
+		userID,
+		workspaceID,
+		requestID,
+		r.Header.Get("X-Widia-Session-ID"),
+		path,
+		r.Header.Get("X-Widia-Device"),
+		propertyID,
+		snapshotID,
+		"cash",
+	)
 
 	writeJSON(w, http.StatusCreated, createSnapshotResponse{SnapshotID: snapshotID, CreatedAt: createdAt})
 }

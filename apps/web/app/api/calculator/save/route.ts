@@ -6,6 +6,25 @@ import { logEvent } from "@/lib/analytics";
 
 const GO_API_BASE_URL = process.env.GO_API_BASE_URL ?? "http://localhost:8080";
 
+function getCookieValue(cookieHeader: string, key: string): string | null {
+  const parts = cookieHeader.split(";").map((part) => part.trim());
+  for (const part of parts) {
+    const [cookieKey, ...rest] = part.split("=");
+    if (cookieKey === key) {
+      return decodeURIComponent(rest.join("="));
+    }
+  }
+  return null;
+}
+
+function detectDeviceType(userAgent: string): "mobile" | "desktop" | "tablet" | "unknown" {
+  const ua = userAgent.toLowerCase();
+  if (!ua) return "unknown";
+  if (ua.includes("ipad") || ua.includes("tablet")) return "tablet";
+  if (ua.includes("mobile") || ua.includes("android") || ua.includes("iphone")) return "mobile";
+  return "desktop";
+}
+
 async function apiFetchWithToken<T>(
   token: string,
   path: string,
@@ -76,10 +95,25 @@ export async function POST(request: Request) {
     // Log event
     logEvent("save_clicked", { is_logged_in: true });
 
+    const cookieHeader = request.headers.get("cookie") ?? "";
+    const sessionId = getCookieValue(cookieHeader, "widia_session_id");
+    const analyticsHeaders = new Headers();
+    if (sessionId) {
+      analyticsHeaders.set("X-Widia-Session-ID", sessionId);
+    }
+    analyticsHeaders.set("X-Widia-Path", "/calculator");
+    analyticsHeaders.set(
+      "X-Widia-Device",
+      detectDeviceType(request.headers.get("user-agent") ?? ""),
+    );
+
     // Step 1: Get user's workspace
     const workspacesRes = await apiFetchWithToken<{ items: { id: string }[] }>(
       token,
       "/api/v1/workspaces",
+      {
+        headers: analyticsHeaders,
+      },
     );
 
     if (!workspacesRes.items || workspacesRes.items.length === 0) {
@@ -89,6 +123,7 @@ export async function POST(request: Request) {
         "/api/v1/workspaces",
         {
           method: "POST",
+          headers: analyticsHeaders,
           body: JSON.stringify({ name: "Meu Workspace" }),
         },
       );
@@ -103,6 +138,7 @@ export async function POST(request: Request) {
       "/api/v1/properties",
       {
         method: "POST",
+        headers: analyticsHeaders,
         body: JSON.stringify({
           workspace_id: workspaceId,
           neighborhood: parsed.data.neighborhood,
@@ -132,6 +168,7 @@ export async function POST(request: Request) {
       `/api/v1/properties/${property.id}/analysis/cash`,
       {
         method: "PUT",
+        headers: analyticsHeaders,
         body: JSON.stringify(analysisInputs),
       },
     );
@@ -140,7 +177,10 @@ export async function POST(request: Request) {
     const snapshot = await apiFetchWithToken<{ snapshot_id: string }>(
       token,
       `/api/v1/properties/${property.id}/analysis/cash/snapshot`,
-      { method: "POST" },
+      {
+        method: "POST",
+        headers: analyticsHeaders,
+      },
     );
 
     // Log success
@@ -167,4 +207,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

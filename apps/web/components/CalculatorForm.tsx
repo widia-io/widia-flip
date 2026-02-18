@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { EVENTS, logEvent } from "@/lib/analytics";
+import { EVENTS, ensureAnalyticsSessionId, logEvent } from "@/lib/analytics";
 
 interface CalculatorFormProps {
   readonly isLoggedIn: boolean;
@@ -41,6 +41,7 @@ interface CalculatorReportResponse {
 const STORAGE_KEY = "widia_calculator_inputs";
 const REPORT_UNLOCKED_KEY = "widia_calculator_report_unlocked";
 const LEAD_STORAGE_KEY = "widia_calculator_lead";
+const CALCULATOR_VIEW_SESSION_KEY = "widia_calculator_view_logged";
 
 function getSaveButtonText(isSaving: boolean, isLoggedIn: boolean): string {
   if (isSaving) return "Salvando...";
@@ -111,6 +112,15 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
 
   const [basicOutputs, setBasicOutputs] = useState<PublicCashBasicOutputs | null>(null);
   const [fullOutputs, setFullOutputs] = useState<CashOutputs | null>(null);
+
+  useEffect(() => {
+    ensureAnalyticsSessionId();
+
+    if (!sessionStorage.getItem(CALCULATOR_VIEW_SESSION_KEY)) {
+      logEvent(EVENTS.VIEW_CALCULATOR, { is_logged_in: isLoggedIn });
+      sessionStorage.setItem(CALCULATOR_VIEW_SESSION_KEY, "true");
+    }
+  }, [isLoggedIn]);
 
   useEffect(() => {
     const storedInputs = sessionStorage.getItem(STORAGE_KEY);
@@ -295,6 +305,12 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
   };
 
   const handleSave = async () => {
+    logEvent(EVENTS.SAVE_CLICKED, {
+      is_logged_in: isLoggedIn,
+      has_purchase_price: inputs.purchase_price !== null,
+      has_sale_price: inputs.sale_price !== null,
+    });
+
     if (!isLoggedIn) {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(inputs));
       sessionStorage.setItem("widia_pending_save", "true");
