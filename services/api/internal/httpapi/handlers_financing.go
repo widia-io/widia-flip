@@ -658,6 +658,23 @@ func (a *api) handleCreateFinancingSnapshot(w http.ResponseWriter, r *http.Reque
 		"roi":         outputs.ROI,
 	}, userID)
 
+	path := r.Header.Get("X-Widia-Path")
+	if strings.TrimSpace(path) == "" {
+		path = "/app/properties/" + propertyID + "/financing"
+	}
+	a.trackFirstSnapshotIfNeeded(
+		r.Context(),
+		userID,
+		workspaceID,
+		requestID,
+		r.Header.Get("X-Widia-Session-ID"),
+		path,
+		r.Header.Get("X-Widia-Device"),
+		propertyID,
+		snapshotID,
+		"financing",
+	)
+
 	writeJSON(w, http.StatusCreated, createSnapshotResponse{SnapshotID: snapshotID, CreatedAt: createdAt})
 }
 

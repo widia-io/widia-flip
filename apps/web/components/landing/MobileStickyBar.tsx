@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { EVENTS, ensureAnalyticsSessionId, logEvent } from "@/lib/analytics";
 
 interface MobileStickyBarProps {
   isLoggedIn: boolean;
@@ -15,6 +16,8 @@ export function MobileStickyBar({ isLoggedIn }: MobileStickyBarProps) {
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
+    ensureAnalyticsSessionId();
+
     const handleScroll = () => {
       // Show after scrolling past hero (approx 500px)
       const shouldShow = window.scrollY > 500;
@@ -38,7 +41,15 @@ export function MobileStickyBar({ isLoggedIn }: MobileStickyBarProps) {
     >
       <div className="flex items-center gap-3">
         <Button asChild className="flex-1 shadow-lg shadow-primary/25">
-          <Link href={isLoggedIn ? "/app" : "/login?tab=signup"}>
+          <Link
+            href={isLoggedIn ? "/app" : "/login?tab=signup"}
+            onClick={() =>
+              logEvent(EVENTS.HOME_CTA_CLICK, {
+                cta: "mobile_sticky_signup",
+                location: "mobile_sticky_bar",
+              })
+            }
+          >
             Testar grátis
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>

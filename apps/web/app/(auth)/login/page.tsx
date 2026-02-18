@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { signInEmailAction } from "@/lib/actions/auth";
 import { getServerSession } from "@/lib/serverAuth";
 import { Logo } from "@/components/Logo";
+import { LoginForm } from "@/components/LoginForm";
 import { SignupForm } from "@/components/SignupForm";
+import { AuthPageFunnelTracker } from "@/components/AuthPageFunnelTracker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 
 export default async function LoginPage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -45,6 +43,8 @@ export default async function LoginPage(props: {
         </CardHeader>
 
         <CardContent>
+          <AuthPageFunnelTracker success={success || undefined} />
+
           {error ? (
             <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error === "email_not_verified" ? (
@@ -89,39 +89,7 @@ export default async function LoginPage(props: {
           {tab === "signup" ? (
             <SignupForm />
           ) : (
-            <form action={signInEmailAction} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Senha</Label>
-                  <Link
-                    href="/forgot-password"
-                    className="text-xs text-muted-foreground hover:text-primary hover:underline"
-                  >
-                    Esqueceu sua senha?
-                  </Link>
-                </div>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                Entrar
-              </Button>
-            </form>
+            <LoginForm />
           )}
 
           <div className="mt-6 text-center text-sm text-muted-foreground">

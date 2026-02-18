@@ -1,14 +1,10 @@
 import { getServerSession } from "@/lib/serverAuth";
 import { CalculatorForm } from "@/components/CalculatorForm";
-import { logEvent, EVENTS } from "@/lib/analytics";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default async function CalculatorPage() {
   const session = await getServerSession();
   const isLoggedIn = !!session;
-
-  // Log page view event
-  logEvent(EVENTS.VIEW_CALCULATOR, { is_logged_in: isLoggedIn });
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12">
@@ -59,5 +55,4 @@ export default async function CalculatorPage() {
     </div>
   );
 }
-
 

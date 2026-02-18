@@ -31,6 +31,7 @@ func NewHandler(deps Deps) http.Handler {
 	publicMux.HandleFunc("/api/v1/health", api.handleHealth)
 	publicMux.HandleFunc("/api/v1/public/cash-calc", api.handlePublicCashCalc)
 	publicMux.HandleFunc("/api/v1/public/calculator-leads", api.handlePublicCalculatorLead)
+	publicMux.HandleFunc("/api/v1/public/funnel-events", api.handlePublicFunnelEvent)
 	publicMux.HandleFunc("/api/v1/public/promotions/active-banner", api.handlePublicActiveBanner)
 	publicMux.HandleFunc("/api/v1/public/unsubscribe/", api.handlePublicUnsubscribe)
 	publicMux.HandleFunc("/api/v1/public/ebook-leads", api.handlePublicEbookLead)
@@ -77,6 +78,7 @@ func NewHandler(deps Deps) http.Handler {
 
 	// User preferences (onboarding, feature tour)
 	protectedMux.HandleFunc("/api/v1/user/preferences", api.handleUserPreferences)
+	protectedMux.HandleFunc("/api/v1/funnel-events", api.handleFunnelEvent)
 
 	// User admin status check (protected, not admin-only)
 	protectedMux.HandleFunc("/api/v1/user/admin-status", api.handleUserAdminStatus)
@@ -98,6 +100,7 @@ func NewHandler(deps Deps) http.Handler {
 	adminMux.HandleFunc("/api/v1/admin/stats", api.handleAdminStats)
 	adminMux.HandleFunc("/api/v1/admin/metrics/users", api.handleAdminMetricsUsers)
 	adminMux.HandleFunc("/api/v1/admin/metrics", api.handleAdminMetrics)
+	adminMux.HandleFunc("/api/v1/admin/funnel/daily", api.handleAdminFunnelDaily)
 	adminMux.HandleFunc("/api/v1/admin/users", api.handleAdminUsersCollection)
 	adminMux.HandleFunc("/api/v1/admin/users/", api.handleAdminUsersSubroutes)
 	adminMux.HandleFunc("/api/v1/admin/promotions", api.handleAdminPromotionsCollection)

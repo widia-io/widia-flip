@@ -24,6 +24,7 @@ import { AuthoritySection } from "@/components/landing/AuthoritySection";
 import { AppScreenshots } from "@/components/landing/AppScreenshots";
 import { MobileStickyBar } from "@/components/landing/MobileStickyBar";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { HomeFunnelTracker } from "@/components/landing/HomeFunnelTracker";
 import { SITE_URL, absoluteUrl, buildPublicMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildPublicMetadata({
@@ -56,6 +57,8 @@ export default async function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <HomeFunnelTracker />
+
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -75,7 +78,14 @@ export default async function HomePage() {
 
           <nav className="flex items-center gap-3">
             <Button variant="ghost" asChild className="hidden sm:inline-flex">
-              <Link href="/calculator">Calculadora</Link>
+              <Link
+                href="/calculator"
+                data-funnel-event="home_cta_click"
+                data-funnel-cta="header_calculator"
+                data-funnel-location="header"
+              >
+                Calculadora
+              </Link>
             </Button>
             <Button variant="ghost" asChild className="hidden sm:inline-flex">
               <a href="#pricing">Planos</a>
@@ -91,10 +101,24 @@ export default async function HomePage() {
             ) : (
               <>
                 <Button variant="ghost" asChild className="hidden sm:inline-flex">
-                  <Link href="/login">Entrar</Link>
+                  <Link
+                    href="/login"
+                    data-funnel-event="home_cta_click"
+                    data-funnel-cta="header_login"
+                    data-funnel-location="header"
+                  >
+                    Entrar
+                  </Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/login?tab=signup">Testar grátis</Link>
+                  <Link
+                    href="/login?tab=signup"
+                    data-funnel-event="home_cta_click"
+                    data-funnel-cta="header_signup"
+                    data-funnel-location="header"
+                  >
+                    Testar grátis
+                  </Link>
                 </Button>
               </>
             )}
@@ -146,7 +170,12 @@ export default async function HomePage() {
               </div>
               <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
                 <Button size="lg" asChild className="w-full sm:w-auto shadow-lg shadow-primary/25">
-                  <Link href={isLoggedIn ? "/app" : "/login?tab=signup"}>
+                  <Link
+                    href={isLoggedIn ? "/app" : "/login?tab=signup"}
+                    data-funnel-event="home_cta_click"
+                    data-funnel-cta="hero_primary"
+                    data-funnel-location="hero"
+                  >
                     Testar grátis por 7 dias
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
@@ -157,7 +186,12 @@ export default async function HomePage() {
                   asChild
                   className="w-full sm:w-auto"
                 >
-                  <Link href="/calculator">
+                  <Link
+                    href="/calculator"
+                    data-funnel-event="home_cta_click"
+                    data-funnel-cta="hero_calculator"
+                    data-funnel-location="hero"
+                  >
                     Calculadora grátis
                     <Calculator className="ml-2 h-4 w-4" />
                   </Link>
@@ -299,7 +333,12 @@ export default async function HomePage() {
             </p>
             <div className="mt-8 flex flex-col items-center gap-4">
               <Button size="lg" asChild className="shadow-lg shadow-primary/25">
-                <Link href={isLoggedIn ? "/app" : "/login?tab=signup"}>
+                <Link
+                  href={isLoggedIn ? "/app" : "/login?tab=signup"}
+                  data-funnel-event="home_cta_click"
+                  data-funnel-cta="footer_primary"
+                  data-funnel-location="footer"
+                >
                   Começar agora — é grátis
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

@@ -16,6 +16,7 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import type {
   AdminSaaSMetricsResponse,
+  AdminFunnelDailyResponse,
   ListMetricsUsersResponse,
   MetricsUserCategory,
 } from "@widia/shared";
@@ -37,6 +38,7 @@ import { getMetricsUsers } from "@/lib/actions/admin";
 
 interface Props {
   metrics: AdminSaaSMetricsResponse;
+  funnel: AdminFunnelDailyResponse;
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -211,7 +213,7 @@ function UsersTab({ category }: { category: MetricsUserCategory }) {
   );
 }
 
-export function MetricsDashboard({ metrics }: Props) {
+export function MetricsDashboard({ metrics, funnel }: Props) {
   const pieData = Object.entries(metrics.mrr.byTier).map(([tier, value]) => ({
     name: tier.charAt(0).toUpperCase() + tier.slice(1),
     value,
@@ -318,6 +320,109 @@ export function MetricsDashboard({ metrics }: Props) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Onda 0 Funnel */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Funnel Diário (Onda 0)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Home → Signup Start</div>
+              <div className="mt-1 text-lg font-semibold">
+                {formatPercent(funnel.rates.homeToSignupStartPct)}
+              </div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Signup Start → Complete</div>
+              <div className="mt-1 text-lg font-semibold">
+                {formatPercent(funnel.rates.signupStartToCompletePct)}
+              </div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Signup Complete → Login</div>
+              <div className="mt-1 text-lg font-semibold">
+                {formatPercent(funnel.rates.signupCompleteToLoginPct)}
+              </div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Login → 1º Snapshot</div>
+              <div className="mt-1 text-lg font-semibold">
+                {formatPercent(funnel.rates.loginToFirstSnapshotPct)}
+              </div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Home → 1º Snapshot</div>
+              <div className="mt-1 text-lg font-semibold">
+                {formatPercent(funnel.rates.homeToFirstSnapshotPct)}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Home Views</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.homeViews}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Signup Started</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.signupStarted}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Signup Completed</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.signupCompleted}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Login Completed</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.loginCompleted}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">1º Snapshot</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.firstSnapshotSaved}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Calc: Relatório</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.calculatorFullReportRequested}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Calc: Salvar</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.calculatorSaveClicked}</div>
+            </div>
+          </div>
+
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Home</TableHead>
+                  <TableHead>Signup Start</TableHead>
+                  <TableHead>Signup Complete</TableHead>
+                  <TableHead>Login</TableHead>
+                  <TableHead>1º Snapshot</TableHead>
+                  <TableHead>Calc Relatório</TableHead>
+                  <TableHead>Calc Salvar</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {funnel.items.slice(-14).reverse().map((row) => (
+                  <TableRow key={row.date}>
+                    <TableCell>{row.date}</TableCell>
+                    <TableCell>{row.homeViews}</TableCell>
+                    <TableCell>{row.signupStarted}</TableCell>
+                    <TableCell>{row.signupCompleted}</TableCell>
+                    <TableCell>{row.loginCompleted}</TableCell>
+                    <TableCell>{row.firstSnapshotSaved}</TableCell>
+                    <TableCell>{row.calculatorFullReportRequested}</TableCell>
+                    <TableCell>{row.calculatorSaveClicked}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Conversion Funnel */}

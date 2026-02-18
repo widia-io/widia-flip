@@ -53,7 +53,7 @@
 * **Current Checkpoint:** `CP-14 — Email Marketing (Mini Mailchimp)`
 * **Milestone em andamento:** `M13 — Email Marketing (CONCLUÍDO)`
 * **Próximo milestone (planejado):** N/A (MVP Complete)
-* **Última atualização:** `2026-02-14`
+* **Última atualização:** `2026-02-18`
 
 ## 1.2 Milestones (visão macro)
 
@@ -1106,6 +1106,8 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-14` — 2026-02-14 — Calculadora: consentimento de email marketing passou a ser obrigatório para liberar relatório completo (UI + schema + validação Go), com erros detalhados de JSON no endpoint de leads para facilitar diagnóstico.
 * `CP-14` — 2026-02-14 — Dev infra: troca limpa para Supabase externo em `~/Developer/infra/supabase` (`db:up/down/migrate/repair` atualizados + README), removendo configs Docker de `supabase/` deste repositório.
 * `CP-14` — 2026-02-18 — Documento de execução incremental de UX/conversão em produção criado (`docs/UX_CONVERSAO_ROADMAP_2026-02-18.md`) com plano em ondas (instrumentação, quick wins, calculadora, onboarding) e métricas de decisão.
+* `CP-14` — 2026-02-18 — Onda 0 implementada: ingestão padronizada de eventos de funil (`session_id/variant/source/device`) via BFF (`/api/analytics/track`) + persistência em `flip.funnel_events` (migration `0042`), evento `first_snapshot_saved` no Go e painel diário no admin (`/api/v1/admin/funnel/daily`, `/app/admin/metrics`).
+* `CP-14` — 2026-02-18 — UI do `/app/admin` reorganizada como hub operacional (visão executiva + atalhos por domínio + blocos de distribuição de usuários/pipeline/prospecção), removendo header congestionado e melhorando escaneabilidade.
 
 ---
 

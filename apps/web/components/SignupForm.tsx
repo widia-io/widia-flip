@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PhoneInput } from "@/components/PhoneInput";
+import { EVENTS, ensureAnalyticsSessionId, logEvent } from "@/lib/analytics";
 
 export function SignupForm() {
   const [, formAction, isPending] = useActionState(
@@ -19,7 +20,17 @@ export function SignupForm() {
   );
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      action={formAction}
+      className="space-y-4"
+      onSubmitCapture={() => {
+        ensureAnalyticsSessionId();
+        logEvent(EVENTS.SIGNUP_STARTED, {
+          source: "login_page",
+          location: "signup_form",
+        });
+      }}
+    >
       <div className="space-y-2">
         <Label htmlFor="name">Nome</Label>
         <Input

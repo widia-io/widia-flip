@@ -10,6 +10,7 @@ import { getDashboardAction } from "@/lib/actions/dashboard";
 import { getActiveWorkspaceId } from "@/lib/workspace";
 import { getServerSession } from "@/lib/serverAuth";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { AppAuthFunnelTracker } from "@/components/AppAuthFunnelTracker";
 import { WorkspaceDashboard } from "@/components/WorkspaceDashboard";
 import {
   WelcomeHero,
@@ -81,6 +82,8 @@ export default async function AppHomePage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+      <AppAuthFunnelTracker />
+
       {/* First-time user: Enhanced welcome experience */}
       {isFirstTimeExperience ? (
         <>

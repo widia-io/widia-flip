@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EVENTS, ensureAnalyticsSessionId, logEvent } from "@/lib/analytics";
 
 interface AuthModalProps {
   readonly isOpen: boolean;
@@ -27,10 +28,19 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    ensureAnalyticsSessionId();
+    logEvent(EVENTS.AUTH_MODAL_OPENED, { source: "calculator_save" });
+  }, [isOpen]);
+
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+
+    ensureAnalyticsSessionId();
+    logEvent(EVENTS.LOGIN_STARTED, { source: "auth_modal" });
 
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
@@ -49,6 +59,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
       }
 
       // Refresh and trigger success
+      logEvent(EVENTS.LOGIN_COMPLETED, { source: "auth_modal" });
       router.refresh();
       onSuccess();
     } catch (err) {
@@ -62,6 +73,9 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+
+    ensureAnalyticsSessionId();
+    logEvent(EVENTS.SIGNUP_STARTED, { source: "auth_modal" });
 
     const formData = new FormData(e.currentTarget);
     const name = formData.get("name") as string;
@@ -81,6 +95,8 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
         throw new Error(data.message || "Erro ao criar conta");
       }
 
+      logEvent(EVENTS.SIGNUP_COMPLETED, { source: "auth_modal" });
+
       // Auto sign in after signup
       const signinRes = await fetch("/api/auth/sign-in/email", {
         method: "POST",
@@ -95,6 +111,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
       }
 
       // Refresh and trigger success
+      logEvent(EVENTS.LOGIN_COMPLETED, { source: "auth_modal" });
       router.refresh();
       onSuccess();
     } catch (err) {
@@ -226,5 +243,4 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     </Dialog>
   );
 }
-
 
