@@ -1,10 +1,13 @@
 package httpapi
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -792,25 +795,8 @@ func (a *api) handleAdminMetricsUsers(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Handler for /api/v1/admin/metrics
-func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	ctx := r.Context()
-
-	// Parse period parameter
-	period := r.URL.Query().Get("period")
-	if period == "" {
-		period = "30d"
-	}
-	if period != "30d" && period != "90d" && period != "all" {
-		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "period must be 30d, 90d, or all"})
-		return
-	}
-
+// computeSaaSMetrics fetches all SaaS metrics from the database for the given period.
+func (a *api) computeSaaSMetrics(ctx context.Context, period string) (*adminSaaSMetrics, error) {
 	now := time.Now().UTC()
 	var periodStart, periodEnd time.Time
 	var prevStart, prevEnd time.Time
@@ -831,7 +817,7 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		prevEnd = periodStart
 	}
 
-	metrics := adminSaaSMetrics{
+	metrics := &adminSaaSMetrics{
 		Period:      period,
 		PeriodStart: periodStart.Format(time.RFC3339),
 		PeriodEnd:   periodEnd.Format(time.RFC3339),
@@ -847,9 +833,7 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		GROUP BY b.tier
 	`)
 	if err != nil {
-		log.Printf("admin metrics: MRR query error: %v", err)
-		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch MRR"})
-		return
+		return nil, fmt.Errorf("MRR query: %w", err)
 	}
 	defer rows.Close()
 
@@ -1082,5 +1066,79 @@ func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
 		AND u.is_admin = false
 	`).Scan(&metrics.Incomplete.Count)
 
+	return metrics, nil
+}
+
+// Handler for /api/v1/admin/metrics
+func (a *api) handleAdminMetrics(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "30d"
+	}
+	if period != "30d" && period != "90d" && period != "all" {
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "period must be 30d, 90d, or all"})
+		return
+	}
+
+	metrics, err := a.computeSaaSMetrics(r.Context(), period)
+	if err != nil {
+		log.Printf("admin metrics: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch metrics"})
+		return
+	}
+
 	writeJSON(w, http.StatusOK, metrics)
+}
+
+// Handler for POST /api/v1/admin/metrics/discord-report
+func (a *api) handleAdminMetricsDiscordReport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	webhookURL := os.Getenv("DISCORD_MEUFLIP_METRICS_WEBHOOK_URL")
+	if webhookURL == "" {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "CONFIG_ERROR", Message: "DISCORD_MEUFLIP_METRICS_WEBHOOK_URL not configured"})
+		return
+	}
+
+	metrics, err := a.computeSaaSMetrics(r.Context(), "30d")
+	if err != nil {
+		log.Printf("admin discord report: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to fetch metrics"})
+		return
+	}
+
+	// Format MRR as R$ (centavos → reais)
+	mrrReais := fmt.Sprintf("R$ %.2f", float64(metrics.MRR.Total)/100)
+
+	embed := discordEmbed{
+		Title:     "\U0001f4ca MeuFlip Metrics",
+		Color:     0x5865F2, // Discord blurple
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+		Fields: []discordEmbedField{
+			{Name: "MRR", Value: mrrReais, Inline: true},
+			{Name: "Active Subscribers", Value: fmt.Sprintf("%d", metrics.MRR.ActiveCount), Inline: true},
+			{Name: "Churn (30d)", Value: fmt.Sprintf("%d (%.1f%%)", metrics.Churn.Count, metrics.Churn.Rate), Inline: true},
+			{Name: "New Users (30d)", Value: fmt.Sprintf("%d", metrics.Leads.TotalSignups), Inline: true},
+			{Name: "Signup → Trial", Value: fmt.Sprintf("%.1f%%", metrics.Conversion.SignupToTrial), Inline: true},
+			{Name: "Trial → Paid", Value: fmt.Sprintf("%.1f%%", metrics.Conversion.TrialToActive), Inline: true},
+			{Name: "Overall Conversion", Value: fmt.Sprintf("%.1f%%", metrics.Conversion.Overall), Inline: true},
+			{Name: "Period", Value: metrics.PeriodStart[:10] + " → " + metrics.PeriodEnd[:10], Inline: false},
+		},
+	}
+
+	if err := sendDiscordWebhook(webhookURL, embed); err != nil {
+		log.Printf("admin discord report: webhook error: %v", err)
+		writeError(w, http.StatusBadGateway, apiError{Code: "WEBHOOK_ERROR", Message: "failed to send Discord webhook"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "message": "metrics report sent to Discord"})
 }
