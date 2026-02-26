@@ -50,9 +50,9 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-15 — Blog Público + SEO Content Engine`
-* **Milestone em andamento:** `N/A (M14 concluído)`
-* **Próximo milestone (planejado):** `M15 — Blog CMS Admin (Backoffice)`
+* **Current Checkpoint:** `CP-16 — Blog CMS Admin (Backoffice)`
+* **Milestone em andamento:** `N/A (M15 concluído)`
+* **Próximo milestone (planejado):** `TBD (definir M16)`
 * **Última atualização:** `2026-02-26`
 
 ## 1.2 Milestones (visão macro)
@@ -72,7 +72,7 @@
 * ✅ `M12 — Paywall + Enforcement (Hard Limits)`
 * ✅ `M13 — Email Marketing (Mini Mailchimp)`
 * ✅ `M14 — Blog Público + SEO Content Engine`
-* ⬜ `M15 — Blog CMS Admin (Backoffice)`
+* ✅ `M15 — Blog CMS Admin (Backoffice)`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
 
@@ -430,17 +430,17 @@ Deve existir:
 
 ### M15 — Blog CMS Admin (Backoffice)
 
-* ⬜ T15.1 Modelagem DB: tabela `blog_posts` (slug único, markdown, metadata SEO, status, publish timestamps, audit fields)
-* ⬜ T15.2 Go API admin: CRUD posts + ações `publish`/`unpublish`/`archive`
-* ⬜ T15.3 Go API pública: listagem e detalhe de posts publicados com paginação (`limit` + `cursor`)
-* ⬜ T15.4 BFF web: server actions/admin actions para consumir API Go com Bearer (contrato BFF mantido)
-* ⬜ T15.5 UI admin `/app/admin/blog`: listagem, filtros (status/busca), criação, edição, publicar/despublicar
-* ⬜ T15.6 Editor Markdown com preview side-by-side (sem componentes ricos no v1)
-* ⬜ T15.7 Refactor blog público para fonte DB (remover dependência de arquivos markdown em runtime)
-* ⬜ T15.8 `sitemap.xml` + `rss.xml` baseados na fonte DB (somente status `published`)
-* ⬜ T15.9 Migração de conteúdo inicial (import dos 6 posts do M14 para DB) + checklist de cutover
-* ⬜ T15.10 Smoke test admin↔público + rollback simples documentado
-  **Checkpoint alvo:** `CP-16 — Blog CMS Admin (Backoffice)`
+* ✅ T15.1 Modelagem DB: tabela `blog_posts` (slug único, markdown, metadata SEO, status, publish timestamps, audit fields)
+* ✅ T15.2 Go API admin: CRUD posts + ações `publish`/`unpublish`/`archive`
+* ✅ T15.3 Go API pública: listagem e detalhe de posts publicados com paginação (`limit` + `cursor`)
+* ✅ T15.4 BFF web: server actions/admin actions para consumir API Go com Bearer (contrato BFF mantido)
+* ✅ T15.5 UI admin `/app/admin/blog`: listagem, filtros (status/busca), criação, edição, publicar/despublicar
+* ✅ T15.6 Editor Markdown com preview side-by-side (sem componentes ricos no v1)
+* ✅ T15.7 Refactor blog público para fonte DB (remover dependência de arquivos markdown em runtime)
+* ✅ T15.8 `sitemap.xml` + `rss.xml` baseados na fonte DB (somente status `published`)
+* ✅ T15.9 Migração de conteúdo inicial (import dos 6 posts do M14 para DB) + checklist de cutover
+* ✅ T15.10 Smoke test admin↔público + rollback simples documentado
+  **Checkpoint alvo:** `CP-16 — Blog CMS Admin (Backoffice)` ✅
 
 ## 1.6 Status Atual (Audit 2026-01-30)
 
@@ -536,8 +536,11 @@ Deve existir:
 
 ### M15 — Blog CMS Admin (Backoffice)
 
-* ⬜ **Planejado** — ainda não implementado no código.
-* ✅ **Pré-requisito pronto** — blog público e instrumentação base entregues no M14.
+* ✅ **Implementado** — migration `0043_blog_posts` com índices, constraint de publicação e trigger `updated_at`.
+* ✅ **Implementado** — Go API admin/public do blog (`/api/v1/admin/blog/posts*`, `/api/v1/public/blog/posts*`) com validação, paginação `limit+cursor` e transições de status.
+* ✅ **Implementado** — CMS admin em `/app/admin/blog` (lista, filtros, criação, edição, publish/unpublish/archive) com editor Markdown + preview.
+* ✅ **Implementado** — cutover web para fonte selecionável por `BLOG_SOURCE` (`db` default + fallback `file`), incluindo `/blog`, `/blog/:slug`, home, `sitemap.xml` e `rss.xml`.
+* ✅ **Implementado** — script idempotente de import M14 (`scripts/import-blog-m14-to-db.mjs`) e runbook de rollout/rollback.
 
 # 2) API & Data Model (para guiar implementação)
 
@@ -1212,6 +1215,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-14` — 2026-02-25 — PRD: adicionado planejamento do M14 (Blog Público + SEO Content Engine) com CP-15, tarefas, rotas públicas e plano de validação de KPIs (fontes, metas e cadência).
 * `CP-15` — 2026-02-25 — M14 entregue: blog público com conteúdo markdown versionado (6 artigos pilares), loader/validação fail-fast, rotas `/blog` e `/blog/:slug` em SSG, SEO de artigo (metadata + JSON-LD), `sitemap.xml` com posts, `rss.xml`, redirect de CTA rastreável (`/r/blog-cta`) e eventos de funil (`view_blog_post`, `blog_cta_click`, `blog_to_calculator`) + origem blog em signup/calculadora.
 * `CP-15` — 2026-02-26 — PRD: adicionada especificação detalhada do M15 (Blog CMS Admin) com CP-16, modelagem, endpoints admin/públicos, task board e critérios de aceite para cutover do blog file-based para DB.
+* `CP-16` — 2026-02-26 — M15 implementado: blog CMS admin (`/app/admin/blog`) com editor Markdown + preview, migration `0043_blog_posts`, APIs admin/públicas do blog com paginação/status, cutover por `BLOG_SOURCE` (`db|file`) em `/blog`, `/blog/:slug`, home, sitemap e RSS, script idempotente de import (`blog:import:m14`) e documentação de baseline/KPI + runbook de rollout.
 
 ---
 
@@ -1396,7 +1400,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 
 # 12) M15 Spec — Blog CMS Admin (Backoffice)
 
-> **Status:** planejado (não implementado)
+> **Status:** implementado (CP-16 concluído em 2026-02-26)
 > **Checkpoint alvo:** `CP-16`
 > **Objetivo:** permitir que usuários admin criem/editem/publiquem posts sem precisar editar arquivos no repositório.
 

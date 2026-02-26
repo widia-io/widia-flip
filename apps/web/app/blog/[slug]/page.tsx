@@ -13,30 +13,24 @@ import {
   buildPublicMetadata,
 } from "@/lib/seo";
 import {
-  getAllPublishedSlugs,
-  getPostBySlug,
-  getRelatedPosts,
-} from "@/lib/blog";
-
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  return getAllPublishedSlugs().map((slug) => ({ slug }));
-}
+  type BlogCtaTarget,
+  getPostBySlugSource,
+  getRelatedPostsSource,
+} from "@/lib/blog-source";
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
 }
 
 function formatDate(value: string): string {
-  return new Date(`${value}T00:00:00.000Z`).toLocaleDateString("pt-BR", {
+  return new Date(value).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "long",
     year: "numeric",
   });
 }
 
-function createBlogCtaUrl(slug: string, to: "calculator" | "signup", ctaPosition: string): string {
+function createBlogCtaUrl(slug: string, to: BlogCtaTarget, ctaPosition: string): string {
   const params = new URLSearchParams({
     to,
     post: slug,
@@ -48,7 +42,7 @@ function createBlogCtaUrl(slug: string, to: "calculator" | "signup", ctaPosition
 
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const post = await getPostBySlugSource(slug);
 
   if (!post) {
     return buildPublicMetadata({
@@ -72,21 +66,21 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const post = await getPostBySlugSource(slug);
 
   if (!post) {
     notFound();
   }
 
-  const relatedPosts = getRelatedPosts(post.slug, post.tags, 3);
+  const relatedPosts = await getRelatedPostsSource(post.slug, post.tags, 3);
 
   const articleStructuredData = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
     description: post.description,
-    datePublished: `${post.publishedAt}T00:00:00.000Z`,
-    dateModified: `${(post.updatedAt ?? post.publishedAt)}T00:00:00.000Z`,
+    datePublished: post.publishedAt,
+    dateModified: post.updatedAt ?? post.publishedAt,
     author: {
       "@type": "Person",
       name: post.author,

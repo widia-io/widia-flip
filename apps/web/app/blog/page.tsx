@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { buildPublicMetadata } from "@/lib/seo";
-import { getPublishedPosts } from "@/lib/blog";
+import { getPublishedPostsSource } from "@/lib/blog-source";
 
 export const metadata: Metadata = buildPublicMetadata({
   title: "Blog Meu Flip | Estratégia, ROI e Viabilidade para House Flipping",
@@ -16,15 +16,15 @@ export const metadata: Metadata = buildPublicMetadata({
 });
 
 function formatDate(value: string): string {
-  return new Date(`${value}T00:00:00.000Z`).toLocaleDateString("pt-BR", {
+  return new Date(value).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
 }
 
-export default function BlogListPage() {
-  const posts = getPublishedPosts();
+export default async function BlogListPage() {
+  const posts = await getPublishedPostsSource();
 
   return (
     <div className="min-h-screen">
@@ -62,8 +62,12 @@ export default function BlogListPage() {
             >
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span>{formatDate(post.publishedAt)}</span>
-                <span>•</span>
-                <span>{post.readingTimeMinutes} min de leitura</span>
+                {post.readingTimeMinutes ? (
+                  <>
+                    <span>•</span>
+                    <span>{post.readingTimeMinutes} min de leitura</span>
+                  </>
+                ) : null}
               </div>
 
               <h2 className="mt-3 text-2xl font-semibold tracking-tight font-display">

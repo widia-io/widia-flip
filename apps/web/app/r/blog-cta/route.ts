@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { EVENTS, logEvent } from "@/lib/analytics";
-import type { BlogCtaTarget } from "@/lib/blog";
+import type { BlogCtaTarget } from "@/lib/blog-source";
 
 const VALID_TARGETS: ReadonlySet<BlogCtaTarget> = new Set(["calculator", "signup"]);
 const VALID_CTA_POSITIONS: ReadonlySet<string> = new Set(["hero", "mid", "footer"]);

@@ -1,15 +1,14 @@
 import type { MetadataRoute } from "next";
 
 import { absoluteUrl } from "@/lib/seo";
-import { getPublishedPosts } from "@/lib/blog";
+import { getPublishedPostsSource } from "@/lib/blog-source";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
-  const blogItems: MetadataRoute.Sitemap = getPublishedPosts().map((post) => ({
+  const posts = await getPublishedPostsSource();
+  const blogItems: MetadataRoute.Sitemap = posts.map((post) => ({
     url: absoluteUrl(post.canonicalPath ?? `/blog/${post.slug}`),
-    lastModified: new Date(
-      `${(post.updatedAt ?? post.publishedAt)}T00:00:00.000Z`,
-    ),
+    lastModified: new Date(post.updatedAt ?? post.publishedAt),
     changeFrequency: "weekly",
     priority: 0.7,
   }));

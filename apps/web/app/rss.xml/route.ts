@@ -1,4 +1,4 @@
-import { getPublishedPosts } from "@/lib/blog";
+import { getPublishedPostsSource } from "@/lib/blog-source";
 import { absoluteUrl } from "@/lib/seo";
 
 function escapeXml(value: string): string {
@@ -10,16 +10,14 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
-export function GET() {
-  const posts = getPublishedPosts();
+export async function GET() {
+  const posts = await getPublishedPostsSource();
 
   const items = posts
     .map((post) => {
       const link = absoluteUrl(post.canonicalPath ?? `/blog/${post.slug}`);
-      const pubDate = new Date(`${post.publishedAt}T00:00:00.000Z`).toUTCString();
-      const updatedDate = new Date(
-        `${(post.updatedAt ?? post.publishedAt)}T00:00:00.000Z`,
-      ).toUTCString();
+      const pubDate = new Date(post.publishedAt).toUTCString();
+      const updatedDate = new Date(post.updatedAt ?? post.publishedAt).toUTCString();
 
       return [
         "<item>",

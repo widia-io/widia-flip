@@ -98,6 +98,19 @@ type BuildBlogArticleMetadataInput = {
   imagePath?: string;
 };
 
+function normalizeDateTime(value: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return `${value}T00:00:00.000Z`;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return new Date().toISOString();
+  }
+
+  return parsed.toISOString();
+}
+
 export function buildBlogArticleMetadata({
   title,
   description,
@@ -124,8 +137,8 @@ export function buildBlogArticleMetadata({
       siteName: "Meu Flip",
       locale: "pt_BR",
       type: "article",
-      publishedTime: `${publishedAt}T00:00:00.000Z`,
-      modifiedTime: `${(updatedAt ?? publishedAt)}T00:00:00.000Z`,
+      publishedTime: normalizeDateTime(publishedAt),
+      modifiedTime: normalizeDateTime(updatedAt ?? publishedAt),
       authors: [author],
       tags,
       images: [

@@ -26,7 +26,7 @@ import { MobileStickyBar } from "@/components/landing/MobileStickyBar";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { HomeFunnelTracker } from "@/components/landing/HomeFunnelTracker";
 import { SITE_URL, absoluteUrl, buildPublicMetadata } from "@/lib/seo";
-import { getLatestPosts } from "@/lib/blog";
+import { getLatestPostsSource } from "@/lib/blog-source";
 
 export const metadata: Metadata = buildPublicMetadata({
   title: "Meu Flip - Analise flips em 30 segundos",
@@ -53,7 +53,7 @@ const homeStructuredData = [
 ];
 
 function formatBlogDate(value: string): string {
-  return new Date(`${value}T00:00:00.000Z`).toLocaleDateString("pt-BR", {
+  return new Date(value).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -63,7 +63,7 @@ function formatBlogDate(value: string): string {
 export default async function HomePage() {
   const session = await getServerSession();
   const isLoggedIn = !!session;
-  const latestPosts = getLatestPosts(3);
+  const latestPosts = await getLatestPostsSource(3);
 
   return (
     <div className="flex min-h-screen flex-col">
