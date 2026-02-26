@@ -50,10 +50,10 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-14 — Email Marketing (Mini Mailchimp)`
-* **Milestone em andamento:** `M13 — Email Marketing (CONCLUÍDO)`
-* **Próximo milestone (planejado):** N/A (MVP Complete)
-* **Última atualização:** `2026-02-18`
+* **Current Checkpoint:** `CP-15 — Blog Público + SEO Content Engine`
+* **Milestone em andamento:** `M14 — Blog Público + SEO Content Engine (CONCLUÍDO)`
+* **Próximo milestone (planejado):** `N/A`
+* **Última atualização:** `2026-02-25`
 
 ## 1.2 Milestones (visão macro)
 
@@ -71,6 +71,7 @@
 * ✅ `M11 — Usage Tracking (v1) + Soft Limits`
 * ✅ `M12 — Paywall + Enforcement (Hard Limits)`
 * ✅ `M13 — Email Marketing (Mini Mailchimp)`
+* ✅ `M14 — Blog Público + SEO Content Engine`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
 
@@ -239,6 +240,18 @@ Deve existir:
 * Template fixo com logo + link de descadastro público (unsubscribe).
 * Envio via Resend (mesmo provedor já usado no auth).
 
+### CP-15 — Blog Público + SEO Content Engine
+
+Deve existir:
+
+* Rotas públicas `GET /blog` e `GET /blog/:slug` no Next (App Router) com render estático.
+* Conteúdo versionado no repositório (`.md`/`.mdx`) com frontmatter padrão (slug/título/descrição/data/tags/status).
+* SEO por artigo: canonical, Open Graph/Twitter e JSON-LD `Article` + `BreadcrumbList`.
+* `sitemap.xml` incluindo todos os posts publicados.
+* CTA de conversão por artigo (`/calculator` e signup/login).
+* Eventos mínimos de funil do blog (`view_blog_post`, `blog_cta_click`, `blog_to_calculator`).
+* Processo editorial mínimo documentado (cadência, owner e checklist de publicação).
+
 ---
 
 ## 1.4 Task Board (MVP)
@@ -346,7 +359,7 @@ Deve existir:
 
 ---
 
-## 1.5 Task Board (Pós-MVP: Billing/Tiers)
+## 1.5 Task Board (Pós-MVP)
 
 > Status: ⬜ todo | 🟦 doing | ✅ done | 🟥 blocked
 
@@ -389,6 +402,18 @@ Deve existir:
 * ✅ T13.7 Unsubscribe público: rota `/unsubscribe/:token` que grava `marketing_opt_out_at`
 * ✅ T13.8 Admin UI: lista de campanhas + criar campanha + botão "Enviar agora" com confirmação
   **Checkpoint alvo:** `CP-14 — Email Marketing (Mini Mailchimp)` ✅
+
+### M14 — Blog Público + SEO Content Engine
+
+* ✅ T14.1 Definir arquitetura de conteúdo v0 (`markdown/mdx` no repo; sem CMS no v0)
+* ✅ T14.2 Implementar rotas públicas `/blog` e `/blog/:slug` (App Router + SSG)
+* ✅ T14.3 Implementar metadata por post (canonical + OG/Twitter + JSON-LD `Article`)
+* ✅ T14.4 Atualizar `sitemap.xml` para listar artigos publicados
+* ✅ T14.5 Inserir CTAs de conversão no blog (`/calculator` + signup/login)
+* ✅ T14.6 Instrumentar eventos de funil do blog (`view_blog_post`, `blog_cta_click`, `blog_to_calculator`)
+* ✅ T14.7 Publicar lote inicial (mínimo 6 artigos pilares) com interlink interno
+* ✅ T14.8 Definir rotina editorial mensal (brief, produção, revisão, atualização)
+  **Checkpoint alvo:** `CP-15 — Blog Público + SEO Content Engine` ✅
 
 ## 1.6 Status Atual (Audit 2026-01-30)
 
@@ -473,6 +498,14 @@ Deve existir:
 * ✅ **Implementado** — Rota pública de unsubscribe (`/unsubscribe/:token`) + Go handler.
 * ✅ **Implementado** — Admin UI (`/app/admin/email/*`): lista, create, detail + actions (queue/send).
 * ✅ **Já existia** — Resend integrado no web para emails transacionais (auth) e reutilizado para marketing.
+
+### M14 — Blog Público + SEO Content Engine
+
+* ✅ **Implementado** — Conteúdo local versionado em `apps/web/content/blog` com frontmatter validado (parse e fail-fast em build para slug/data/schema).
+* ✅ **Implementado** — Rotas públicas `/blog`, `/blog/:slug` (SSG), `/rss.xml` e redirect de CTA rastreável (`/r/blog-cta`).
+* ✅ **Implementado** — SEO de artigos: metadata dinâmica (canonical + OG/Twitter article), JSON-LD (`Article` + `BreadcrumbList`) e sitemap com posts.
+* ✅ **Implementado** — Conversão/atribuição: eventos `view_blog_post`, `blog_cta_click`, `blog_to_calculator` + `signup_started` com origem blog.
+* ✅ **Implementado** — Home pública com seção “Últimos artigos” + links para `/blog`.
 
 # 2) API & Data Model (para guiar implementação)
 
@@ -686,6 +719,21 @@ Timeline:
 * `GET /calculator` (Next page pública)
 * (opcional) `POST /api/v1/public/cash-calc` (calcular sem salvar)
 * Salvar snapshot só logado: `POST /api/v1/properties/:id/analysis/cash/snapshot`
+
+---
+
+## M14 — Blog Público + SEO Content Engine
+
+> M14 é principalmente Next (público). Não há necessidade de endpoint Go novo no v0.
+
+* `GET /blog` (listagem pública de artigos)
+* `GET /blog/:slug` (detalhe público do artigo)
+* `GET /rss.xml` (feed público de artigos publicados)
+* `GET /sitemap.xml` (incluir URLs de `/blog/:slug` publicados)
+* Evento de analytics (logs estruturados via web):
+  * `view_blog_post`
+  * `blog_cta_click`
+  * `blog_to_calculator`
 
 ---
 
@@ -1108,6 +1156,8 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-14` — 2026-02-18 — Documento de execução incremental de UX/conversão em produção criado (`docs/UX_CONVERSAO_ROADMAP_2026-02-18.md`) com plano em ondas (instrumentação, quick wins, calculadora, onboarding) e métricas de decisão.
 * `CP-14` — 2026-02-18 — Onda 0 implementada: ingestão padronizada de eventos de funil (`session_id/variant/source/device`) via BFF (`/api/analytics/track`) + persistência em `flip.funnel_events` (migration `0042`), evento `first_snapshot_saved` no Go e painel diário no admin (`/api/v1/admin/funnel/daily`, `/app/admin/metrics`).
 * `CP-14` — 2026-02-18 — UI do `/app/admin` reorganizada como hub operacional (visão executiva + atalhos por domínio + blocos de distribuição de usuários/pipeline/prospecção), removendo header congestionado e melhorando escaneabilidade.
+* `CP-14` — 2026-02-25 — PRD: adicionado planejamento do M14 (Blog Público + SEO Content Engine) com CP-15, tarefas, rotas públicas e plano de validação de KPIs (fontes, metas e cadência).
+* `CP-15` — 2026-02-25 — M14 entregue: blog público com conteúdo markdown versionado (6 artigos pilares), loader/validação fail-fast, rotas `/blog` e `/blog/:slug` em SSG, SEO de artigo (metadata + JSON-LD), `sitemap.xml` com posts, `rss.xml`, redirect de CTA rastreável (`/r/blog-cta`) e eventos de funil (`view_blog_post`, `blog_cta_click`, `blog_to_calculator`) + origem blog em signup/calculadora.
 
 ---
 
@@ -1243,3 +1293,47 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
   * modal paywall com CTA “Fazer upgrade” + link para Billing
 * Billing states:
   * `past_due/unpaid` → modo leitura (e-mail/aviso + self-serve via Stripe Portal)
+
+---
+
+# 11) KPI Validation — Blog SEO/CRO (M14)
+
+## 11.1 KPIs prioritários
+
+| KPI | Definição objetiva | Fonte principal | Meta inicial (90 dias) |
+|---|---|---|---|
+| `blog_organic_impressions` | Impressões orgânicas de URLs que começam com `/blog/` | Google Search Console | +40% vs baseline de 28 dias |
+| `blog_organic_clicks` | Cliques orgânicos em URLs `/blog/` | Google Search Console | +25% vs baseline de 28 dias |
+| `blog_avg_position_top20` | Posição média das 20 queries foco do blog | Google Search Console | melhorar em pelo menos 20% |
+| `blog_to_calculator_rate` | `sessões com clique no CTA /calculator em post` / `sessões de post` | GA4/analytics interno | >= 3% |
+| `blog_to_signup_start_rate` | `sessões com início de signup a partir do blog` / `sessões de post` | GA4 + eventos internos | >= 1.2% |
+| `blog_assisted_leads` | Leads da calculadora com primeira origem em `/blog/` no lookback de 30 dias | logs + tabela de leads/admin | crescimento contínuo (WoW) |
+
+## 11.2 Instrumentação mínima (obrigatória no M14)
+
+* Evento `view_blog_post` com: `post_slug`, `post_category`, `device`, `source`, `medium`, `campaign`, `session_id`.
+* Evento `blog_cta_click` com: `post_slug`, `cta_type` (`calculator|signup|whatsapp`), `cta_position` (`hero|mid|footer`), `session_id`.
+* Evento `blog_to_calculator` com: `post_slug`, `session_id`.
+* Se possível, manter padrão do plano de UX/conversão: `session_id`, `variant`, `source`, `device` para comparar etapas do funil.
+
+## 11.3 Como validar na prática (runbook semanal)
+
+1. Congelar baseline dos últimos 28 dias antes do go-live.
+2. Publicar/atualizar sitemap imediatamente após cada lote de posts.
+3. Acompanhar semanalmente (leading):
+   * impressões, cliques, CTR e posição média por URL e query (GSC)
+   * eventos `view_blog_post`, `blog_cta_click`, `blog_to_calculator`
+4. Acompanhar quinzenalmente (conversão):
+   * taxa `blog_to_calculator_rate`
+   * taxa `blog_to_signup_start_rate`
+   * leads assistidos por blog
+5. Revisar mensalmente (decisão editorial):
+   * top 10 posts por tráfego, conversão e posição
+   * conteúdo a atualizar, consolidar ou remover
+
+## 11.4 Regras de decisão (go/no-go)
+
+* Manter tema/cluster quando houver crescimento de impressões por 2 ciclos seguidos e sem queda de conversão.
+* Reescrever headline/intro/CTA quando o post tiver impressões altas e CTR baixa por 3 semanas.
+* Atualizar conteúdo quando posição cair por 2 semanas consecutivas.
+* Pausar novos clusters se `blog_to_calculator_rate` cair abaixo de 2% por 4 semanas sem recuperação.

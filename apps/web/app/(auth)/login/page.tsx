@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getServerSession } from "@/lib/serverAuth";
+import { EVENTS, logEvent } from "@/lib/analytics";
 import { Logo } from "@/components/Logo";
 import { LoginForm } from "@/components/LoginForm";
 import { SignupForm } from "@/components/SignupForm";
@@ -22,6 +23,17 @@ export default async function LoginPage(props: {
     typeof searchParams.success === "string" ? searchParams.success : "";
   const email = typeof searchParams.email === "string" ? searchParams.email : "";
   const tab = typeof searchParams.tab === "string" ? searchParams.tab : "login";
+  const src = typeof searchParams.src === "string" ? searchParams.src : "";
+  const postSlug = typeof searchParams.post === "string" ? searchParams.post : "";
+  const ctaPosition = typeof searchParams.cta === "string" ? searchParams.cta : "";
+
+  if (tab === "signup" && src === "blog") {
+    logEvent(EVENTS.SIGNUP_STARTED, {
+      source: "blog",
+      post_slug: postSlug || "unknown",
+      cta_position: ctaPosition || "unknown",
+    });
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">

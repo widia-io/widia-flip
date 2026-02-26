@@ -86,3 +86,62 @@ export function buildPublicMetadata({
     },
   };
 }
+
+type BuildBlogArticleMetadataInput = {
+  title: string;
+  description: string;
+  path: string;
+  publishedAt: string;
+  updatedAt?: string;
+  author: string;
+  tags: string[];
+  imagePath?: string;
+};
+
+export function buildBlogArticleMetadata({
+  title,
+  description,
+  path,
+  publishedAt,
+  updatedAt,
+  author,
+  tags,
+  imagePath,
+}: BuildBlogArticleMetadataInput): Metadata {
+  const canonicalUrl = absoluteUrl(path);
+  const ogImageUrl = absoluteUrl(imagePath ?? DEFAULT_OG_IMAGE_PATH);
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: "Meu Flip",
+      locale: "pt_BR",
+      type: "article",
+      publishedTime: `${publishedAt}T00:00:00.000Z`,
+      modifiedTime: `${(updatedAt ?? publishedAt)}T00:00:00.000Z`,
+      authors: [author],
+      tags,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1920,
+          height: 1080,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImageUrl],
+    },
+  };
+}

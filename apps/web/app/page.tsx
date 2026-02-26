@@ -26,6 +26,7 @@ import { MobileStickyBar } from "@/components/landing/MobileStickyBar";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { HomeFunnelTracker } from "@/components/landing/HomeFunnelTracker";
 import { SITE_URL, absoluteUrl, buildPublicMetadata } from "@/lib/seo";
+import { getLatestPosts } from "@/lib/blog";
 
 export const metadata: Metadata = buildPublicMetadata({
   title: "Meu Flip - Analise flips em 30 segundos",
@@ -51,9 +52,18 @@ const homeStructuredData = [
   },
 ];
 
+function formatBlogDate(value: string): string {
+  return new Date(`${value}T00:00:00.000Z`).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export default async function HomePage() {
   const session = await getServerSession();
   const isLoggedIn = !!session;
+  const latestPosts = getLatestPosts(3);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -86,6 +96,9 @@ export default async function HomePage() {
               >
                 Calculadora
               </Link>
+            </Button>
+            <Button variant="ghost" asChild className="hidden sm:inline-flex">
+              <Link href="/blog">Blog</Link>
             </Button>
             <Button variant="ghost" asChild className="hidden sm:inline-flex">
               <a href="#pricing">Planos</a>
@@ -241,6 +254,64 @@ export default async function HomePage() {
       {/* Features */}
       <FeaturesSection />
 
+      {/* Blog Preview */}
+      {latestPosts.length > 0 ? (
+        <section className="border-t border-border bg-muted/20">
+          <div className="mx-auto max-w-6xl px-4 py-20">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                  Conteúdo estratégico
+                </p>
+                <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl font-display">
+                  Últimos artigos do Blog Meu Flip
+                </h2>
+                <p className="mt-2 text-muted-foreground">
+                  Guias práticos para decidir melhor compra, reforma e venda.
+                </p>
+              </div>
+              <Button asChild variant="outline" className="w-fit">
+                <Link href="/blog">
+                  Ver todos os artigos
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              {latestPosts.map((post) => (
+                <article
+                  key={post.slug}
+                  className="rounded-2xl border border-border/70 bg-background/80 p-5 shadow-sm"
+                >
+                  <p className="text-xs text-muted-foreground">
+                    {formatBlogDate(post.publishedAt)}
+                  </p>
+                  <h3 className="mt-3 text-lg font-semibold leading-snug font-display">
+                    <Link
+                      href={`/blog/${post.slug}`}
+                      className="hover:text-primary transition-colors"
+                    >
+                      {post.title}
+                    </Link>
+                  </h3>
+                  <p className="mt-3 text-sm text-muted-foreground">{post.description}</p>
+
+                  <div className="mt-5">
+                    <Button asChild variant="ghost" className="px-0">
+                      <Link href={`/blog/${post.slug}`}>
+                        Ler artigo
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {/* Pricing */}
       <PricingSection isLoggedIn={isLoggedIn} />
 
@@ -369,6 +440,9 @@ export default async function HomePage() {
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <Link href="/calculator" className="hover:text-foreground">
                 Calculadora
+              </Link>
+              <Link href="/blog" className="hover:text-foreground">
+                Blog
               </Link>
               <a href="#pricing" className="hover:text-foreground">
                 Planos
