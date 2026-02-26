@@ -51,9 +51,9 @@
 ## 1.1 Current Checkpoint
 
 * **Current Checkpoint:** `CP-15 — Blog Público + SEO Content Engine`
-* **Milestone em andamento:** `M14 — Blog Público + SEO Content Engine (CONCLUÍDO)`
-* **Próximo milestone (planejado):** `N/A`
-* **Última atualização:** `2026-02-25`
+* **Milestone em andamento:** `N/A (M14 concluído)`
+* **Próximo milestone (planejado):** `M15 — Blog CMS Admin (Backoffice)`
+* **Última atualização:** `2026-02-26`
 
 ## 1.2 Milestones (visão macro)
 
@@ -72,6 +72,7 @@
 * ✅ `M12 — Paywall + Enforcement (Hard Limits)`
 * ✅ `M13 — Email Marketing (Mini Mailchimp)`
 * ✅ `M14 — Blog Público + SEO Content Engine`
+* ⬜ `M15 — Blog CMS Admin (Backoffice)`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
 
@@ -252,6 +253,18 @@ Deve existir:
 * Eventos mínimos de funil do blog (`view_blog_post`, `blog_cta_click`, `blog_to_calculator`).
 * Processo editorial mínimo documentado (cadência, owner e checklist de publicação).
 
+### CP-16 — Blog CMS Admin (Backoffice)
+
+Deve existir:
+
+* CMS interno em `/app/admin/blog` acessível apenas para usuários admin.
+* CRUD completo de posts no backend (fonte de verdade em DB): draft, publicado, arquivado.
+* Editor Markdown com preview no admin (sem WYSIWYG no v1).
+* Slug único e validações de conteúdo/SEO no backend (título, descrição, datas, tags).
+* Blog público (`/blog`, `/blog/:slug`, `sitemap.xml`, `rss.xml`) consumindo posts publicados via backend.
+* Fluxo publicar/despublicar refletindo no site público sem deploy manual.
+* Logs de auditoria mínimos (`created_by`, `updated_by`, timestamps) e erros padronizados.
+
 ---
 
 ## 1.4 Task Board (MVP)
@@ -415,6 +428,20 @@ Deve existir:
 * ✅ T14.8 Definir rotina editorial mensal (brief, produção, revisão, atualização)
   **Checkpoint alvo:** `CP-15 — Blog Público + SEO Content Engine` ✅
 
+### M15 — Blog CMS Admin (Backoffice)
+
+* ⬜ T15.1 Modelagem DB: tabela `blog_posts` (slug único, markdown, metadata SEO, status, publish timestamps, audit fields)
+* ⬜ T15.2 Go API admin: CRUD posts + ações `publish`/`unpublish`/`archive`
+* ⬜ T15.3 Go API pública: listagem e detalhe de posts publicados com paginação (`limit` + `cursor`)
+* ⬜ T15.4 BFF web: server actions/admin actions para consumir API Go com Bearer (contrato BFF mantido)
+* ⬜ T15.5 UI admin `/app/admin/blog`: listagem, filtros (status/busca), criação, edição, publicar/despublicar
+* ⬜ T15.6 Editor Markdown com preview side-by-side (sem componentes ricos no v1)
+* ⬜ T15.7 Refactor blog público para fonte DB (remover dependência de arquivos markdown em runtime)
+* ⬜ T15.8 `sitemap.xml` + `rss.xml` baseados na fonte DB (somente status `published`)
+* ⬜ T15.9 Migração de conteúdo inicial (import dos 6 posts do M14 para DB) + checklist de cutover
+* ⬜ T15.10 Smoke test admin↔público + rollback simples documentado
+  **Checkpoint alvo:** `CP-16 — Blog CMS Admin (Backoffice)`
+
 ## 1.6 Status Atual (Audit 2026-01-30)
 
 > **Nota:** auditoria rápida baseada em presença de código/migrations/rotas. **Não** inclui QA completo, e pode haver diferenças de comportamento em runtime.
@@ -506,6 +533,11 @@ Deve existir:
 * ✅ **Implementado** — SEO de artigos: metadata dinâmica (canonical + OG/Twitter article), JSON-LD (`Article` + `BreadcrumbList`) e sitemap com posts.
 * ✅ **Implementado** — Conversão/atribuição: eventos `view_blog_post`, `blog_cta_click`, `blog_to_calculator` + `signup_started` com origem blog.
 * ✅ **Implementado** — Home pública com seção “Últimos artigos” + links para `/blog`.
+
+### M15 — Blog CMS Admin (Backoffice)
+
+* ⬜ **Planejado** — ainda não implementado no código.
+* ✅ **Pré-requisito pronto** — blog público e instrumentação base entregues no M14.
 
 # 2) API & Data Model (para guiar implementação)
 
@@ -734,6 +766,27 @@ Timeline:
   * `view_blog_post`
   * `blog_cta_click`
   * `blog_to_calculator`
+
+---
+
+## (PLANEJADO) M15 — Blog CMS Admin (Backoffice)
+
+> M15 adiciona backend Go + UI admin para transformar o blog em CMS interno.
+
+Admin (protegido, requer `is_admin=true`):
+
+* `GET /api/v1/admin/blog/posts?status=draft|published|archived&q=&limit=&cursor=`
+* `POST /api/v1/admin/blog/posts`
+* `GET /api/v1/admin/blog/posts/:id`
+* `PUT /api/v1/admin/blog/posts/:id`
+* `POST /api/v1/admin/blog/posts/:id/publish`
+* `POST /api/v1/admin/blog/posts/:id/unpublish`
+* `POST /api/v1/admin/blog/posts/:id/archive`
+
+Público:
+
+* `GET /api/v1/public/blog/posts?limit=&cursor=` (somente publicados)
+* `GET /api/v1/public/blog/posts/:slug` (somente publicados)
 
 ---
 
@@ -1158,6 +1211,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-14` — 2026-02-18 — UI do `/app/admin` reorganizada como hub operacional (visão executiva + atalhos por domínio + blocos de distribuição de usuários/pipeline/prospecção), removendo header congestionado e melhorando escaneabilidade.
 * `CP-14` — 2026-02-25 — PRD: adicionado planejamento do M14 (Blog Público + SEO Content Engine) com CP-15, tarefas, rotas públicas e plano de validação de KPIs (fontes, metas e cadência).
 * `CP-15` — 2026-02-25 — M14 entregue: blog público com conteúdo markdown versionado (6 artigos pilares), loader/validação fail-fast, rotas `/blog` e `/blog/:slug` em SSG, SEO de artigo (metadata + JSON-LD), `sitemap.xml` com posts, `rss.xml`, redirect de CTA rastreável (`/r/blog-cta`) e eventos de funil (`view_blog_post`, `blog_cta_click`, `blog_to_calculator`) + origem blog em signup/calculadora.
+* `CP-15` — 2026-02-26 — PRD: adicionada especificação detalhada do M15 (Blog CMS Admin) com CP-16, modelagem, endpoints admin/públicos, task board e critérios de aceite para cutover do blog file-based para DB.
 
 ---
 
@@ -1337,3 +1391,188 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * Reescrever headline/intro/CTA quando o post tiver impressões altas e CTR baixa por 3 semanas.
 * Atualizar conteúdo quando posição cair por 2 semanas consecutivas.
 * Pausar novos clusters se `blog_to_calculator_rate` cair abaixo de 2% por 4 semanas sem recuperação.
+
+---
+
+# 12) M15 Spec — Blog CMS Admin (Backoffice)
+
+> **Status:** planejado (não implementado)
+> **Checkpoint alvo:** `CP-16`
+> **Objetivo:** permitir que usuários admin criem/editem/publiquem posts sem precisar editar arquivos no repositório.
+
+## 12.1 Contexto e decisão de arquitetura
+
+* M14 usa conteúdo file-based (`apps/web/content/blog/*.md`) e exige deploy para publicar.
+* Em M15, a **fonte de verdade do blog público passa a ser o banco** (Go API), com painel admin para operação editorial.
+* O contrato BFF continua obrigatório: browser → Next (server action/route) → Go API com Bearer.
+
+## 12.2 Escopo M15
+
+### In Scope
+
+* CRUD de posts no admin (`draft`, `published`, `archived`).
+* Editor Markdown com preview.
+* Slug único e validação SEO server-side.
+* Blog público consumindo posts publicados do backend.
+* `sitemap.xml` e `rss.xml` a partir do DB.
+* Cutover do conteúdo inicial (6 posts M14) para DB.
+
+### Out of Scope
+
+* WYSIWYG/rich text.
+* Upload de mídia no CMS (seguir usando paths estáticos por URL no v1).
+* Versionamento avançado (histórico de revisão/comparação).
+* Agendamento de publicação futura (publish_at com cron).
+* Papéis editoriais além de admin (reviewer/author).
+
+## 12.3 Modelo de dados (proposta)
+
+Tabela nova: `flip.blog_posts`
+
+Campos mínimos:
+
+* `id UUID PRIMARY KEY`
+* `slug TEXT NOT NULL UNIQUE`
+* `title TEXT NOT NULL`
+* `description TEXT NOT NULL`
+* `content_md TEXT NOT NULL`
+* `excerpt TEXT NULL`
+* `author_name TEXT NOT NULL`
+* `tags TEXT[] NOT NULL DEFAULT '{}'`
+* `cover_image_url TEXT NULL`
+* `canonical_path TEXT NULL` (default calculado: `/blog/<slug>`)
+* `seo_title TEXT NULL`
+* `seo_description TEXT NULL`
+* `status TEXT NOT NULL` (`draft|published|archived`)
+* `published_at TIMESTAMPTZ NULL`
+* `created_by_user_id TEXT NOT NULL`
+* `updated_by_user_id TEXT NOT NULL`
+* `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+* `updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+
+Índices:
+
+* `UNIQUE(slug)`
+* `INDEX(status, published_at DESC)`
+* `INDEX(updated_at DESC)`
+
+Regras:
+
+* `status=published` exige `published_at` não nulo.
+* `slug` em kebab-case, único global.
+* `description` obrigatório (usado em metadata).
+* `tags` com ao menos 1 item para publicar.
+
+## 12.4 Contratos de API (detalhe)
+
+### Admin (autenticado + admin)
+
+* `GET /api/v1/admin/blog/posts?status=&q=&limit=&cursor=`
+  * retorna: `{ items, next_cursor }`
+* `POST /api/v1/admin/blog/posts`
+  * body: `{ slug, title, description, content_md, author_name, tags, excerpt?, cover_image_url?, canonical_path?, seo_title?, seo_description? }`
+* `GET /api/v1/admin/blog/posts/:id`
+* `PUT /api/v1/admin/blog/posts/:id`
+* `POST /api/v1/admin/blog/posts/:id/publish`
+  * regra: valida campos mínimos; se `published_at` ausente, preencher `now()`
+* `POST /api/v1/admin/blog/posts/:id/unpublish`
+  * muda para `draft`, preserva histórico
+* `POST /api/v1/admin/blog/posts/:id/archive`
+  * muda para `archived`
+
+### Público
+
+* `GET /api/v1/public/blog/posts?limit=&cursor=` (somente `published`)
+* `GET /api/v1/public/blog/posts/:slug` (somente `published`)
+
+Formato de erro segue padrão existente:
+
+* `{ error: { code, message, details? } }`
+
+Paginação:
+
+* `limit` + `cursor` (sem offset).
+
+## 12.5 UI Admin (MVP)
+
+Rota:
+
+* `/app/admin/blog` (lista)
+* `/app/admin/blog/new` (criação)
+* `/app/admin/blog/:id` (edição)
+
+Funcionalidades mínimas:
+
+* Lista com status, título, slug, updated_at, ação rápida publicar/despublicar.
+* Filtro por status e busca por título/slug.
+* Form com campos essenciais + validações client-side.
+* Editor Markdown + preview lado a lado.
+* Ações de salvar draft, publicar, despublicar, arquivar.
+
+Permissão:
+
+* usuários não-admin recebem 403/redirect conforme padrão admin atual.
+
+## 12.6 Blog público após cutover
+
+* `/blog` e `/blog/:slug` deixam de ler `content/blog/*.md` em runtime.
+* Páginas públicas consultam fonte DB via BFF/API pública.
+* SEO por post mantido:
+  * canonical
+  * Open Graph/Twitter
+  * JSON-LD `Article` e `BreadcrumbList`
+* `sitemap.xml` e `rss.xml` passam a ler somente posts `published`.
+
+## 12.7 Migração e cutover
+
+Passos:
+
+1. Criar migration de `blog_posts`.
+2. Criar script de import para os 6 posts atuais do M14 (`content/blog`) para DB.
+3. Validar contagem, slugs e metadata importados.
+4. Ativar leitura pública por DB (feature flag simples ou troca direta em release única).
+5. Validar sitemap/rss e rotas públicas.
+
+Rollback:
+
+* manter loader file-based disponível por 1 release como fallback (opcional, recomendado).
+
+## 12.8 Observabilidade e métricas de operação
+
+Logs estruturados mínimos:
+
+* `blog_post_created`
+* `blog_post_updated`
+* `blog_post_published`
+* `blog_post_unpublished`
+* `blog_post_archived`
+
+KPIs operacionais M15:
+
+* tempo médio rascunho → publicado
+* número de posts publicados por semana
+* taxa de erro em ações de publish
+
+## 12.9 Acceptance criteria (CP-16)
+
+Critérios obrigatórios:
+
+1. Admin cria post draft e salva sem erro.
+2. Admin publica post e ele aparece em `/blog` sem deploy manual.
+3. Admin despublica post e ele some de `/blog`, `/sitemap.xml` e `/rss.xml`.
+4. Slug duplicado retorna `VALIDATION_ERROR`.
+5. Usuário não-admin não acessa endpoints/admin page de blog.
+6. `/blog/:slug` publicado renderiza metadata/JSON-LD corretos.
+7. Paginação `limit+cursor` funcional nas listagens.
+8. Smoke test completo documentado (admin + público).
+
+## 12.10 Riscos e mitigação
+
+Risco 1: queda de SEO no cutover file-based → DB.
+Mitigação: preservar slugs/canonical, validar sitemap e monitorar GSC nas 2 primeiras semanas.
+
+Risco 2: uso indevido do admin por usuários não autorizados.
+Mitigação: validar `is_admin` em Go API e no web, com testes de permissão.
+
+Risco 3: publicação com conteúdo incompleto.
+Mitigação: gate de publish com validação server-side de campos obrigatórios.
