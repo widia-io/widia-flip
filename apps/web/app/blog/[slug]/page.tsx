@@ -161,6 +161,18 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">{post.description}</p>
 
+          {post.coverImage ? (
+            <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card/40">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={post.coverImage}
+                alt={post.title}
+                className="h-auto max-h-[520px] w-full object-cover"
+                loading="eager"
+              />
+            </div>
+          ) : null}
+
           <div className="mt-6 flex flex-wrap gap-2">
             {post.tags.map((tag) => (
               <span

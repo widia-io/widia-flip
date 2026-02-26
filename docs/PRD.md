@@ -1216,6 +1216,8 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-15` — 2026-02-25 — M14 entregue: blog público com conteúdo markdown versionado (6 artigos pilares), loader/validação fail-fast, rotas `/blog` e `/blog/:slug` em SSG, SEO de artigo (metadata + JSON-LD), `sitemap.xml` com posts, `rss.xml`, redirect de CTA rastreável (`/r/blog-cta`) e eventos de funil (`view_blog_post`, `blog_cta_click`, `blog_to_calculator`) + origem blog em signup/calculadora.
 * `CP-15` — 2026-02-26 — PRD: adicionada especificação detalhada do M15 (Blog CMS Admin) com CP-16, modelagem, endpoints admin/públicos, task board e critérios de aceite para cutover do blog file-based para DB.
 * `CP-16` — 2026-02-26 — M15 implementado: blog CMS admin (`/app/admin/blog`) com editor Markdown + preview, migration `0043_blog_posts`, APIs admin/públicas do blog com paginação/status, cutover por `BLOG_SOURCE` (`db|file`) em `/blog`, `/blog/:slug`, home, sitemap e RSS, script idempotente de import (`blog:import:m14`) e documentação de baseline/KPI + runbook de rollout.
+* `CP-16` — 2026-02-26 — Hotfix M15: preview Markdown do CMS admin passou a usar estilos `blog-content` (removendo dependência de `prose` sem plugin typography) e adicionando estilo para `h1`, corrigindo render visual de títulos no editor.
+* `CP-16` — 2026-02-26 — Hotfix M15: suporte a imagem por URL no editor/admin e público (auto-conversão de URL de imagem em linha isolada para Markdown image), dica de uso no formulário e estilos `.blog-content img` para render responsivo.
 
 ---
 

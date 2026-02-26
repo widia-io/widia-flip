@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { marked } from "marked";
-import DOMPurify from "dompurify";
+import createDOMPurify from "dompurify";
 import type { AdminBlogPost } from "@widia/shared";
 
 import {
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { normalizeMarkdownImageUrls } from "@/lib/markdown";
 
 type FormValues = {
   slug: string;
@@ -83,7 +84,14 @@ export function BlogPostEditorForm({ initialPost }: BlogPostEditorFormProps) {
   const [isPending, startTransition] = useTransition();
 
   const previewHtml = useMemo(() => {
-    const rawHtml = marked.parse(form.contentMd || "") as string;
+    const markdownForPreview = normalizeMarkdownImageUrls(form.contentMd || "");
+    const rawHtml = marked.parse(markdownForPreview) as string;
+
+    if (typeof window === "undefined") {
+      return rawHtml;
+    }
+
+    const DOMPurify = createDOMPurify(window);
     return DOMPurify.sanitize(rawHtml);
   }, [form.contentMd]);
 
@@ -240,6 +248,16 @@ export function BlogPostEditorForm({ initialPost }: BlogPostEditorFormProps) {
             onChange={(e) => updateField("coverImageUrl", e.target.value)}
             placeholder="https://cdn.exemplo.com/imagens/post.jpg"
           />
+          {form.coverImageUrl.trim() ? (
+            <div className="overflow-hidden rounded-md border bg-card/40 p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={form.coverImageUrl.trim()}
+                alt="Pré-visualização da capa"
+                className="h-auto max-h-48 w-full rounded object-cover"
+              />
+            </div>
+          ) : null}
         </div>
         <div className="space-y-2">
           <Label htmlFor="seoTitle">SEO Title (opcional)</Label>
@@ -270,13 +288,17 @@ export function BlogPostEditorForm({ initialPost }: BlogPostEditorFormProps) {
             onChange={(e) => updateField("contentMd", e.target.value)}
             rows={22}
             className="font-mono text-xs"
-            placeholder="# Título&#10;&#10;Seu conteúdo em markdown..."
+            placeholder="# Título&#10;&#10;Use Markdown. Exemplo de imagem: ![Descrição](https://exemplo.com/imagem.jpg)"
           />
+          <p className="text-xs text-muted-foreground">
+            Dica: você pode colar uma URL direta de imagem em uma linha isolada e o preview converte
+            automaticamente.
+          </p>
         </div>
         <div className="space-y-2">
           <Label>Preview</Label>
           <div
-            className="prose prose-sm max-w-none rounded-md border bg-card p-4 min-h-[420px]"
+            className="blog-content min-h-[420px] rounded-md border bg-card p-4"
             dangerouslySetInnerHTML={{ __html: previewHtml }}
           />
         </div>

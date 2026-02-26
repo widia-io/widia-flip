@@ -1,17 +1,21 @@
 "use client";
 
-import DOMPurify from "dompurify";
+import createDOMPurify from "dompurify";
 
 interface CampaignPreviewProps {
   html: string;
 }
 
 export function CampaignPreview({ html }: CampaignPreviewProps) {
+  const DOMPurify = typeof window === "undefined" ? null : createDOMPurify(window);
+
   // Sanitize HTML to prevent XSS - this is admin-only content but still good practice
-  const sanitizedHtml = DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ["p", "br", "strong", "em", "b", "i", "u", "a", "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6", "span", "div", "table", "tr", "td", "th", "thead", "tbody", "img"],
-    ALLOWED_ATTR: ["href", "target", "style", "class", "src", "alt", "width", "height"],
-  });
+  const sanitizedHtml = DOMPurify
+    ? DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: ["p", "br", "strong", "em", "b", "i", "u", "a", "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6", "span", "div", "table", "tr", "td", "th", "thead", "tbody", "img"],
+        ALLOWED_ATTR: ["href", "target", "style", "class", "src", "alt", "width", "height"],
+      })
+    : html;
 
   return (
     <div

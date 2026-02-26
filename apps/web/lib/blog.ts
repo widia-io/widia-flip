@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import { marked } from "marked";
+import { normalizeMarkdownImageUrls } from "@/lib/markdown";
 
 export type BlogCtaTarget = "calculator" | "signup";
 
@@ -284,7 +285,7 @@ function loadPosts(): BlogPost[] {
       ...normalized,
       excerpt: normalized.excerpt ?? extractExcerpt(markdownContent),
       markdownContent,
-      htmlContent: marked.parse(markdownContent) as string,
+      htmlContent: marked.parse(normalizeMarkdownImageUrls(markdownContent)) as string,
       readingTimeMinutes: toReadingTimeMinutes(markdownContent),
       sourcePath,
     } satisfies BlogPost;

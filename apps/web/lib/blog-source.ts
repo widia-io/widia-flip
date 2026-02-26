@@ -10,6 +10,7 @@ import {
   type BlogPost as FileBlogPost,
 } from "@/lib/blog";
 import { getDbPostBySlug, getDbPublishedPostSummaries } from "@/lib/blog-db";
+import { normalizeMarkdownImageUrls } from "@/lib/markdown";
 
 export type BlogCtaTarget = "calculator" | "signup";
 
@@ -164,7 +165,8 @@ export async function getPostBySlugSource(slug: string): Promise<BlogPost | null
   if (!row) return null;
 
   const markdownContent = row.contentMd;
-  const htmlContent = sanitizeHtml(marked.parse(markdownContent) as string);
+  const markdownForRender = normalizeMarkdownImageUrls(markdownContent);
+  const htmlContent = sanitizeHtml(marked.parse(markdownForRender) as string);
 
   return {
     slug: row.slug,
