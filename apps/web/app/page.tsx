@@ -61,9 +61,18 @@ function formatBlogDate(value: string): string {
 }
 
 export default async function HomePage() {
-  const session = await getServerSession();
+  const [session, latestPosts] = await Promise.all([
+    getServerSession().catch((error) => {
+      console.error("[home] failed to load server session", error);
+      return null;
+    }),
+    getLatestPostsSource(3).catch((error) => {
+      console.error("[home] failed to load latest blog posts", error);
+      return [];
+    }),
+  ]);
+
   const isLoggedIn = !!session;
-  const latestPosts = await getLatestPostsSource(3);
 
   return (
     <div className="flex min-h-screen flex-col">
