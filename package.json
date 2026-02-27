@@ -17,7 +17,8 @@
     "lint:web": "npm -w apps/web run lint",
     "typecheck:web": "npm -w apps/web run typecheck",
     "dev:api": "bash scripts/dev-api.sh",
-    "fmt:api": "cd services/api && gofmt -w ."
+    "fmt:api": "cd services/api && gofmt -w .",
+    "blog:import:m14": "node scripts/import-blog-m14-to-db.mjs"
   },
   "devDependencies": {
     "marked": "^17.0.1",

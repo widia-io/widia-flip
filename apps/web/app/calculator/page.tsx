@@ -1,13 +1,27 @@
 import { getServerSession } from "@/lib/serverAuth";
 import { CalculatorForm } from "@/components/CalculatorForm";
+import { CalculatorPageFunnelTracker } from "@/components/CalculatorPageFunnelTracker";
 import { Card, CardContent } from "@/components/ui/card";
 
-export default async function CalculatorPage() {
+export default async function CalculatorPage(props: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await getServerSession();
   const isLoggedIn = !!session;
+  const searchParams = (await props.searchParams) ?? {};
+  const src = typeof searchParams.src === "string" ? searchParams.src : "";
+  const postSlug = typeof searchParams.post === "string" ? searchParams.post : "";
+  const ctaPosition = typeof searchParams.cta === "string" ? searchParams.cta : "";
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12">
+      <CalculatorPageFunnelTracker
+        source={src}
+        postSlug={postSlug}
+        ctaPosition={ctaPosition}
+        isLoggedIn={isLoggedIn}
+      />
+
       {/* Hero Section */}
       <div className="text-center mb-10">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -55,4 +69,3 @@ export default async function CalculatorPage() {
     </div>
   );
 }
-

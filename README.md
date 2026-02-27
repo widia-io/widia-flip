@@ -24,6 +24,7 @@ Use `env.example` como referência e exporte as variáveis no seu shell (ou copi
 - **Web (Next / Better Auth)**
   - `BETTER_AUTH_SECRET` (**obrigatório**, >= 32 chars)
   - `GO_API_BASE_URL` (default: `http://localhost:8080`)
+  - `BLOG_SOURCE` (opcional, `db` padrão; `file` como fallback transitório no cutover do blog)
   - `NEXT_PUBLIC_SITE_URL` (opcional, default: `https://meuflip.com`, usado por canonical/sitemap/OG)
 - **API (Go)**
   - `DATABASE_URL` (**obrigatório**)
@@ -41,6 +42,7 @@ Exemplo (dev):
 ```bash
 export BETTER_AUTH_SECRET="dev_secret_please_change_me_32_chars_minimum"
 export GO_API_BASE_URL="http://localhost:8080"
+export BLOG_SOURCE="db"
 export NEXT_PUBLIC_SITE_URL="https://meuflip.com"
 export DATABASE_URL="postgres://widia:widia@localhost:5432/widia_flip?sslmode=disable"
 export BETTER_AUTH_JWKS_URL="http://localhost:3000/api/auth/jwks"
@@ -56,6 +58,17 @@ export S3_FORCE_PATH_STYLE="true"
 
 - `robots.txt` e `sitemap.xml` são gerados pelo App Router em `apps/web/app/robots.ts` e `apps/web/app/sitemap.ts`.
 - Canonical/Open Graph/Twitter cards usam `NEXT_PUBLIC_SITE_URL` (fallback para `https://meuflip.com`).
+- M15: o blog público usa fonte `db` por padrão (`BLOG_SOURCE=db`) e aceita fallback temporário `file`.
+
+### M15 — Import inicial dos posts do blog
+
+Para importar os posts do M14 (`apps/web/content/blog`) para `flip.blog_posts`:
+
+```bash
+export DATABASE_URL="postgres://..."
+export BLOG_IMPORT_USER_ID="SEU_USER_ID_ADMIN"
+npm run blog:import:m14
+```
 
 #### 2) Subir Postgres + MinIO + aplicar migrations
 

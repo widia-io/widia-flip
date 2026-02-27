@@ -86,3 +86,75 @@ export function buildPublicMetadata({
     },
   };
 }
+
+type BuildBlogArticleMetadataInput = {
+  title: string;
+  description: string;
+  path: string;
+  publishedAt: string;
+  updatedAt?: string;
+  author: string;
+  tags: string[];
+  imagePath?: string;
+};
+
+function normalizeDateTime(value: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return `${value}T00:00:00.000Z`;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return new Date().toISOString();
+  }
+
+  return parsed.toISOString();
+}
+
+export function buildBlogArticleMetadata({
+  title,
+  description,
+  path,
+  publishedAt,
+  updatedAt,
+  author,
+  tags,
+  imagePath,
+}: BuildBlogArticleMetadataInput): Metadata {
+  const canonicalUrl = absoluteUrl(path);
+  const ogImageUrl = absoluteUrl(imagePath ?? DEFAULT_OG_IMAGE_PATH);
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: "Meu Flip",
+      locale: "pt_BR",
+      type: "article",
+      publishedTime: normalizeDateTime(publishedAt),
+      modifiedTime: normalizeDateTime(updatedAt ?? publishedAt),
+      authors: [author],
+      tags,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1920,
+          height: 1080,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImageUrl],
+    },
+  };
+}

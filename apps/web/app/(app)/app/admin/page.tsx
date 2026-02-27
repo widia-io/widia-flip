@@ -5,6 +5,7 @@ import {
   BookOpen,
   Building2,
   Camera,
+  FileText,
   HardDrive,
   Home,
   Mail,
@@ -65,6 +66,14 @@ const MODULES = [
     icon: Play,
     group: "Operação",
     accent: "text-violet-600",
+  },
+  {
+    title: "Blog CMS",
+    description: "Posts públicos, SEO e publicação",
+    href: "/app/admin/blog",
+    icon: FileText,
+    group: "Growth",
+    accent: "text-lime-600",
   },
   {
     title: "Leads",
