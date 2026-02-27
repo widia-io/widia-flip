@@ -53,7 +53,7 @@
 * **Current Checkpoint:** `CP-16 — Blog CMS Admin (Backoffice)`
 * **Milestone em andamento:** `N/A (M15 concluído)`
 * **Próximo milestone (planejado):** `TBD (definir M16)`
-* **Última atualização:** `2026-02-26`
+* **Última atualização:** `2026-02-27`
 
 ## 1.2 Milestones (visão macro)
 
@@ -440,6 +440,7 @@ Deve existir:
 * ✅ T15.8 `sitemap.xml` + `rss.xml` baseados na fonte DB (somente status `published`)
 * ✅ T15.9 Migração de conteúdo inicial (import dos 6 posts do M14 para DB) + checklist de cutover
 * ✅ T15.10 Smoke test admin↔público + rollback simples documentado
+* ✅ T15.11 Pass UI incremental do blog público: listagem com artigo destaque + cards compactos, detalhe em 2 colunas com TOC sticky/accordion, âncoras por heading e CTAs contextuais inline
   **Checkpoint alvo:** `CP-16 — Blog CMS Admin (Backoffice)` ✅
 
 ## 1.6 Status Atual (Audit 2026-01-30)
@@ -1218,6 +1219,9 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-16` — 2026-02-26 — M15 implementado: blog CMS admin (`/app/admin/blog`) com editor Markdown + preview, migration `0043_blog_posts`, APIs admin/públicas do blog com paginação/status, cutover por `BLOG_SOURCE` (`db|file`) em `/blog`, `/blog/:slug`, home, sitemap e RSS, script idempotente de import (`blog:import:m14`) e documentação de baseline/KPI + runbook de rollout.
 * `CP-16` — 2026-02-26 — Hotfix M15: preview Markdown do CMS admin passou a usar estilos `blog-content` (removendo dependência de `prose` sem plugin typography) e adicionando estilo para `h1`, corrigindo render visual de títulos no editor.
 * `CP-16` — 2026-02-26 — Hotfix M15: suporte a imagem por URL no editor/admin e público (auto-conversão de URL de imagem em linha isolada para Markdown image), dica de uso no formulário e estilos `.blog-content img` para render responsivo.
+* `CP-16` — 2026-02-27 — Hotfix M15: home pública deixou de quebrar quando auth/blog API local estão indisponíveis; `getServerSession` e `getLatestPostsSource` agora usam fallback resiliente (`null`/`[]`) com log no servidor em `app/page.tsx`.
+* `CP-16` — 2026-02-27 — Hotfix M15: páginas públicas do blog (`/blog`, `/blog/:slug`, relacionados e latest da home) agora fazem fallback automático para source em arquivo quando `BLOG_SOURCE=db` e a API/blog DB estiver indisponível, evitando erro `fetch failed` em runtime.
+* `CP-16` — 2026-02-27 — Pass UI incremental do blog público: parser Markdown passou a gerar IDs estáveis para headings + TOC (`h2/h3`), post ganhou “Trilho de Viabilidade” (sticky desktop + accordion mobile com seção ativa via IntersectionObserver e offset de scroll), CTAs migraram para formato inline/contextual e a listagem `/blog` foi redesenhada com hierarquia editorial (1 destaque + grade compacta).
 
 ---
 
