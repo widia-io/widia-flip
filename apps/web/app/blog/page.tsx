@@ -74,6 +74,18 @@ export default async function BlogListPage() {
                 ) : null}
               </div>
 
+              {featuredPost.coverImage ? (
+                <div className="mt-5 overflow-hidden rounded-2xl border border-border/70 bg-card/40">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={featuredPost.coverImage}
+                    alt={featuredPost.title}
+                    className="h-auto max-h-[420px] w-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              ) : null}
+
               <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl font-display">
                 <Link href={`/blog/${featuredPost.slug}`} className="transition-colors hover:text-primary">
                   {featuredPost.title}
@@ -111,6 +123,17 @@ export default async function BlogListPage() {
                 key={post.slug}
                 className="rounded-xl border border-border/70 bg-card/60 p-4 transition-colors hover:bg-card/90"
               >
+                {post.coverImage ? (
+                  <div className="mb-3 overflow-hidden rounded-lg border border-border/60 bg-card/40">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={post.coverImage}
+                      alt={post.title}
+                      className="h-36 w-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : null}
                 <p className="text-xs text-muted-foreground">{formatDate(post.publishedAt)}</p>
                 <h3 className="mt-2 text-lg font-semibold leading-snug font-display">
                   <Link href={`/blog/${post.slug}`} className="transition-colors hover:text-primary">

@@ -1222,6 +1222,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-16` — 2026-02-27 — Hotfix M15: home pública deixou de quebrar quando auth/blog API local estão indisponíveis; `getServerSession` e `getLatestPostsSource` agora usam fallback resiliente (`null`/`[]`) com log no servidor em `app/page.tsx`.
 * `CP-16` — 2026-02-27 — Hotfix M15: páginas públicas do blog (`/blog`, `/blog/:slug`, relacionados e latest da home) agora fazem fallback automático para source em arquivo quando `BLOG_SOURCE=db` e a API/blog DB estiver indisponível, evitando erro `fetch failed` em runtime.
 * `CP-16` — 2026-02-27 — Pass UI incremental do blog público: parser Markdown passou a gerar IDs estáveis para headings + TOC (`h2/h3`), post ganhou “Trilho de Viabilidade” (sticky desktop + accordion mobile com seção ativa via IntersectionObserver e offset de scroll), CTAs migraram para formato inline/contextual e a listagem `/blog` foi redesenhada com hierarquia editorial (1 destaque + grade compacta).
+* `CP-16` — 2026-02-27 — Hotfix UI blog: listagem pública (`/blog`) agora renderiza preview de `coverImage` quando disponível no artigo destaque e nos cards compactos, reforçando escaneabilidade editorial sem alterar SEO/KPI ou fluxo de dados.
 
 ---
 
