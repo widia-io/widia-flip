@@ -50,10 +50,10 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-14 — Email Marketing (Mini Mailchimp)`
-* **Milestone em andamento:** `M13 — Email Marketing (CONCLUÍDO)`
-* **Próximo milestone (planejado):** N/A (MVP Complete)
-* **Última atualização:** `2026-02-18`
+* **Current Checkpoint:** `CP-15 — Market Data SP (Tabela MVP)`
+* **Milestone em andamento:** `M14 — Market Data SP`
+* **Próximo milestone (planejado):** `M15 — Market Data SP (Mapa)`
+* **Última atualização:** `2026-02-27`
 
 ## 1.2 Milestones (visão macro)
 
@@ -71,6 +71,8 @@
 * ✅ `M11 — Usage Tracking (v1) + Soft Limits`
 * ✅ `M12 — Paywall + Enforcement (Hard Limits)`
 * ✅ `M13 — Email Marketing (Mini Mailchimp)`
+* 🟦 `M14 — Market Data SP (Tabela MVP)`
+* ⬜ `M15 — Market Data SP (Mapa Geográfico)`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
 
@@ -239,6 +241,17 @@ Deve existir:
 * Template fixo com logo + link de descadastro público (unsubscribe).
 * Envio via Resend (mesmo provedor já usado no auth).
 
+### CP-15 — Market Data SP (Tabela MVP)
+
+Deve existir:
+
+* Pipeline de ingestão SP a partir da planilha ITBI (MVP) com auditoria de run.
+* Agregados mensais pré-computados (`mediana`, `P25`, `P75`, `amostra`) por bairro.
+* Endpoints Go públicos de leitura (`filters`, `price-m2`, `series`) para Market Data.
+* BFF no Next (`/api/market/*`) validando params e cacheando respostas.
+* Página autenticada `/app/market-data` com filtros e tabela de ranking.
+* Transparência de fonte: "ITBI (valor declarado)" e `updated_at`.
+
 ---
 
 ## 1.4 Task Board (MVP)
@@ -389,6 +402,18 @@ Deve existir:
 * ✅ T13.7 Unsubscribe público: rota `/unsubscribe/:token` que grava `marketing_opt_out_at`
 * ✅ T13.8 Admin UI: lista de campanhas + criar campanha + botão "Enviar agora" com confirmação
   **Checkpoint alvo:** `CP-14 — Email Marketing (Mini Mailchimp)` ✅
+
+### M14 — Market Data SP (Tabela MVP)
+
+* 🟦 T14.1 Modelagem DB + migration (`0043_market_data`)
+* ⬜ T14.2 ETL SP (XLSX -> normalização -> agregação mensal)
+* ⬜ T14.3 Go API Market Data (public endpoints `filters|price-m2|series`)
+* ⬜ T14.4 `packages/shared` schemas (Market Data query/response)
+* ⬜ T14.5 BFF Next (`/api/market/*`) com validação + cache
+* ⬜ T14.6 UI `/app/market-data` (filtros + tabela)
+* ⬜ T14.7 Hardening (testes + smoke + validações de erro)
+* ⬜ T14.8 Fechamento CP-15 + handoff M15 (mapa)
+  **Checkpoint alvo:** `CP-15 — Market Data SP (Tabela MVP)` 🟦
 
 ## 1.6 Status Atual (Audit 2026-01-30)
 
@@ -1108,6 +1133,8 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-14` — 2026-02-18 — Documento de execução incremental de UX/conversão em produção criado (`docs/UX_CONVERSAO_ROADMAP_2026-02-18.md`) com plano em ondas (instrumentação, quick wins, calculadora, onboarding) e métricas de decisão.
 * `CP-14` — 2026-02-18 — Onda 0 implementada: ingestão padronizada de eventos de funil (`session_id/variant/source/device`) via BFF (`/api/analytics/track`) + persistência em `flip.funnel_events` (migration `0042`), evento `first_snapshot_saved` no Go e painel diário no admin (`/api/v1/admin/funnel/daily`, `/app/admin/metrics`).
 * `CP-14` — 2026-02-18 — UI do `/app/admin` reorganizada como hub operacional (visão executiva + atalhos por domínio + blocos de distribuição de usuários/pipeline/prospecção), removendo header congestionado e melhorando escaneabilidade.
+* `CP-14` — 2026-02-27 — Planejamento pós-MVP: criado addendum `docs/PRD_MARKET_DATA_ADDENDUM.md` para Market Data Module (SP MVP com planilha ITBI 2025), com escopo, arquitetura ETL->agregado->API/BFF e critérios de aceite, sem alterações de código.
+* `CP-15` — 2026-02-27 — M14 B0 concluído: branch `codex/market-data-module` aberta e governança PRD atualizada (checkpoint/milestone/task board) para execução incremental do Market Data SP.
 
 ---
 
@@ -1130,6 +1157,10 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
   * **Opção A (mais simples):** adicionar `event_type` de timeline para milestones manuais (ex: `renovation_milestone_created/updated`) + endpoint `POST/PUT` para criar/editar (mantém leitura via timeline).
   * **Opção B (mais correta):** tabela `schedule_items` com CRUD (itens de cronograma dedicados com `title`, `planned_date`, `done_at?`, `notes?`, `order?`), e timeline apenas como log.
   * **Regras:** manter minimalista (sem Gantt pesado), sem expandir pipeline além dos status do MVP.
+* ⬜ T-FUTURE.5 Market Data Module (Pós-MVP)
+  * PRD addendum dedicado em `docs/PRD_MARKET_DATA_ADDENDUM.md`.
+  * Fase inicial planejada: SP MVP com base em `docs/reference/GUIAS DE ITBI PAGAS (28012026) XLS.xlsx`.
+  * Arquitetura alvo: ETL -> agregado mensal -> Go API -> Next BFF -> UI.
 
 ---
 
