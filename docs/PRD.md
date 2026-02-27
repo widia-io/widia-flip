@@ -407,9 +407,9 @@ Deve existir:
 
 * ✅ T14.1 Modelagem DB + migration (`0043_market_data`)
 * ✅ T14.2 ETL SP (XLSX -> normalização -> agregação mensal)
-* 🟦 T14.3 Go API Market Data (public endpoints `filters|price-m2|series`)
-* ⬜ T14.4 `packages/shared` schemas (Market Data query/response)
-* ⬜ T14.5 BFF Next (`/api/market/*`) com validação + cache
+* ✅ T14.3 Go API Market Data (public endpoints `filters|price-m2|series`)
+* ✅ T14.4 `packages/shared` schemas (Market Data query/response)
+* 🟦 T14.5 BFF Next (`/api/market/*`) com validação + cache
 * ⬜ T14.6 UI `/app/market-data` (filtros + tabela)
 * ⬜ T14.7 Hardening (testes + smoke + validações de erro)
 * ⬜ T14.8 Fechamento CP-15 + handoff M15 (mapa)
@@ -1137,6 +1137,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-15` — 2026-02-27 — M14 B0 concluído: branch `codex/market-data-module` aberta e governança PRD atualizada (checkpoint/milestone/task board) para execução incremental do Market Data SP.
 * `CP-15` — 2026-02-27 — M14 B1 concluído: migration `0043_market_data` criada com tabelas `market_regions`, `market_ingestion_runs`, `market_transactions`, `market_price_m2_aggregates` + índices de leitura/agrupamento.
 * `CP-15` — 2026-02-27 — M14 B2 concluído: comando `services/api/cmd/market_ingest` implementado (XLSX -> filtros de qualidade -> upsert regiões -> transações -> agregados 1/3/6/12 + auditoria de run).
+* `CP-15` — 2026-02-27 — M14 B3 concluído: Go API pública de Market Data (`/api/v1/public/market/filters|price-m2|series`) implementada e contratos Zod adicionados em `packages/shared`.
 
 ---
 

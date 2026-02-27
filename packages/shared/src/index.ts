@@ -1985,6 +1985,96 @@ export const UpdateOpportunityStatusResponseSchema = z.object({
 });
 export type UpdateOpportunityStatusResponse = z.infer<typeof UpdateOpportunityStatusResponseSchema>;
 
+// Market Data (M14)
+
+export const MarketCityEnum = z.enum(["sp"]);
+export type MarketCity = z.infer<typeof MarketCityEnum>;
+
+export const MarketPropertyClassEnum = z.enum(["geral", "apartamento", "casa", "outros"]);
+export type MarketPropertyClass = z.infer<typeof MarketPropertyClassEnum>;
+
+export const MarketPeriodMonthsSchema = z.union([
+  z.literal(1),
+  z.literal(3),
+  z.literal(6),
+  z.literal(12),
+]);
+export type MarketPeriodMonths = z.infer<typeof MarketPeriodMonthsSchema>;
+
+export const MarketFiltersQuerySchema = z.object({
+  city: MarketCityEnum.default("sp"),
+});
+export type MarketFiltersQuery = z.infer<typeof MarketFiltersQuerySchema>;
+
+export const MarketPriceM2QuerySchema = z.object({
+  city: MarketCityEnum.default("sp"),
+  as_of_month: z.string().regex(/^\d{4}-\d{2}$/),
+  period_months: z.coerce.number().pipe(MarketPeriodMonthsSchema).default(6),
+  property_class: MarketPropertyClassEnum.default("geral"),
+});
+export type MarketPriceM2Query = z.infer<typeof MarketPriceM2QuerySchema>;
+
+export const MarketSeriesQuerySchema = z.object({
+  city: MarketCityEnum.default("sp"),
+  region_name: z.string().min(1),
+  period_months: z.coerce.number().pipe(MarketPeriodMonthsSchema).default(6),
+  property_class: MarketPropertyClassEnum.default("geral"),
+  months: z.coerce.number().int().min(1).max(24).default(12),
+});
+export type MarketSeriesQuery = z.infer<typeof MarketSeriesQuerySchema>;
+
+export const MarketFiltersResponseSchema = z.object({
+  city: MarketCityEnum,
+  source: z.string(),
+  available_months: z.array(z.string()),
+  period_options: z.array(MarketPeriodMonthsSchema),
+  property_classes: z.array(MarketPropertyClassEnum),
+  updated_at: z.string().nullable(),
+});
+export type MarketFiltersResponse = z.infer<typeof MarketFiltersResponseSchema>;
+
+export const MarketPriceM2ItemSchema = z.object({
+  region_id: z.string(),
+  region_name: z.string(),
+  median_m2: z.number(),
+  p25_m2: z.number(),
+  p75_m2: z.number(),
+  tx_count: z.number(),
+  updated_at: z.string(),
+});
+export type MarketPriceM2Item = z.infer<typeof MarketPriceM2ItemSchema>;
+
+export const MarketPriceM2ResponseSchema = z.object({
+  city: MarketCityEnum,
+  as_of_month: z.string().regex(/^\d{4}-\d{2}$/),
+  period_months: MarketPeriodMonthsSchema,
+  property_class: MarketPropertyClassEnum,
+  source: z.string(),
+  updated_at: z.string().nullable(),
+  items: z.array(MarketPriceM2ItemSchema),
+});
+export type MarketPriceM2Response = z.infer<typeof MarketPriceM2ResponseSchema>;
+
+export const MarketSeriesPointSchema = z.object({
+  as_of_month: z.string().regex(/^\d{4}-\d{2}$/),
+  median_m2: z.number(),
+  p25_m2: z.number(),
+  p75_m2: z.number(),
+  tx_count: z.number(),
+  updated_at: z.string(),
+});
+export type MarketSeriesPoint = z.infer<typeof MarketSeriesPointSchema>;
+
+export const MarketSeriesResponseSchema = z.object({
+  city: MarketCityEnum,
+  region_name: z.string(),
+  period_months: MarketPeriodMonthsSchema,
+  property_class: MarketPropertyClassEnum,
+  source: z.string(),
+  points: z.array(MarketSeriesPointSchema),
+});
+export type MarketSeriesResponse = z.infer<typeof MarketSeriesResponseSchema>;
+
 export const JobRunStatusEnum = z.enum(["pending", "running", "completed", "failed"]);
 export type JobRunStatus = z.infer<typeof JobRunStatusEnum>;
 
