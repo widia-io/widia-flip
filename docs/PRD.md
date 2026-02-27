@@ -406,8 +406,8 @@ Deve existir:
 ### M14 — Market Data SP (Tabela MVP)
 
 * ✅ T14.1 Modelagem DB + migration (`0043_market_data`)
-* 🟦 T14.2 ETL SP (XLSX -> normalização -> agregação mensal)
-* ⬜ T14.3 Go API Market Data (public endpoints `filters|price-m2|series`)
+* ✅ T14.2 ETL SP (XLSX -> normalização -> agregação mensal)
+* 🟦 T14.3 Go API Market Data (public endpoints `filters|price-m2|series`)
 * ⬜ T14.4 `packages/shared` schemas (Market Data query/response)
 * ⬜ T14.5 BFF Next (`/api/market/*`) com validação + cache
 * ⬜ T14.6 UI `/app/market-data` (filtros + tabela)
@@ -1136,6 +1136,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-14` — 2026-02-27 — Planejamento pós-MVP: criado addendum `docs/PRD_MARKET_DATA_ADDENDUM.md` para Market Data Module (SP MVP com planilha ITBI 2025), com escopo, arquitetura ETL->agregado->API/BFF e critérios de aceite, sem alterações de código.
 * `CP-15` — 2026-02-27 — M14 B0 concluído: branch `codex/market-data-module` aberta e governança PRD atualizada (checkpoint/milestone/task board) para execução incremental do Market Data SP.
 * `CP-15` — 2026-02-27 — M14 B1 concluído: migration `0043_market_data` criada com tabelas `market_regions`, `market_ingestion_runs`, `market_transactions`, `market_price_m2_aggregates` + índices de leitura/agrupamento.
+* `CP-15` — 2026-02-27 — M14 B2 concluído: comando `services/api/cmd/market_ingest` implementado (XLSX -> filtros de qualidade -> upsert regiões -> transações -> agregados 1/3/6/12 + auditoria de run).
 
 ---
 
