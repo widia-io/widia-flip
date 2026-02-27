@@ -50,8 +50,8 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-15 — Market Data SP (Tabela MVP)`
-* **Milestone em andamento:** `M14 — Market Data SP`
+* **Current Checkpoint:** `CP-15 — Market Data SP (Tabela MVP) — ALCANÇADO`
+* **Milestone em andamento:** `M14 — Market Data SP (CONCLUÍDO)`
 * **Próximo milestone (planejado):** `M15 — Market Data SP (Mapa)`
 * **Última atualização:** `2026-02-27`
 
@@ -71,7 +71,7 @@
 * ✅ `M11 — Usage Tracking (v1) + Soft Limits`
 * ✅ `M12 — Paywall + Enforcement (Hard Limits)`
 * ✅ `M13 — Email Marketing (Mini Mailchimp)`
-* 🟦 `M14 — Market Data SP (Tabela MVP)`
+* ✅ `M14 — Market Data SP (Tabela MVP)`
 * ⬜ `M15 — Market Data SP (Mapa Geográfico)`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
@@ -411,9 +411,9 @@ Deve existir:
 * ✅ T14.4 `packages/shared` schemas (Market Data query/response)
 * ✅ T14.5 BFF Next (`/api/market/*`) com validação + cache
 * ✅ T14.6 UI `/app/market-data` (filtros + tabela)
-* 🟦 T14.7 Hardening (testes + smoke + validações de erro)
-* ⬜ T14.8 Fechamento CP-15 + handoff M15 (mapa)
-  **Checkpoint alvo:** `CP-15 — Market Data SP (Tabela MVP)` 🟦
+* ✅ T14.7 Hardening (testes + smoke + validações de erro)
+* ✅ T14.8 Fechamento CP-15 + handoff M15 (mapa)
+  **Checkpoint alvo:** `CP-15 — Market Data SP (Tabela MVP)` ✅
 
 ## 1.6 Status Atual (Audit 2026-01-30)
 
@@ -1139,6 +1139,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-15` — 2026-02-27 — M14 B2 concluído: comando `services/api/cmd/market_ingest` implementado (XLSX -> filtros de qualidade -> upsert regiões -> transações -> agregados 1/3/6/12 + auditoria de run).
 * `CP-15` — 2026-02-27 — M14 B3 concluído: Go API pública de Market Data (`/api/v1/public/market/filters|price-m2|series`) implementada e contratos Zod adicionados em `packages/shared`.
 * `CP-15` — 2026-02-27 — M14 B4 concluído: BFF Next (`/api/market/filters|price-m2|series`) com validação/cache e UI autenticada `/app/market-data` entregue (filtros, tabela e série temporal).
+* `CP-15` — 2026-02-27 — M14 B5 concluído: hardening final (go test `cmd/market_ingest` + `httpapi`, lint/typecheck web, dry-run ETL com planilha SP completa), CP-15 fechado e handoff para M15 (mapa geográfico).
 
 ---
 
