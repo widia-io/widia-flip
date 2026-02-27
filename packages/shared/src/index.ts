@@ -1576,6 +1576,96 @@ export const ListPromotionsResponseSchema = z.object({
 });
 export type ListPromotionsResponse = z.infer<typeof ListPromotionsResponseSchema>;
 
+// Blog CMS (M15)
+
+export const BlogPostStatusEnum = z.enum(["draft", "published", "archived"]);
+export type BlogPostStatus = z.infer<typeof BlogPostStatusEnum>;
+
+export const AdminBlogPostSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  title: z.string(),
+  description: z.string(),
+  contentMd: z.string(),
+  excerpt: z.string().nullable(),
+  authorName: z.string(),
+  tags: z.array(z.string()),
+  coverImageUrl: z.string().nullable(),
+  canonicalPath: z.string().nullable(),
+  seoTitle: z.string().nullable(),
+  seoDescription: z.string().nullable(),
+  status: BlogPostStatusEnum,
+  publishedAt: z.string().nullable(),
+  createdByUserId: z.string(),
+  updatedByUserId: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type AdminBlogPost = z.infer<typeof AdminBlogPostSchema>;
+
+export const PublicBlogPostSummarySchema = z.object({
+  slug: z.string(),
+  title: z.string(),
+  description: z.string(),
+  excerpt: z.string().nullable(),
+  authorName: z.string(),
+  tags: z.array(z.string()),
+  coverImageUrl: z.string().nullable(),
+  canonicalPath: z.string().nullable(),
+  publishedAt: z.string(),
+  updatedAt: z.string().nullable(),
+});
+export type PublicBlogPostSummary = z.infer<typeof PublicBlogPostSummarySchema>;
+
+export const PublicBlogPostDetailSchema = PublicBlogPostSummarySchema.extend({
+  contentMd: z.string(),
+  seoTitle: z.string().nullable(),
+  seoDescription: z.string().nullable(),
+});
+export type PublicBlogPostDetail = z.infer<typeof PublicBlogPostDetailSchema>;
+
+export const ListAdminBlogPostsResponseSchema = z.object({
+  items: z.array(AdminBlogPostSchema),
+  next_cursor: z.string().nullable().optional(),
+});
+export type ListAdminBlogPostsResponse = z.infer<typeof ListAdminBlogPostsResponseSchema>;
+
+export const ListPublicBlogPostsResponseSchema = z.object({
+  items: z.array(PublicBlogPostSummarySchema),
+  next_cursor: z.string().nullable().optional(),
+});
+export type ListPublicBlogPostsResponse = z.infer<typeof ListPublicBlogPostsResponseSchema>;
+
+export const CreateBlogPostRequestSchema = z.object({
+  slug: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  contentMd: z.string().min(1),
+  excerpt: z.string().nullable().optional(),
+  authorName: z.string().min(1),
+  tags: z.array(z.string()),
+  coverImageUrl: z.string().nullable().optional(),
+  canonicalPath: z.string().nullable().optional(),
+  seoTitle: z.string().nullable().optional(),
+  seoDescription: z.string().nullable().optional(),
+});
+export type CreateBlogPostRequest = z.infer<typeof CreateBlogPostRequestSchema>;
+
+export const UpdateBlogPostRequestSchema = z.object({
+  slug: z.string().optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  contentMd: z.string().optional(),
+  excerpt: z.string().nullable().optional(),
+  authorName: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  coverImageUrl: z.string().nullable().optional(),
+  canonicalPath: z.string().nullable().optional(),
+  seoTitle: z.string().nullable().optional(),
+  seoDescription: z.string().nullable().optional(),
+});
+export type UpdateBlogPostRequest = z.infer<typeof UpdateBlogPostRequestSchema>;
+
 // Admin SaaS Metrics
 
 export const AdminSaaSMetricsPeriodEnum = z.enum(["30d", "90d", "all"]);

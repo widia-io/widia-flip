@@ -50,9 +50,9 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-15 — Market Data SP (Tabela MVP) — ALCANÇADO`
-* **Milestone em andamento:** `M14 — Market Data SP (CONCLUÍDO)`
-* **Próximo milestone (planejado):** `M15 — Market Data SP (Mapa)`
+* **Current Checkpoint:** `CP-17 — Market Data SP (Tabela MVP) — ALCANÇADO`
+* **Milestone em andamento:** `N/A (M16 concluído)`
+* **Próximo milestone (planejado):** `M17 — Market Data SP (Mapa Geográfico)`
 * **Última atualização:** `2026-02-27`
 
 ## 1.2 Milestones (visão macro)
@@ -71,8 +71,10 @@
 * ✅ `M11 — Usage Tracking (v1) + Soft Limits`
 * ✅ `M12 — Paywall + Enforcement (Hard Limits)`
 * ✅ `M13 — Email Marketing (Mini Mailchimp)`
-* ✅ `M14 — Market Data SP (Tabela MVP)`
-* ⬜ `M15 — Market Data SP (Mapa Geográfico)`
+* ✅ `M14 — Blog Público + SEO Content Engine`
+* ✅ `M15 — Blog CMS Admin (Backoffice)`
+* ✅ `M16 — Market Data SP (Tabela MVP)`
+* ⬜ `M17 — Market Data SP (Mapa Geográfico)`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
 
@@ -241,7 +243,31 @@ Deve existir:
 * Template fixo com logo + link de descadastro público (unsubscribe).
 * Envio via Resend (mesmo provedor já usado no auth).
 
-### CP-15 — Market Data SP (Tabela MVP)
+### CP-15 — Blog Público + SEO Content Engine
+
+Deve existir:
+
+* Rotas públicas `GET /blog` e `GET /blog/:slug` no Next (App Router) com render estático.
+* Conteúdo versionado no repositório (`.md`/`.mdx`) com frontmatter padrão (slug/título/descrição/data/tags/status).
+* SEO por artigo: canonical, Open Graph/Twitter e JSON-LD `Article` + `BreadcrumbList`.
+* `sitemap.xml` incluindo todos os posts publicados.
+* CTA de conversão por artigo (`/calculator` e signup/login).
+* Eventos mínimos de funil do blog (`view_blog_post`, `blog_cta_click`, `blog_to_calculator`).
+* Processo editorial mínimo documentado (cadência, owner e checklist de publicação).
+
+### CP-16 — Blog CMS Admin (Backoffice)
+
+Deve existir:
+
+* CMS interno em `/app/admin/blog` acessível apenas para usuários admin.
+* CRUD completo de posts no backend (fonte de verdade em DB): draft, publicado, arquivado.
+* Editor Markdown com preview no admin (sem WYSIWYG no v1).
+* Slug único e validações de conteúdo/SEO no backend (título, descrição, datas, tags).
+* Blog público (`/blog`, `/blog/:slug`, `sitemap.xml`, `rss.xml`) consumindo posts publicados via backend.
+* Fluxo publicar/despublicar refletindo no site público sem deploy manual.
+* Logs de auditoria mínimos (`created_by`, `updated_by`, timestamps) e erros padronizados.
+
+### CP-17 — Market Data SP (Tabela MVP)
 
 Deve existir:
 
@@ -359,7 +385,7 @@ Deve existir:
 
 ---
 
-## 1.5 Task Board (Pós-MVP: Billing/Tiers)
+## 1.5 Task Board (Pós-MVP)
 
 > Status: ⬜ todo | 🟦 doing | ✅ done | 🟥 blocked
 
@@ -403,17 +429,44 @@ Deve existir:
 * ✅ T13.8 Admin UI: lista de campanhas + criar campanha + botão "Enviar agora" com confirmação
   **Checkpoint alvo:** `CP-14 — Email Marketing (Mini Mailchimp)` ✅
 
-### M14 — Market Data SP (Tabela MVP)
+### M14 — Blog Público + SEO Content Engine
 
-* ✅ T14.1 Modelagem DB + migration (`0043_market_data`)
-* ✅ T14.2 ETL SP (XLSX -> normalização -> agregação mensal)
-* ✅ T14.3 Go API Market Data (public endpoints `filters|price-m2|series`)
-* ✅ T14.4 `packages/shared` schemas (Market Data query/response)
-* ✅ T14.5 BFF Next (`/api/market/*`) com validação + cache
-* ✅ T14.6 UI `/app/market-data` (filtros + tabela)
-* ✅ T14.7 Hardening (testes + smoke + validações de erro)
-* ✅ T14.8 Fechamento CP-15 + handoff M15 (mapa)
-  **Checkpoint alvo:** `CP-15 — Market Data SP (Tabela MVP)` ✅
+* ✅ T14.1 Definir arquitetura de conteúdo v0 (`markdown/mdx` no repo; sem CMS no v0)
+* ✅ T14.2 Implementar rotas públicas `/blog` e `/blog/:slug` (App Router + SSG)
+* ✅ T14.3 Implementar metadata por post (canonical + OG/Twitter + JSON-LD `Article`)
+* ✅ T14.4 Atualizar `sitemap.xml` para listar artigos publicados
+* ✅ T14.5 Inserir CTAs de conversão no blog (`/calculator` + signup/login)
+* ✅ T14.6 Instrumentar eventos de funil do blog (`view_blog_post`, `blog_cta_click`, `blog_to_calculator`)
+* ✅ T14.7 Publicar lote inicial (mínimo 6 artigos pilares) com interlink interno
+* ✅ T14.8 Definir rotina editorial mensal (brief, produção, revisão, atualização)
+  **Checkpoint alvo:** `CP-15 — Blog Público + SEO Content Engine` ✅
+
+### M15 — Blog CMS Admin (Backoffice)
+
+* ✅ T15.1 Modelagem DB: tabela `blog_posts` (slug único, markdown, metadata SEO, status, publish timestamps, audit fields)
+* ✅ T15.2 Go API admin: CRUD posts + ações `publish`/`unpublish`/`archive`
+* ✅ T15.3 Go API pública: listagem e detalhe de posts publicados com paginação (`limit` + `cursor`)
+* ✅ T15.4 BFF web: server actions/admin actions para consumir API Go com Bearer (contrato BFF mantido)
+* ✅ T15.5 UI admin `/app/admin/blog`: listagem, filtros (status/busca), criação, edição, publicar/despublicar
+* ✅ T15.6 Editor Markdown com preview side-by-side (sem componentes ricos no v1)
+* ✅ T15.7 Refactor blog público para fonte DB (remover dependência de arquivos markdown em runtime)
+* ✅ T15.8 `sitemap.xml` + `rss.xml` baseados na fonte DB (somente status `published`)
+* ✅ T15.9 Migração de conteúdo inicial (import dos 6 posts do M14 para DB) + checklist de cutover
+* ✅ T15.10 Smoke test admin↔público + rollback simples documentado
+* ✅ T15.11 Pass UI incremental do blog público: listagem com artigo destaque + cards compactos, detalhe em 2 colunas com TOC sticky/accordion, âncoras por heading e CTAs contextuais inline
+  **Checkpoint alvo:** `CP-16 — Blog CMS Admin (Backoffice)` ✅
+
+### M16 — Market Data SP (Tabela MVP)
+
+* ✅ T16.1 Modelagem DB + migration (`0044_market_data`)
+* ✅ T16.2 ETL SP (XLSX -> normalização -> agregação mensal)
+* ✅ T16.3 Go API Market Data (public endpoints `filters|price-m2|series`)
+* ✅ T16.4 `packages/shared` schemas (Market Data query/response)
+* ✅ T16.5 BFF Next (`/api/market/*`) com validação + cache
+* ✅ T16.6 UI `/app/market-data` (filtros + tabela)
+* ✅ T16.7 Hardening (testes + smoke + validações de erro)
+* ✅ T16.8 Fechamento CP-17 + handoff M17 (mapa)
+  **Checkpoint alvo:** `CP-17 — Market Data SP (Tabela MVP)` ✅
 
 ## 1.6 Status Atual (Audit 2026-01-30)
 
@@ -498,6 +551,30 @@ Deve existir:
 * ✅ **Implementado** — Rota pública de unsubscribe (`/unsubscribe/:token`) + Go handler.
 * ✅ **Implementado** — Admin UI (`/app/admin/email/*`): lista, create, detail + actions (queue/send).
 * ✅ **Já existia** — Resend integrado no web para emails transacionais (auth) e reutilizado para marketing.
+
+### M14 — Blog Público + SEO Content Engine
+
+* ✅ **Implementado** — Conteúdo local versionado em `apps/web/content/blog` com frontmatter validado (parse e fail-fast em build para slug/data/schema).
+* ✅ **Implementado** — Rotas públicas `/blog`, `/blog/:slug` (SSG), `/rss.xml` e redirect de CTA rastreável (`/r/blog-cta`).
+* ✅ **Implementado** — SEO de artigos: metadata dinâmica (canonical + OG/Twitter article), JSON-LD (`Article` + `BreadcrumbList`) e sitemap com posts.
+* ✅ **Implementado** — Conversão/atribuição: eventos `view_blog_post`, `blog_cta_click`, `blog_to_calculator` + `signup_started` com origem blog.
+* ✅ **Implementado** — Home pública com seção “Últimos artigos” + links para `/blog`.
+
+### M15 — Blog CMS Admin (Backoffice)
+
+* ✅ **Implementado** — migration `0043_blog_posts` com índices, constraint de publicação e trigger `updated_at`.
+* ✅ **Implementado** — Go API admin/public do blog (`/api/v1/admin/blog/posts*`, `/api/v1/public/blog/posts*`) com validação, paginação `limit+cursor` e transições de status.
+* ✅ **Implementado** — CMS admin em `/app/admin/blog` (lista, filtros, criação, edição, publish/unpublish/archive) com editor Markdown + preview.
+* ✅ **Implementado** — cutover web para fonte selecionável por `BLOG_SOURCE` (`db` default + fallback `file`), incluindo `/blog`, `/blog/:slug`, home, `sitemap.xml` e `rss.xml`.
+* ✅ **Implementado** — script idempotente de import M14 (`scripts/import-blog-m14-to-db.mjs`) e runbook de rollout/rollback.
+
+### M16 — Market Data SP (Tabela MVP)
+
+* ✅ **Implementado** — migrations `0044_market_data` (regions, ingestion_runs, transactions, aggregates) com índices para leitura/agrupamento.
+* ✅ **Implementado** — comando ETL `services/api/cmd/market_ingest` com ingestão XLSX, filtros de qualidade, normalização de bairro e agregação 1/3/6/12 meses.
+* ✅ **Implementado** — endpoints públicos Go `/api/v1/public/market/{filters,price-m2,series}` e contratos compartilhados em `packages/shared`.
+* ✅ **Implementado** — BFF Next `/api/market/{filters,price-m2,series}` com validação e cache (`s-maxage` + `stale-while-revalidate`).
+* ✅ **Implementado** — UI autenticada `/app/market-data` com filtros, tabela de ranking por bairro, série temporal e disclaimers de fonte.
 
 # 2) API & Data Model (para guiar implementação)
 
@@ -711,6 +788,42 @@ Timeline:
 * `GET /calculator` (Next page pública)
 * (opcional) `POST /api/v1/public/cash-calc` (calcular sem salvar)
 * Salvar snapshot só logado: `POST /api/v1/properties/:id/analysis/cash/snapshot`
+
+---
+
+## M14 — Blog Público + SEO Content Engine
+
+> M14 é principalmente Next (público). Não há necessidade de endpoint Go novo no v0.
+
+* `GET /blog` (listagem pública de artigos)
+* `GET /blog/:slug` (detalhe público do artigo)
+* `GET /rss.xml` (feed público de artigos publicados)
+* `GET /sitemap.xml` (incluir URLs de `/blog/:slug` publicados)
+* Evento de analytics (logs estruturados via web):
+  * `view_blog_post`
+  * `blog_cta_click`
+  * `blog_to_calculator`
+
+---
+
+## (PLANEJADO) M15 — Blog CMS Admin (Backoffice)
+
+> M15 adiciona backend Go + UI admin para transformar o blog em CMS interno.
+
+Admin (protegido, requer `is_admin=true`):
+
+* `GET /api/v1/admin/blog/posts?status=draft|published|archived&q=&limit=&cursor=`
+* `POST /api/v1/admin/blog/posts`
+* `GET /api/v1/admin/blog/posts/:id`
+* `PUT /api/v1/admin/blog/posts/:id`
+* `POST /api/v1/admin/blog/posts/:id/publish`
+* `POST /api/v1/admin/blog/posts/:id/unpublish`
+* `POST /api/v1/admin/blog/posts/:id/archive`
+
+Público:
+
+* `GET /api/v1/public/blog/posts?limit=&cursor=` (somente publicados)
+* `GET /api/v1/public/blog/posts/:slug` (somente publicados)
 
 ---
 
@@ -1133,13 +1246,18 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-14` — 2026-02-18 — Documento de execução incremental de UX/conversão em produção criado (`docs/UX_CONVERSAO_ROADMAP_2026-02-18.md`) com plano em ondas (instrumentação, quick wins, calculadora, onboarding) e métricas de decisão.
 * `CP-14` — 2026-02-18 — Onda 0 implementada: ingestão padronizada de eventos de funil (`session_id/variant/source/device`) via BFF (`/api/analytics/track`) + persistência em `flip.funnel_events` (migration `0042`), evento `first_snapshot_saved` no Go e painel diário no admin (`/api/v1/admin/funnel/daily`, `/app/admin/metrics`).
 * `CP-14` — 2026-02-18 — UI do `/app/admin` reorganizada como hub operacional (visão executiva + atalhos por domínio + blocos de distribuição de usuários/pipeline/prospecção), removendo header congestionado e melhorando escaneabilidade.
-* `CP-14` — 2026-02-27 — Planejamento pós-MVP: criado addendum `docs/PRD_MARKET_DATA_ADDENDUM.md` para Market Data Module (SP MVP com planilha ITBI 2025), com escopo, arquitetura ETL->agregado->API/BFF e critérios de aceite, sem alterações de código.
-* `CP-15` — 2026-02-27 — M14 B0 concluído: branch `codex/market-data-module` aberta e governança PRD atualizada (checkpoint/milestone/task board) para execução incremental do Market Data SP.
-* `CP-15` — 2026-02-27 — M14 B1 concluído: migration `0043_market_data` criada com tabelas `market_regions`, `market_ingestion_runs`, `market_transactions`, `market_price_m2_aggregates` + índices de leitura/agrupamento.
-* `CP-15` — 2026-02-27 — M14 B2 concluído: comando `services/api/cmd/market_ingest` implementado (XLSX -> filtros de qualidade -> upsert regiões -> transações -> agregados 1/3/6/12 + auditoria de run).
-* `CP-15` — 2026-02-27 — M14 B3 concluído: Go API pública de Market Data (`/api/v1/public/market/filters|price-m2|series`) implementada e contratos Zod adicionados em `packages/shared`.
-* `CP-15` — 2026-02-27 — M14 B4 concluído: BFF Next (`/api/market/filters|price-m2|series`) com validação/cache e UI autenticada `/app/market-data` entregue (filtros, tabela e série temporal).
-* `CP-15` — 2026-02-27 — M14 B5 concluído: hardening final (go test `cmd/market_ingest` + `httpapi`, lint/typecheck web, dry-run ETL com planilha SP completa), CP-15 fechado e handoff para M15 (mapa geográfico).
+* `CP-14` — 2026-02-25 — PRD: adicionado planejamento do M14 (Blog Público + SEO Content Engine) com CP-15, tarefas, rotas públicas e plano de validação de KPIs (fontes, metas e cadência).
+* `CP-15` — 2026-02-25 — M14 entregue: blog público com conteúdo markdown versionado (6 artigos pilares), loader/validação fail-fast, rotas `/blog` e `/blog/:slug` em SSG, SEO de artigo (metadata + JSON-LD), `sitemap.xml` com posts, `rss.xml`, redirect de CTA rastreável (`/r/blog-cta`) e eventos de funil (`view_blog_post`, `blog_cta_click`, `blog_to_calculator`) + origem blog em signup/calculadora.
+* `CP-15` — 2026-02-26 — PRD: adicionada especificação detalhada do M15 (Blog CMS Admin) com CP-16, modelagem, endpoints admin/públicos, task board e critérios de aceite para cutover do blog file-based para DB.
+* `CP-16` — 2026-02-26 — M15 implementado: blog CMS admin (`/app/admin/blog`) com editor Markdown + preview, migration `0043_blog_posts`, APIs admin/públicas do blog com paginação/status, cutover por `BLOG_SOURCE` (`db|file`) em `/blog`, `/blog/:slug`, home, sitemap e RSS, script idempotente de import (`blog:import:m14`) e documentação de baseline/KPI + runbook de rollout.
+* `CP-16` — 2026-02-26 — Hotfix M15: preview Markdown do CMS admin passou a usar estilos `blog-content` (removendo dependência de `prose` sem plugin typography) e adicionando estilo para `h1`, corrigindo render visual de títulos no editor.
+* `CP-16` — 2026-02-26 — Hotfix M15: suporte a imagem por URL no editor/admin e público (auto-conversão de URL de imagem em linha isolada para Markdown image), dica de uso no formulário e estilos `.blog-content img` para render responsivo.
+* `CP-16` — 2026-02-27 — Hotfix M15: home pública deixou de quebrar quando auth/blog API local estão indisponíveis; `getServerSession` e `getLatestPostsSource` agora usam fallback resiliente (`null`/`[]`) com log no servidor em `app/page.tsx`.
+* `CP-16` — 2026-02-27 — Hotfix M15: páginas públicas do blog (`/blog`, `/blog/:slug`, relacionados e latest da home) agora fazem fallback automático para source em arquivo quando `BLOG_SOURCE=db` e a API/blog DB estiver indisponível, evitando erro `fetch failed` em runtime.
+* `CP-16` — 2026-02-27 — Pass UI incremental do blog público: parser Markdown passou a gerar IDs estáveis para headings + TOC (`h2/h3`), post ganhou “Trilho de Viabilidade” (sticky desktop + accordion mobile com seção ativa via IntersectionObserver e offset de scroll), CTAs migraram para formato inline/contextual e a listagem `/blog` foi redesenhada com hierarquia editorial (1 destaque + grade compacta).
+* `CP-16` — 2026-02-27 — Hotfix UI blog: listagem pública (`/blog`) agora renderiza preview de `coverImage` quando disponível no artigo destaque e nos cards compactos, reforçando escaneabilidade editorial sem alterar SEO/KPI ou fluxo de dados.
+* `CP-17` — 2026-02-27 — Planejamento pós-MVP: addendum `docs/PRD_MARKET_DATA_ADDENDUM.md` criado para Market Data Module (SP MVP), definindo escopo, arquitetura ETL->agregado->API/BFF e critérios de aceite.
+* `CP-17` — 2026-02-27 — M16 entregue: Market Data SP (Tabela MVP) com migration `0044_market_data`, ETL `market_ingest`, endpoints públicos `/api/v1/public/market/*`, BFF `/api/market/*`, UI `/app/market-data` e hardening (tests + dry-run em planilha completa).
 
 ---
 
@@ -1162,10 +1280,6 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
   * **Opção A (mais simples):** adicionar `event_type` de timeline para milestones manuais (ex: `renovation_milestone_created/updated`) + endpoint `POST/PUT` para criar/editar (mantém leitura via timeline).
   * **Opção B (mais correta):** tabela `schedule_items` com CRUD (itens de cronograma dedicados com `title`, `planned_date`, `done_at?`, `notes?`, `order?`), e timeline apenas como log.
   * **Regras:** manter minimalista (sem Gantt pesado), sem expandir pipeline além dos status do MVP.
-* ⬜ T-FUTURE.5 Market Data Module (Pós-MVP)
-  * PRD addendum dedicado em `docs/PRD_MARKET_DATA_ADDENDUM.md`.
-  * Fase inicial planejada: SP MVP com base em `docs/reference/GUIAS DE ITBI PAGAS (28012026) XLS.xlsx`.
-  * Arquitetura alvo: ETL -> agregado mensal -> Go API -> Next BFF -> UI.
 
 ---
 
@@ -1279,3 +1393,232 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
   * modal paywall com CTA “Fazer upgrade” + link para Billing
 * Billing states:
   * `past_due/unpaid` → modo leitura (e-mail/aviso + self-serve via Stripe Portal)
+
+---
+
+# 11) KPI Validation — Blog SEO/CRO (M14)
+
+## 11.1 KPIs prioritários
+
+| KPI | Definição objetiva | Fonte principal | Meta inicial (90 dias) |
+|---|---|---|---|
+| `blog_organic_impressions` | Impressões orgânicas de URLs que começam com `/blog/` | Google Search Console | +40% vs baseline de 28 dias |
+| `blog_organic_clicks` | Cliques orgânicos em URLs `/blog/` | Google Search Console | +25% vs baseline de 28 dias |
+| `blog_avg_position_top20` | Posição média das 20 queries foco do blog | Google Search Console | melhorar em pelo menos 20% |
+| `blog_to_calculator_rate` | `sessões com clique no CTA /calculator em post` / `sessões de post` | GA4/analytics interno | >= 3% |
+| `blog_to_signup_start_rate` | `sessões com início de signup a partir do blog` / `sessões de post` | GA4 + eventos internos | >= 1.2% |
+| `blog_assisted_leads` | Leads da calculadora com primeira origem em `/blog/` no lookback de 30 dias | logs + tabela de leads/admin | crescimento contínuo (WoW) |
+
+## 11.2 Instrumentação mínima (obrigatória no M14)
+
+* Evento `view_blog_post` com: `post_slug`, `post_category`, `device`, `source`, `medium`, `campaign`, `session_id`.
+* Evento `blog_cta_click` com: `post_slug`, `cta_type` (`calculator|signup|whatsapp`), `cta_position` (`hero|mid|footer`), `session_id`.
+* Evento `blog_to_calculator` com: `post_slug`, `session_id`.
+* Se possível, manter padrão do plano de UX/conversão: `session_id`, `variant`, `source`, `device` para comparar etapas do funil.
+
+## 11.3 Como validar na prática (runbook semanal)
+
+1. Congelar baseline dos últimos 28 dias antes do go-live.
+2. Publicar/atualizar sitemap imediatamente após cada lote de posts.
+3. Acompanhar semanalmente (leading):
+   * impressões, cliques, CTR e posição média por URL e query (GSC)
+   * eventos `view_blog_post`, `blog_cta_click`, `blog_to_calculator`
+4. Acompanhar quinzenalmente (conversão):
+   * taxa `blog_to_calculator_rate`
+   * taxa `blog_to_signup_start_rate`
+   * leads assistidos por blog
+5. Revisar mensalmente (decisão editorial):
+   * top 10 posts por tráfego, conversão e posição
+   * conteúdo a atualizar, consolidar ou remover
+
+## 11.4 Regras de decisão (go/no-go)
+
+* Manter tema/cluster quando houver crescimento de impressões por 2 ciclos seguidos e sem queda de conversão.
+* Reescrever headline/intro/CTA quando o post tiver impressões altas e CTR baixa por 3 semanas.
+* Atualizar conteúdo quando posição cair por 2 semanas consecutivas.
+* Pausar novos clusters se `blog_to_calculator_rate` cair abaixo de 2% por 4 semanas sem recuperação.
+
+---
+
+# 12) M15 Spec — Blog CMS Admin (Backoffice)
+
+> **Status:** implementado (CP-16 concluído em 2026-02-26)
+> **Checkpoint alvo:** `CP-16`
+> **Objetivo:** permitir que usuários admin criem/editem/publiquem posts sem precisar editar arquivos no repositório.
+
+## 12.1 Contexto e decisão de arquitetura
+
+* M14 usa conteúdo file-based (`apps/web/content/blog/*.md`) e exige deploy para publicar.
+* Em M15, a **fonte de verdade do blog público passa a ser o banco** (Go API), com painel admin para operação editorial.
+* O contrato BFF continua obrigatório: browser → Next (server action/route) → Go API com Bearer.
+
+## 12.2 Escopo M15
+
+### In Scope
+
+* CRUD de posts no admin (`draft`, `published`, `archived`).
+* Editor Markdown com preview.
+* Slug único e validação SEO server-side.
+* Blog público consumindo posts publicados do backend.
+* `sitemap.xml` e `rss.xml` a partir do DB.
+* Cutover do conteúdo inicial (6 posts M14) para DB.
+
+### Out of Scope
+
+* WYSIWYG/rich text.
+* Upload de mídia no CMS (seguir usando paths estáticos por URL no v1).
+* Versionamento avançado (histórico de revisão/comparação).
+* Agendamento de publicação futura (publish_at com cron).
+* Papéis editoriais além de admin (reviewer/author).
+
+## 12.3 Modelo de dados (proposta)
+
+Tabela nova: `flip.blog_posts`
+
+Campos mínimos:
+
+* `id UUID PRIMARY KEY`
+* `slug TEXT NOT NULL UNIQUE`
+* `title TEXT NOT NULL`
+* `description TEXT NOT NULL`
+* `content_md TEXT NOT NULL`
+* `excerpt TEXT NULL`
+* `author_name TEXT NOT NULL`
+* `tags TEXT[] NOT NULL DEFAULT '{}'`
+* `cover_image_url TEXT NULL`
+* `canonical_path TEXT NULL` (default calculado: `/blog/<slug>`)
+* `seo_title TEXT NULL`
+* `seo_description TEXT NULL`
+* `status TEXT NOT NULL` (`draft|published|archived`)
+* `published_at TIMESTAMPTZ NULL`
+* `created_by_user_id TEXT NOT NULL`
+* `updated_by_user_id TEXT NOT NULL`
+* `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+* `updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+
+Índices:
+
+* `UNIQUE(slug)`
+* `INDEX(status, published_at DESC)`
+* `INDEX(updated_at DESC)`
+
+Regras:
+
+* `status=published` exige `published_at` não nulo.
+* `slug` em kebab-case, único global.
+* `description` obrigatório (usado em metadata).
+* `tags` com ao menos 1 item para publicar.
+
+## 12.4 Contratos de API (detalhe)
+
+### Admin (autenticado + admin)
+
+* `GET /api/v1/admin/blog/posts?status=&q=&limit=&cursor=`
+  * retorna: `{ items, next_cursor }`
+* `POST /api/v1/admin/blog/posts`
+  * body: `{ slug, title, description, content_md, author_name, tags, excerpt?, cover_image_url?, canonical_path?, seo_title?, seo_description? }`
+* `GET /api/v1/admin/blog/posts/:id`
+* `PUT /api/v1/admin/blog/posts/:id`
+* `POST /api/v1/admin/blog/posts/:id/publish`
+  * regra: valida campos mínimos; se `published_at` ausente, preencher `now()`
+* `POST /api/v1/admin/blog/posts/:id/unpublish`
+  * muda para `draft`, preserva histórico
+* `POST /api/v1/admin/blog/posts/:id/archive`
+  * muda para `archived`
+
+### Público
+
+* `GET /api/v1/public/blog/posts?limit=&cursor=` (somente `published`)
+* `GET /api/v1/public/blog/posts/:slug` (somente `published`)
+
+Formato de erro segue padrão existente:
+
+* `{ error: { code, message, details? } }`
+
+Paginação:
+
+* `limit` + `cursor` (sem offset).
+
+## 12.5 UI Admin (MVP)
+
+Rota:
+
+* `/app/admin/blog` (lista)
+* `/app/admin/blog/new` (criação)
+* `/app/admin/blog/:id` (edição)
+
+Funcionalidades mínimas:
+
+* Lista com status, título, slug, updated_at, ação rápida publicar/despublicar.
+* Filtro por status e busca por título/slug.
+* Form com campos essenciais + validações client-side.
+* Editor Markdown + preview lado a lado.
+* Ações de salvar draft, publicar, despublicar, arquivar.
+
+Permissão:
+
+* usuários não-admin recebem 403/redirect conforme padrão admin atual.
+
+## 12.6 Blog público após cutover
+
+* `/blog` e `/blog/:slug` deixam de ler `content/blog/*.md` em runtime.
+* Páginas públicas consultam fonte DB via BFF/API pública.
+* SEO por post mantido:
+  * canonical
+  * Open Graph/Twitter
+  * JSON-LD `Article` e `BreadcrumbList`
+* `sitemap.xml` e `rss.xml` passam a ler somente posts `published`.
+
+## 12.7 Migração e cutover
+
+Passos:
+
+1. Criar migration de `blog_posts`.
+2. Criar script de import para os 6 posts atuais do M14 (`content/blog`) para DB.
+3. Validar contagem, slugs e metadata importados.
+4. Ativar leitura pública por DB (feature flag simples ou troca direta em release única).
+5. Validar sitemap/rss e rotas públicas.
+
+Rollback:
+
+* manter loader file-based disponível por 1 release como fallback (opcional, recomendado).
+
+## 12.8 Observabilidade e métricas de operação
+
+Logs estruturados mínimos:
+
+* `blog_post_created`
+* `blog_post_updated`
+* `blog_post_published`
+* `blog_post_unpublished`
+* `blog_post_archived`
+
+KPIs operacionais M15:
+
+* tempo médio rascunho → publicado
+* número de posts publicados por semana
+* taxa de erro em ações de publish
+
+## 12.9 Acceptance criteria (CP-16)
+
+Critérios obrigatórios:
+
+1. Admin cria post draft e salva sem erro.
+2. Admin publica post e ele aparece em `/blog` sem deploy manual.
+3. Admin despublica post e ele some de `/blog`, `/sitemap.xml` e `/rss.xml`.
+4. Slug duplicado retorna `VALIDATION_ERROR`.
+5. Usuário não-admin não acessa endpoints/admin page de blog.
+6. `/blog/:slug` publicado renderiza metadata/JSON-LD corretos.
+7. Paginação `limit+cursor` funcional nas listagens.
+8. Smoke test completo documentado (admin + público).
+
+## 12.10 Riscos e mitigação
+
+Risco 1: queda de SEO no cutover file-based → DB.
+Mitigação: preservar slugs/canonical, validar sitemap e monitorar GSC nas 2 primeiras semanas.
+
+Risco 2: uso indevido do admin por usuários não autorizados.
+Mitigação: validar `is_admin` em Go API e no web, com testes de permissão.
+
+Risco 3: publicação com conteúdo incompleto.
+Mitigação: gate de publish com validação server-side de campos obrigatórios.

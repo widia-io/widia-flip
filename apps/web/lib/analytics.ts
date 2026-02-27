@@ -189,6 +189,9 @@ export const EVENTS = {
   LOGIN_COMPLETED: "login_completed",
   FIRST_SNAPSHOT_SAVED: "first_snapshot_saved",
   PROPERTY_SAVED: "property_saved",
+  VIEW_BLOG_POST: "view_blog_post",
+  BLOG_CTA_CLICK: "blog_cta_click",
+  BLOG_TO_CALCULATOR: "blog_to_calculator",
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];
