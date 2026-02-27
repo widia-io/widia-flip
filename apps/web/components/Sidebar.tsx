@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Building2, FolderKanban, CreditCard, LineChart, Shield, MessageCircle, Users, CalendarCheck, FileText, DollarSign, Sparkles } from "lucide-react";
+import { Home, Search, Building2, FolderKanban, CreditCard, LineChart, Shield, MessageCircle, Users, CalendarCheck, FileText, DollarSign, Sparkles, Map } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -14,6 +14,7 @@ const staticNavItems = [
   { href: "/app/opportunities", label: "Oportunidades", icon: Sparkles, tourId: undefined },
   { href: "/app/prospects", label: "Prospecção", icon: Search, tourId: "prospects-link" },
   { href: "/app/properties", label: "Imóveis", icon: Building2, tourId: "properties-link" },
+  { href: "/app/market-data", label: "Market Data", icon: Map, tourId: undefined },
   { href: "/app/schedule", label: "Cronograma", icon: CalendarCheck, tourId: undefined },
   { href: "/app/costs", label: "Custos", icon: DollarSign, tourId: undefined },
   { href: "/app/documents", label: "Documentos", icon: FileText, tourId: undefined },
