@@ -473,12 +473,14 @@ export function MarketDataClient() {
         <div className="grid content-start gap-6">
           <SignalCard
             title="Top oportunidades consolidadas"
+            hint="Ranking de bairros com maior desconto relativo vs mediana SP, ponderando confianca, amostra e dispersao."
             subtitle="Desconto vs mediana SP com boa confiança"
             items={derived.opportunities}
           />
 
           <InsightCard
             title="Pressão de preço"
+            hint="Bairros no quartil superior de mediana R$/m² para os filtros atuais."
             subtitle="Bairros no quartil superior"
             items={derived.premium.map((item) => ({
               label: item.region_name,
@@ -489,6 +491,7 @@ export function MarketDataClient() {
 
           <InsightCard
             title="Faixa estável"
+            hint="Bairros com menor dispersao entre P25 e P75, indicando precos mais consistentes."
             subtitle="Menor dispersão P75-P25"
             items={derived.stable.map((item) => ({
               label: item.region_name,
@@ -499,7 +502,12 @@ export function MarketDataClient() {
 
           <Card className="border-slate-300/70 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-900/40">
             <CardHeader>
-              <CardTitle>Qualidade da leitura</CardTitle>
+              <CardTitle>
+                <HeaderHint
+                  label="Qualidade da leitura"
+                  hint="Distribuicao de confianca estatistica da base para os filtros selecionados."
+                />
+              </CardTitle>
               <CardDescription>Concentração de regiões com sinal estatístico.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -519,7 +527,12 @@ export function MarketDataClient() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Série temporal</CardTitle>
+              <CardTitle>
+                <HeaderHint
+                  label="Série temporal"
+                  hint="Evolucao mensal da mediana do bairro selecionado considerando a janela e classe atuais."
+                />
+              </CardTitle>
               <CardDescription>
                 {series ? `Bairro selecionado: ${series.regionName}` : "Clique no ranking para abrir 12 meses."}
               </CardDescription>
@@ -639,13 +652,16 @@ function KpiTile({ label, value }: { label: string; value: string }) {
 
 function SignalCard(props: {
   title: string;
+  hint: string;
   subtitle: string;
   items: OpportunitySignal[];
 }) {
   return (
     <Card className="border-cyan-200/60 bg-cyan-50/60 dark:border-cyan-900/40 dark:bg-cyan-950/10">
       <CardHeader>
-        <CardTitle>{props.title}</CardTitle>
+        <CardTitle>
+          <HeaderHint label={props.title} hint={props.hint} />
+        </CardTitle>
         <CardDescription>{props.subtitle}</CardDescription>
       </CardHeader>
       <CardContent>
@@ -679,13 +695,16 @@ function SignalCard(props: {
 
 function InsightCard(props: {
   title: string;
+  hint: string;
   subtitle: string;
   items: Array<{ label: string; value: string; meta: string }>;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{props.title}</CardTitle>
+        <CardTitle>
+          <HeaderHint label={props.title} hint={props.hint} />
+        </CardTitle>
         <CardDescription>{props.subtitle}</CardDescription>
       </CardHeader>
       <CardContent>
