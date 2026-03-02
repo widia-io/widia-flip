@@ -109,8 +109,13 @@ export async function PUT(request: NextRequest) {
   const bucket = (process.env.S3_BUCKET ?? "").trim();
   if (bucket) {
     const directPrefix = `/${bucket}/`;
+    const s3Prefix = `/s3/${bucket}/`;
     const supabasePrefix = `/storage/v1/s3/${bucket}/`;
-    if (!uploadURL.pathname.startsWith(directPrefix) && !uploadURL.pathname.startsWith(supabasePrefix)) {
+    if (
+      !uploadURL.pathname.startsWith(directPrefix) &&
+      !uploadURL.pathname.startsWith(s3Prefix) &&
+      !uploadURL.pathname.startsWith(supabasePrefix)
+    ) {
       return errorResponse(403, "FORBIDDEN", "Upload URL path does not match configured bucket");
     }
   }
