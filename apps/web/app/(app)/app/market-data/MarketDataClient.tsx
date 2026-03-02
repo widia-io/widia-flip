@@ -346,12 +346,47 @@ export function MarketDataClient() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead>Bairro</TableHead>
-                    <TableHead className="text-right">Mediana</TableHead>
-                    <TableHead className="text-right">Gap vs SP</TableHead>
-                    <TableHead className="text-right">P25-P75</TableHead>
-                    <TableHead className="text-right">Amostra</TableHead>
-                    <TableHead className="text-right">Sinal</TableHead>
+                    <TableHead>
+                      <HeaderHint
+                        label="Bairro"
+                        hint="Nome consolidado do bairro apos normalizacao dos dados brutos."
+                      />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <HeaderHint
+                        label="Mediana"
+                        hint="Valor central do R$/m² no bairro. Quanto maior, mais caro em termos relativos."
+                        align="right"
+                      />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <HeaderHint
+                        label="Gap vs SP"
+                        hint="Diferenca percentual da mediana do bairro em relacao a mediana da cidade de SP."
+                        align="right"
+                      />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <HeaderHint
+                        label="P25-P75"
+                        hint="Faixa entre os percentis 25 e 75. Menor faixa indica menor dispersao e maior estabilidade."
+                        align="right"
+                      />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <HeaderHint
+                        label="Amostra"
+                        hint="Numero de transacoes usadas no calculo. Amostras maiores aumentam a confianca."
+                        align="right"
+                      />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <HeaderHint
+                        label="Sinal"
+                        hint="Combina duas tags: Confianca (baixa/media/alta) e Faixa (premium/acima/media/abaixo da media)."
+                        align="right"
+                      />
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -534,6 +569,36 @@ export function MarketDataClient() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function HeaderHint({
+  label,
+  hint,
+  align = "left",
+}: {
+  label: string;
+  hint: string;
+  align?: "left" | "right";
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end" : ""}`}
+    >
+      <span>{label}</span>
+      <span className="group relative inline-flex">
+        <span
+          tabIndex={0}
+          aria-label={hint}
+          className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-slate-300 text-[10px] font-semibold text-muted-foreground outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          ?
+        </span>
+        <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-64 -translate-x-1/2 rounded-md border bg-popover px-2 py-1.5 text-[11px] font-normal leading-snug text-popover-foreground opacity-0 shadow-md transition group-hover:opacity-100 group-focus-within:opacity-100">
+          {hint}
+        </span>
+      </span>
+    </span>
   );
 }
 
