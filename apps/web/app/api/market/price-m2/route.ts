@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
       as_of_month: request.nextUrl.searchParams.get("as_of_month"),
       period_months: request.nextUrl.searchParams.get("period_months") ?? 6,
       property_class: request.nextUrl.searchParams.get("property_class") ?? "geral",
+      min_tx_count: request.nextUrl.searchParams.get("min_tx_count") ?? 15,
     });
     if (!parsedQuery.success) {
       return NextResponse.json(
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
       as_of_month: parsedQuery.data.as_of_month,
       period_months: String(parsedQuery.data.period_months),
       property_class: parsedQuery.data.property_class,
+      min_tx_count: String(parsedQuery.data.min_tx_count),
     });
 
     const res = await fetch(`${GO_API_BASE_URL}/api/v1/public/market/price-m2?${params.toString()}`, {

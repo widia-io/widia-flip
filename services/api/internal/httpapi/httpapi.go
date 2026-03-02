@@ -115,6 +115,10 @@ func NewHandler(deps Deps) http.Handler {
 	adminMux.HandleFunc("/api/v1/admin/email/", api.handleAdminEmailSubroutes)
 	adminMux.HandleFunc("/api/v1/admin/opportunities/scraper", api.handleAdminOpportunityScraperSubroutes)
 	adminMux.HandleFunc("/api/v1/admin/opportunities/scraper/", api.handleAdminOpportunityScraperSubroutes)
+	adminMux.HandleFunc("/api/v1/admin/market/ingestions", api.handleAdminMarketIngestionsSubroutes)
+	adminMux.HandleFunc("/api/v1/admin/market/ingestions/", api.handleAdminMarketIngestionsSubroutes)
+	adminMux.HandleFunc("/api/v1/admin/market/aliases", api.handleAdminMarketAliasesSubroutes)
+	adminMux.HandleFunc("/api/v1/admin/market/aliases/", api.handleAdminMarketAliasesSubroutes)
 	adminMux.HandleFunc("/api/v1/admin/blog/posts", api.handleAdminBlogPostsCollection)
 	adminMux.HandleFunc("/api/v1/admin/blog/posts/", api.handleAdminBlogPostsSubroutes)
 	var adminHandler http.Handler = adminMux

@@ -3,7 +3,12 @@ package storage
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -11,6 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	smithymiddleware "github.com/aws/smithy-go/middleware"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 
 	appconfig "github.com/widia-projects/widia-flip/services/api/internal/config"
 )
@@ -28,6 +35,8 @@ type S3Client struct {
 
 // NewS3Client creates a new S3 client configured for MinIO or AWS S3
 func NewS3Client(cfg appconfig.S3Config) (*S3Client, error) {
+	signedHostHeader := endpointHost(cfg.Endpoint)
+
 	// Create custom resolver for MinIO endpoint
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		if cfg.Endpoint != "" {
@@ -54,6 +63,9 @@ func NewS3Client(cfg appconfig.S3Config) (*S3Client, error) {
 
 	client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.UsePathStyle = cfg.ForcePathStyle
+		if signedHostHeader != "" {
+			o.APIOptions = append(o.APIOptions, setS3SignedHostHeader(signedHostHeader))
+		}
 	})
 
 	// Determine public endpoint (for presigned URLs accessible by browsers)
@@ -102,6 +114,35 @@ func NewS3Client(cfg appconfig.S3Config) (*S3Client, error) {
 			SecretAccessKey: cfg.SecretKey,
 		},
 	}, nil
+}
+
+func endpointHost(rawURL string) string {
+	if strings.TrimSpace(rawURL) == "" {
+		return ""
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return ""
+	}
+	return u.Host
+}
+
+func setS3SignedHostHeader(host string) func(*smithymiddleware.Stack) error {
+	return func(stack *smithymiddleware.Stack) error {
+		return stack.Build.Add(smithymiddleware.BuildMiddlewareFunc(
+			"SetS3SignedHostHeader",
+			func(ctx context.Context, in smithymiddleware.BuildInput, next smithymiddleware.BuildHandler) (
+				out smithymiddleware.BuildOutput,
+				metadata smithymiddleware.Metadata,
+				err error,
+			) {
+				if req, ok := in.Request.(*smithyhttp.Request); ok {
+					req.Header.Set("x-upload-host", host)
+				}
+				return next.HandleBuild(ctx, in)
+			},
+		), smithymiddleware.After)
+	}
 }
 
 // GeneratePresignedUploadURL creates a presigned URL for uploading a file
@@ -169,4 +210,58 @@ func (c *S3Client) DeleteObject(ctx context.Context, key string) error {
 // Bucket returns the configured bucket name
 func (c *S3Client) Bucket() string {
 	return c.bucket
+}
+
+// GetObject opens an object stream from S3-compatible storage.
+func (c *S3Client) GetObject(ctx context.Context, key string) (io.ReadCloser, error) {
+	out, err := c.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(c.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get object %q: %w", key, err)
+	}
+	return out.Body, nil
+}
+
+// DownloadToTempFile downloads an object to a temporary local file.
+// Returns file path and a cleanup function.
+func (c *S3Client) DownloadToTempFile(ctx context.Context, key string) (string, func(), error) {
+	body, err := c.GetObject(ctx, key)
+	if err != nil {
+		return "", nil, err
+	}
+	defer body.Close()
+
+	tempDir, err := os.MkdirTemp("", "market-ingest-*")
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to create temp dir: %w", err)
+	}
+
+	cleanup := func() {
+		_ = os.RemoveAll(tempDir)
+	}
+
+	baseName := filepath.Base(strings.TrimSpace(key))
+	if baseName == "" || baseName == "." || baseName == "/" {
+		baseName = "input.xlsx"
+	}
+	tempPath := filepath.Join(tempDir, baseName)
+
+	file, err := os.Create(tempPath)
+	if err != nil {
+		cleanup()
+		return "", nil, fmt.Errorf("failed to create temp file: %w", err)
+	}
+	if _, err := io.Copy(file, body); err != nil {
+		_ = file.Close()
+		cleanup()
+		return "", nil, fmt.Errorf("failed to copy object to temp file: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		cleanup()
+		return "", nil, fmt.Errorf("failed to close temp file: %w", err)
+	}
+
+	return tempPath, cleanup, nil
 }

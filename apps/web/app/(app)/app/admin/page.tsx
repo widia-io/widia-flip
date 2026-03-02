@@ -68,6 +68,14 @@ const MODULES = [
     accent: "text-violet-600",
   },
   {
+    title: "Market Data",
+    description: "Upload ITBI + ingestão SP",
+    href: "/app/admin/market-data",
+    icon: Search,
+    group: "Operação",
+    accent: "text-cyan-700",
+  },
+  {
     title: "Blog CMS",
     description: "Posts públicos, SEO e publicação",
     href: "/app/admin/blog",

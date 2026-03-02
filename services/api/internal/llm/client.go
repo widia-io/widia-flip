@@ -95,6 +95,29 @@ REGRAS:
 - Apenas JSON, sem markdown
 - rehab_level: null se não há indicações de reforma`
 
+const neighborhoodNormalizationPrompt = `Você é um normalizador de bairros da cidade de São Paulo.
+Sua tarefa é mapear um rótulo sujo para UM bairro canônico da lista oficial.
+
+RÓTULO BRUTO:
+%s
+
+LISTA OFICIAL (escolha apenas um item da lista):
+%s
+
+REGRAS:
+- Se o rótulo for de torre, bloco, condomínio, endereço, setor interno, subsolo ou não identificar bairro claramente: retorne canonical=null.
+- Não invente bairros fora da lista.
+- Responda apenas JSON no formato:
+{
+  "canonical": "NOME_DO_BAIRRO" | null,
+  "confidence": 0.0-1.0
+}`
+
+type neighborhoodNormalization struct {
+	Canonical  *string `json:"canonical"`
+	Confidence float64 `json:"confidence"`
+}
+
 func (c *Client) ExtractRiskAssessment(ctx context.Context, listingText string) (*flipscore.FlipRiskAssessment, error) {
 	if c.apiKey == "" {
 		return nil, fmt.Errorf("llm api key not configured")
@@ -168,6 +191,40 @@ func (c *Client) ExtractRiskAssessment(ctx context.Context, listingText string) 
 	return assessment, nil
 }
 
+func (c *Client) NormalizeNeighborhood(ctx context.Context, raw string, candidates []string) (string, float64, error) {
+	if c.apiKey == "" {
+		return "", 0, fmt.Errorf("llm api key not configured")
+	}
+	if len(candidates) == 0 {
+		return "", 0, fmt.Errorf("empty candidate list")
+	}
+
+	prompt := fmt.Sprintf(neighborhoodNormalizationPrompt, raw, strings.Join(candidates, ", "))
+	content, err := c.chatCompletion(ctx, prompt)
+	if err != nil {
+		return "", 0, err
+	}
+
+	parsed, err := parseNeighborhoodNormalization(content)
+	if err != nil {
+		return "", 0, err
+	}
+
+	if parsed.Confidence < 0 || parsed.Confidence > 1 {
+		return "", 0, fmt.Errorf("confidence out of range: %f", parsed.Confidence)
+	}
+	if parsed.Canonical == nil {
+		return "", parsed.Confidence, nil
+	}
+
+	canonical := strings.TrimSpace(*parsed.Canonical)
+	if canonical == "" {
+		return "", parsed.Confidence, nil
+	}
+
+	return canonical, parsed.Confidence, nil
+}
+
 func parseRiskAssessment(content string) (*flipscore.FlipRiskAssessment, error) {
 	content = strings.TrimSpace(content)
 
@@ -196,6 +253,87 @@ func parseRiskAssessment(content string) (*flipscore.FlipRiskAssessment, error) 
 	}
 
 	return nil, fmt.Errorf("could not parse JSON from content")
+}
+
+func parseNeighborhoodNormalization(content string) (*neighborhoodNormalization, error) {
+	content = strings.TrimSpace(content)
+
+	var payload neighborhoodNormalization
+	if err := json.Unmarshal([]byte(content), &payload); err == nil {
+		return &payload, nil
+	}
+
+	extracted := extractJSONFromCodeBlock(content)
+	if extracted != "" {
+		if err := json.Unmarshal([]byte(extracted), &payload); err == nil {
+			return &payload, nil
+		}
+	}
+
+	jsonStart := strings.Index(content, "{")
+	jsonEnd := strings.LastIndex(content, "}")
+	if jsonStart >= 0 && jsonEnd > jsonStart {
+		jsonStr := content[jsonStart : jsonEnd+1]
+		if err := json.Unmarshal([]byte(jsonStr), &payload); err == nil {
+			return &payload, nil
+		}
+	}
+
+	return nil, fmt.Errorf("could not parse neighborhood normalization JSON")
+}
+
+func (c *Client) chatCompletion(ctx context.Context, prompt string) (string, error) {
+	reqBody := chatRequest{
+		Model: c.model,
+		Messages: []chatMessage{
+			{Role: "user", Content: prompt},
+		},
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, openRouterAPIURL, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("HTTP-Referer", "https://widia.app")
+	req.Header.Set("X-Title", "Widia Flip")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("http request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("api error (status %d): %s", resp.StatusCode, string(respBody))
+	}
+
+	var chatResp chatResponse
+	if err := json.Unmarshal(respBody, &chatResp); err != nil {
+		return "", fmt.Errorf("unmarshal response: %w", err)
+	}
+
+	if chatResp.Error != nil {
+		return "", fmt.Errorf("api error: %s", chatResp.Error.Message)
+	}
+
+	if len(chatResp.Choices) == 0 {
+		return "", fmt.Errorf("no choices in response")
+	}
+
+	return chatResp.Choices[0].Message.Content, nil
 }
 
 var codeBlockRe = regexp.MustCompile("```(?:json)?\\s*([\\s\\S]*?)```")

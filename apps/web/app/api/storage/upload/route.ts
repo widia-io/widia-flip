@@ -10,11 +10,14 @@ export async function PUT(request: NextRequest) {
   try {
     const contentType = request.headers.get("content-type") || "application/octet-stream";
     const body = await request.arrayBuffer();
+    const parsedUploadUrl = new URL(uploadUrl);
+    const signedHost = parsedUploadUrl.host;
 
     const response = await fetch(uploadUrl, {
       method: "PUT",
       headers: {
         "Content-Type": contentType,
+        "x-upload-host": signedHost,
       },
       body: body,
     });
@@ -23,7 +26,7 @@ export async function PUT(request: NextRequest) {
       const errorText = await response.text();
       console.error("Storage upload error:", response.status, errorText);
       return NextResponse.json(
-        { error: `Upload failed: ${response.status}` },
+        { error: `Upload failed: ${response.status}`, details: errorText },
         { status: response.status }
       );
     }
@@ -32,7 +35,10 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error("Proxy upload error:", error);
     return NextResponse.json(
-      { error: "Upload proxy failed" },
+      {
+        error: "Upload proxy failed",
+        details: error instanceof Error ? error.message : "unknown_error",
+      },
       { status: 500 }
     );
   }

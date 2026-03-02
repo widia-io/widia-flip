@@ -2101,6 +2101,7 @@ export const MarketPriceM2QuerySchema = z.object({
   as_of_month: z.string().regex(/^\d{4}-\d{2}$/),
   period_months: z.coerce.number().pipe(MarketPeriodMonthsSchema).default(6),
   property_class: MarketPropertyClassEnum.default("geral"),
+  min_tx_count: z.coerce.number().int().min(1).max(500).default(15),
 });
 export type MarketPriceM2Query = z.infer<typeof MarketPriceM2QuerySchema>;
 
@@ -2130,17 +2131,33 @@ export const MarketPriceM2ItemSchema = z.object({
   p25_m2: z.number(),
   p75_m2: z.number(),
   tx_count: z.number(),
+  band: z.enum(["premium", "acima_media", "media", "abaixo_media"]),
+  confidence: z.enum(["alta", "media", "baixa"]),
   updated_at: z.string(),
 });
 export type MarketPriceM2Item = z.infer<typeof MarketPriceM2ItemSchema>;
+
+export const MarketPriceM2SummarySchema = z.object({
+  city_median_m2: z.number(),
+  q1_median_m2: z.number(),
+  q3_median_m2: z.number(),
+  spread_m2: z.number(),
+  regions_count: z.number(),
+  total_tx_count: z.number(),
+  high_confidence_regions: z.number(),
+  low_confidence_regions: z.number(),
+});
+export type MarketPriceM2Summary = z.infer<typeof MarketPriceM2SummarySchema>;
 
 export const MarketPriceM2ResponseSchema = z.object({
   city: MarketCityEnum,
   as_of_month: z.string().regex(/^\d{4}-\d{2}$/),
   period_months: MarketPeriodMonthsSchema,
   property_class: MarketPropertyClassEnum,
+  min_tx_count: z.number(),
   source: z.string(),
   updated_at: z.string().nullable(),
+  summary: MarketPriceM2SummarySchema,
   items: z.array(MarketPriceM2ItemSchema),
 });
 export type MarketPriceM2Response = z.infer<typeof MarketPriceM2ResponseSchema>;
@@ -2164,6 +2181,113 @@ export const MarketSeriesResponseSchema = z.object({
   points: z.array(MarketSeriesPointSchema),
 });
 export type MarketSeriesResponse = z.infer<typeof MarketSeriesResponseSchema>;
+
+export const MarketIngestionRunStatusEnum = z.enum(["running", "success", "failed"]);
+export type MarketIngestionRunStatus = z.infer<typeof MarketIngestionRunStatusEnum>;
+
+export const MarketIngestionUploadUrlRequestSchema = z.object({
+  city: MarketCityEnum.default("sp"),
+  filename: z.string().min(1),
+  content_type: z.literal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+  size_bytes: z.number().int().min(1).max(100 * 1024 * 1024),
+});
+export type MarketIngestionUploadUrlRequest = z.infer<typeof MarketIngestionUploadUrlRequestSchema>;
+
+export const MarketIngestionUploadUrlResponseSchema = z.object({
+  upload_url: z.string().url(),
+  storage_key: z.string(),
+  expires_at: z.string(),
+});
+export type MarketIngestionUploadUrlResponse = z.infer<typeof MarketIngestionUploadUrlResponseSchema>;
+
+export const RunMarketIngestionRequestSchema = z.object({
+  city: MarketCityEnum.default("sp"),
+  as_of_month: z.string().regex(/^\d{4}-\d{2}$/),
+  storage_key: z.string().min(1),
+  source: z.string().default("itbi_sp_guias_pagas"),
+  dry_run: z.boolean().default(false),
+});
+export type RunMarketIngestionRequest = z.infer<typeof RunMarketIngestionRequestSchema>;
+
+export const RunMarketIngestionResponseSchema = z.object({
+  run_id: z.string(),
+  status: MarketIngestionRunStatusEnum,
+  poll_url: z.string(),
+});
+export type RunMarketIngestionResponse = z.infer<typeof RunMarketIngestionResponseSchema>;
+
+export const MarketIngestionRunSchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  city: MarketCityEnum,
+  as_of_month: z.string().regex(/^\d{4}-\d{2}$/),
+  status: MarketIngestionRunStatusEnum,
+  input_rows: z.number(),
+  valid_rows: z.number(),
+  output_groups: z.number(),
+  error_message: z.string().nullable(),
+  started_at: z.string().nullable(),
+  finished_at: z.string().nullable(),
+  created_at: z.string(),
+  trigger_type: z.string(),
+  triggered_by: z.string().nullable(),
+  dry_run: z.boolean(),
+  storage_key: z.string().nullable(),
+  original_filename: z.string().nullable(),
+  content_type: z.string().nullable(),
+  file_size_bytes: z.number().nullable(),
+  stats: z.record(z.any()).nullable(),
+  params: z.record(z.any()).nullable(),
+});
+export type MarketIngestionRun = z.infer<typeof MarketIngestionRunSchema>;
+
+export const ListMarketIngestionRunsResponseSchema = z.object({
+  items: z.array(MarketIngestionRunSchema),
+  total: z.number(),
+});
+export type ListMarketIngestionRunsResponse = z.infer<typeof ListMarketIngestionRunsResponseSchema>;
+
+export const MarketRegionAliasStatusEnum = z.enum(["pending", "approved", "rejected"]);
+export type MarketRegionAliasStatus = z.infer<typeof MarketRegionAliasStatusEnum>;
+
+export const ListMarketRegionAliasesQuerySchema = z.object({
+  city: MarketCityEnum.default("sp"),
+  status: MarketRegionAliasStatusEnum.optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+export type ListMarketRegionAliasesQuery = z.infer<typeof ListMarketRegionAliasesQuerySchema>;
+
+export const MarketRegionAliasSchema = z.object({
+  id: z.string(),
+  city: MarketCityEnum,
+  alias_raw: z.string().nullable(),
+  alias_normalized: z.string(),
+  canonical_name: z.string().nullable(),
+  status: MarketRegionAliasStatusEnum,
+  suggested_canonical: z.string().nullable(),
+  suggested_confidence: z.number().nullable(),
+  occurrences: z.number(),
+  first_seen_at: z.string(),
+  last_seen_at: z.string(),
+  reviewed_at: z.string().nullable(),
+  reviewed_by: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type MarketRegionAlias = z.infer<typeof MarketRegionAliasSchema>;
+
+export const ListMarketRegionAliasesResponseSchema = z.object({
+  items: z.array(MarketRegionAliasSchema),
+  total: z.number(),
+  canonical_options: z.array(z.string()),
+});
+export type ListMarketRegionAliasesResponse = z.infer<typeof ListMarketRegionAliasesResponseSchema>;
+
+export const ApproveMarketRegionAliasRequestSchema = z.object({
+  canonical_name: z.string().min(1),
+});
+export type ApproveMarketRegionAliasRequest = z.infer<typeof ApproveMarketRegionAliasRequestSchema>;
 
 export const JobRunStatusEnum = z.enum(["pending", "running", "completed", "failed"]);
 export type JobRunStatus = z.infer<typeof JobRunStatusEnum>;
