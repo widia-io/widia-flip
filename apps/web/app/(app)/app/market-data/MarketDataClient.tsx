@@ -284,13 +284,19 @@ export function MarketDataClient() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-4 lg:grid-cols-5">
-          <FilterSelect
-            label="Cidade"
-            value="sp"
-            onValueChange={() => {}}
-            disabled
-            options={[{ value: "sp", label: "São Paulo" }]}
-          />
+          <div className="space-y-2">
+            <FilterSelect
+              label="Cidade"
+              value="sp"
+              onValueChange={() => {}}
+              disabled
+              options={[{ value: "sp", label: "São Paulo" }]}
+            />
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-50/70 px-2.5 py-1 text-[11px] text-amber-700 dark:border-amber-700/40 dark:bg-amber-900/30 dark:text-amber-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+              Cobertura ativa: SP somente
+            </div>
+          </div>
 
           <FilterSelect
             label="Mês de referência"
