@@ -53,6 +53,9 @@ export default async function AdminMarketDataPage() {
         <p className="text-muted-foreground">
           Upload de planilha ITBI (SP), execução de ingestão e acompanhamento de runs em tempo real.
         </p>
+        <p className="mt-2 text-sm text-amber-600 dark:text-amber-300">
+          Neste ciclo, a operação ativa é para São Paulo (SP). As rotinas de BH e Curitiba já estão em estudo com fontes públicas e seguirão para liberação futura.
+        </p>
       </div>
 
       {initialError ? (

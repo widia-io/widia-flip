@@ -261,6 +261,10 @@ export function MarketDataClient() {
             <p className="max-w-2xl text-sm text-slate-300 sm:text-base">
               O módulo prioriza relevância sobre volume bruto: normaliza variações de bairro, filtra baixa amostra e destaca sinais acionáveis.
             </p>
+            <p className="inline-flex w-fit items-center gap-2 rounded-md border border-amber-200/40 bg-amber-200/10 px-3 py-2 text-xs font-medium text-amber-50">
+              <span aria-hidden="true">⚑</span>
+              Cobertura atual: somente São Paulo (SP). BH e Curitiba estão em validação para liberação progressiva com dados públicos.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
