@@ -24,6 +24,7 @@ Use `env.example` como referência e exporte as variáveis no seu shell (ou copi
 - **Web (Next / Better Auth)**
   - `BETTER_AUTH_SECRET` (**obrigatório**, >= 32 chars)
   - `GO_API_BASE_URL` (default: `http://localhost:8080`)
+  - `UPLOAD_PROXY_ALLOWED_HOSTS` (opcional, CSV de hosts permitidos para `/api/storage/upload`; fallback em `S3_ENDPOINT`/`S3_PUBLIC_ENDPOINT`)
   - `BLOG_SOURCE` (opcional, `db` padrão; `file` como fallback transitório no cutover do blog)
   - `NEXT_PUBLIC_SITE_URL` (opcional, default: `https://meuflip.com`, usado por canonical/sitemap/OG)
 - **API (Go)**
@@ -31,6 +32,7 @@ Use `env.example` como referência e exporte as variáveis no seu shell (ou copi
   - `API_PORT` (default: `8080`)
   - `BETTER_AUTH_JWKS_URL` (default: `http://localhost:3000/api/auth/jwks`)
   - `S3_ENDPOINT` (default: `http://localhost:9000`)
+  - `S3_PUBLIC_ENDPOINT` (opcional; endpoint público usado para presigned URL)
   - `S3_ACCESS_KEY` (default: `minioadmin`)
   - `S3_SECRET_KEY` (default: `minioadmin`)
   - `S3_BUCKET` (default: `widia-flip-dev`)
@@ -42,11 +44,13 @@ Exemplo (dev):
 ```bash
 export BETTER_AUTH_SECRET="dev_secret_please_change_me_32_chars_minimum"
 export GO_API_BASE_URL="http://localhost:8080"
+export UPLOAD_PROXY_ALLOWED_HOSTS="localhost:9000,localhost:8000"
 export BLOG_SOURCE="db"
 export NEXT_PUBLIC_SITE_URL="https://meuflip.com"
 export DATABASE_URL="postgres://widia:widia@localhost:5432/widia_flip?sslmode=disable"
 export BETTER_AUTH_JWKS_URL="http://localhost:3000/api/auth/jwks"
 export S3_ENDPOINT="http://localhost:9000"
+export S3_PUBLIC_ENDPOINT="http://localhost:9000"
 export S3_ACCESS_KEY="minioadmin"
 export S3_SECRET_KEY="minioadmin"
 export S3_BUCKET="widia-flip-dev"

@@ -419,7 +419,8 @@ export function MarketDataAdminClient({
   };
 
   const handleRerun = (run: MarketIngestionRun) => {
-    if (!run.storage_key) {
+    const storageKey = run.storage_key;
+    if (!storageKey) {
       toast.error("Este run não possui storage_key para reexecução");
       return;
     }
@@ -429,7 +430,7 @@ export function MarketDataAdminClient({
         const next = await runMarketIngestion({
           city: "sp",
           as_of_month: run.as_of_month,
-          storage_key: run.storage_key,
+          storage_key: storageKey,
           source: run.source,
           dry_run: run.dry_run,
         });

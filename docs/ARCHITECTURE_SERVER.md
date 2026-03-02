@@ -153,6 +153,7 @@ NUNCA: Browser --> Go API (expoe credentials, quebra multi-tenancy)
 ```bash
 # Web container
 GO_API_BASE_URL=http://api:8080        # INTERNO, nao localhost
+UPLOAD_PROXY_ALLOWED_HOSTS=supabase-kong:8000,SEU_HOST_PUBLICO_S3
 
 # API container
 BETTER_AUTH_JWKS_URL=http://web:3000/api/auth/jwks
@@ -296,6 +297,7 @@ Antes de fazer merge em `main`:
 - [ ] `cd services/api && go build ./...` compila
 - [ ] Novas migrations testadas localmente
 - [ ] Variaveis de ambiente novas adicionadas em `.env` do servidor
+- [ ] `UPLOAD_PROXY_ALLOWED_HOSTS` configurado com os hosts validos de upload S3/presigned
 - [ ] Nao quebra BFF pattern (browser nunca chama Go API direto)
 - [ ] Novos endpoints registrados em httpapi.go
 - [ ] Schemas Zod atualizados em packages/shared

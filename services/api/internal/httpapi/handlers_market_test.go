@@ -18,11 +18,11 @@ func TestHandlePublicMarketPriceM2Success(t *testing.T) {
 
 	updatedAt := time.Date(2026, time.January, 15, 10, 0, 0, 0, time.UTC)
 	rows := sqlmock.NewRows([]string{
-		"region_id", "name_raw", "median_m2", "p25_m2", "p75_m2", "tx_count", "updated_at", "source",
-	}).AddRow("region-1", "MOOCA", 8500.0, 7000.0, 9800.0, 42, updatedAt, "itbi_sp_guias_pagas")
+		"region_id", "name_raw", "name_normalized", "median_m2", "p25_m2", "p75_m2", "tx_count", "updated_at", "source",
+	}).AddRow("region-1", "MOOCA", "MOOCA", 8500.0, 7000.0, 9800.0, 42, updatedAt, "itbi_sp_guias_pagas")
 
 	mock.ExpectQuery("FROM market_price_m2_aggregates").
-		WithArgs("sp", sqlmock.AnyArg(), 6, "geral").
+		WithArgs("sp", sqlmock.AnyArg(), 6, "geral", 15).
 		WillReturnRows(rows)
 
 	a := &api{db: db}
@@ -59,9 +59,8 @@ func TestHandlePublicMarketSeriesNotFound(t *testing.T) {
 	}
 	defer db.Close()
 
-	mock.ExpectQuery("FROM market_price_m2_aggregates").
-		WithArgs("sp", "MOOCA", 6, "geral", 12).
-		WillReturnRows(sqlmock.NewRows([]string{"as_of_month", "median_m2", "p25_m2", "p75_m2", "tx_count", "updated_at", "source", "name_raw"}))
+	mock.ExpectQuery("FROM market_price_m2_aggregates a").
+		WillReturnRows(sqlmock.NewRows([]string{"as_of_month", "median_m2", "p25_m2", "p75_m2", "tx_count", "updated_at", "source", "name_raw", "name_normalized"}))
 
 	a := &api{db: db}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/market/series?city=sp&region_name=Mooca&period_months=6&property_class=geral&months=12", nil)
