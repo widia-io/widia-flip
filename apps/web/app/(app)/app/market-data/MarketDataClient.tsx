@@ -197,8 +197,14 @@ export function MarketDataClient() {
       .filter((item) => item.band === "abaixo_media" && item.confidence !== "baixa")
       .slice(0, 5);
     const stable = [...items]
-      .filter((item) => item.tx_count >= 30)
-      .sort((a, b) => (a.p75_m2 - a.p25_m2) - (b.p75_m2 - b.p25_m2))
+      .filter(
+        (item) =>
+          item.tx_count >= 30 &&
+          item.confidence !== "baixa" &&
+          item.median_m2 >= 1000 &&
+          item.median_m2 > 0,
+      )
+      .sort((a, b) => stableSpreadPct(a) - stableSpreadPct(b))
       .slice(0, 5);
 
     const highConfidenceRatio = summary && summary.regions_count > 0
@@ -491,12 +497,12 @@ export function MarketDataClient() {
 
           <InsightCard
             title="Faixa estável"
-            hint="Bairros com menor dispersao entre P25 e P75, indicando precos mais consistentes."
-            subtitle="Menor dispersão P75-P25"
+            hint="Bairros com menor dispersao relativa: (P75 - P25) dividido pela mediana, com corte de qualidade da amostra."
+            subtitle="Menor dispersão relativa (P75-P25 / mediana)"
             items={derived.stable.map((item) => ({
               label: item.region_name,
-              value: formatCurrency(item.p75_m2 - item.p25_m2),
-              meta: `${formatInt(item.tx_count)} tx`,
+              value: formatSignedPercent(stableSpreadPct(item), false),
+              meta: `${formatInt(item.tx_count)} tx · mediana ${formatCurrency(item.median_m2)}`,
             }))}
           />
 
@@ -811,6 +817,11 @@ function labelForPropertyClass(value: string): string {
 function gapVsCity(item: MarketPriceM2Item, cityMedianM2: number): number {
   if (cityMedianM2 <= 0) return 0;
   return ((item.median_m2 - cityMedianM2) / cityMedianM2) * 100;
+}
+
+function stableSpreadPct(item: MarketPriceM2Item): number {
+  if (item.median_m2 <= 0) return 0;
+  return ((item.p75_m2 - item.p25_m2) / item.median_m2) * 100;
 }
 
 function formatCurrency(value: number): string {
