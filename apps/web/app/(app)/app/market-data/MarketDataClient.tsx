@@ -379,13 +379,23 @@ export function MarketDataClient() {
                         <TableCell className="text-right">{formatCurrency(item.p75_m2 - item.p25_m2)}</TableCell>
                         <TableCell className="text-right">{formatInt(item.tx_count)}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Badge variant="secondary" className={confidenceClass(item.confidence)}>
-                              {item.confidence}
-                            </Badge>
-                            <Badge variant="secondary" className={bandClass(item.band)}>
-                              {bandLabel(item.band)}
-                            </Badge>
+                          <div className="flex items-start justify-end gap-3">
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                Confiança
+                              </span>
+                              <Badge variant="secondary" className={confidenceClass(item.confidence)}>
+                                {item.confidence}
+                              </Badge>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                Faixa
+                              </span>
+                              <Badge variant="secondary" className={bandClass(item.band)}>
+                                {bandLabel(item.band)}
+                              </Badge>
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>
