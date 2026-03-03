@@ -24,7 +24,7 @@ export function DashboardHeader({ workspaceName }: DashboardHeaderProps) {
       <div>
         <h1 className="text-2xl font-bold">
           <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-            Visao Geral
+            Visão Geral
           </span>
         </h1>
         <div className="mt-0.5 flex items-center gap-2">
