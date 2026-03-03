@@ -35,6 +35,7 @@ func NewHandler(deps Deps) http.Handler {
 	publicMux.HandleFunc("/api/v1/public/promotions/active-banner", api.handlePublicActiveBanner)
 	publicMux.HandleFunc("/api/v1/public/unsubscribe/", api.handlePublicUnsubscribe)
 	publicMux.HandleFunc("/api/v1/public/ebook-leads", api.handlePublicEbookLead)
+	publicMux.HandleFunc("/api/v1/public/market/", api.handlePublicMarketSubroutes)
 	publicMux.HandleFunc("/api/v1/public/blog/posts", api.handlePublicBlogPostsCollection)
 	publicMux.HandleFunc("/api/v1/public/blog/posts/", api.handlePublicBlogPostsSubroutes)
 	publicMux.HandleFunc("/api/v1/webhooks/resend", api.handleResendWebhook)
@@ -114,6 +115,10 @@ func NewHandler(deps Deps) http.Handler {
 	adminMux.HandleFunc("/api/v1/admin/email/", api.handleAdminEmailSubroutes)
 	adminMux.HandleFunc("/api/v1/admin/opportunities/scraper", api.handleAdminOpportunityScraperSubroutes)
 	adminMux.HandleFunc("/api/v1/admin/opportunities/scraper/", api.handleAdminOpportunityScraperSubroutes)
+	adminMux.HandleFunc("/api/v1/admin/market/ingestions", api.handleAdminMarketIngestionsSubroutes)
+	adminMux.HandleFunc("/api/v1/admin/market/ingestions/", api.handleAdminMarketIngestionsSubroutes)
+	adminMux.HandleFunc("/api/v1/admin/market/aliases", api.handleAdminMarketAliasesSubroutes)
+	adminMux.HandleFunc("/api/v1/admin/market/aliases/", api.handleAdminMarketAliasesSubroutes)
 	adminMux.HandleFunc("/api/v1/admin/blog/posts", api.handleAdminBlogPostsCollection)
 	adminMux.HandleFunc("/api/v1/admin/blog/posts/", api.handleAdminBlogPostsSubroutes)
 	var adminHandler http.Handler = adminMux

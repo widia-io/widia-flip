@@ -50,9 +50,9 @@
 
 ## 1.1 Current Checkpoint
 
-* **Current Checkpoint:** `CP-16 — Blog CMS Admin (Backoffice)`
-* **Milestone em andamento:** `N/A (M15 concluído)`
-* **Próximo milestone (planejado):** `TBD (definir M16)`
+* **Current Checkpoint:** `CP-17 — Market Data SP (Tabela MVP) — ALCANÇADO`
+* **Milestone em andamento:** `N/A (M16 concluído)`
+* **Próximo milestone (planejado):** `M17 — Market Data SP (Mapa Geográfico)`
 * **Última atualização:** `2026-02-27`
 
 ## 1.2 Milestones (visão macro)
@@ -73,6 +73,8 @@
 * ✅ `M13 — Email Marketing (Mini Mailchimp)`
 * ✅ `M14 — Blog Público + SEO Content Engine`
 * ✅ `M15 — Blog CMS Admin (Backoffice)`
+* ✅ `M16 — Market Data SP (Tabela MVP)`
+* ⬜ `M17 — Market Data SP (Mapa Geográfico)`
 
 ## 1.3 CP Map (o que deve existir em cada checkpoint)
 
@@ -265,6 +267,17 @@ Deve existir:
 * Fluxo publicar/despublicar refletindo no site público sem deploy manual.
 * Logs de auditoria mínimos (`created_by`, `updated_by`, timestamps) e erros padronizados.
 
+### CP-17 — Market Data SP (Tabela MVP)
+
+Deve existir:
+
+* Pipeline de ingestão SP a partir da planilha ITBI (MVP) com auditoria de run.
+* Agregados mensais pré-computados (`mediana`, `P25`, `P75`, `amostra`) por bairro.
+* Endpoints Go públicos de leitura (`filters`, `price-m2`, `series`) para Market Data.
+* BFF no Next (`/api/market/*`) validando params e cacheando respostas.
+* Página autenticada `/app/market-data` com filtros e tabela de ranking.
+* Transparência de fonte: "ITBI (valor declarado)" e `updated_at`.
+
 ---
 
 ## 1.4 Task Board (MVP)
@@ -443,6 +456,18 @@ Deve existir:
 * ✅ T15.11 Pass UI incremental do blog público: listagem com artigo destaque + cards compactos, detalhe em 2 colunas com TOC sticky/accordion, âncoras por heading e CTAs contextuais inline
   **Checkpoint alvo:** `CP-16 — Blog CMS Admin (Backoffice)` ✅
 
+### M16 — Market Data SP (Tabela MVP)
+
+* ✅ T16.1 Modelagem DB + migration (`0044_market_data`)
+* ✅ T16.2 ETL SP (XLSX -> normalização -> agregação mensal)
+* ✅ T16.3 Go API Market Data (public endpoints `filters|price-m2|series`)
+* ✅ T16.4 `packages/shared` schemas (Market Data query/response)
+* ✅ T16.5 BFF Next (`/api/market/*`) com validação + cache
+* ✅ T16.6 UI `/app/market-data` (filtros + tabela)
+* ✅ T16.7 Hardening (testes + smoke + validações de erro)
+* ✅ T16.8 Fechamento CP-17 + handoff M17 (mapa)
+  **Checkpoint alvo:** `CP-17 — Market Data SP (Tabela MVP)` ✅
+
 ## 1.6 Status Atual (Audit 2026-01-30)
 
 > **Nota:** auditoria rápida baseada em presença de código/migrations/rotas. **Não** inclui QA completo, e pode haver diferenças de comportamento em runtime.
@@ -542,6 +567,14 @@ Deve existir:
 * ✅ **Implementado** — CMS admin em `/app/admin/blog` (lista, filtros, criação, edição, publish/unpublish/archive) com editor Markdown + preview.
 * ✅ **Implementado** — cutover web para fonte selecionável por `BLOG_SOURCE` (`db` default + fallback `file`), incluindo `/blog`, `/blog/:slug`, home, `sitemap.xml` e `rss.xml`.
 * ✅ **Implementado** — script idempotente de import M14 (`scripts/import-blog-m14-to-db.mjs`) e runbook de rollout/rollback.
+
+### M16 — Market Data SP (Tabela MVP)
+
+* ✅ **Implementado** — migrations `0044_market_data` (regions, ingestion_runs, transactions, aggregates) com índices para leitura/agrupamento.
+* ✅ **Implementado** — comando ETL `services/api/cmd/market_ingest` com ingestão XLSX, filtros de qualidade, normalização de bairro e agregação 1/3/6/12 meses.
+* ✅ **Implementado** — endpoints públicos Go `/api/v1/public/market/{filters,price-m2,series}` e contratos compartilhados em `packages/shared`.
+* ✅ **Implementado** — BFF Next `/api/market/{filters,price-m2,series}` com validação e cache (`s-maxage` + `stale-while-revalidate`).
+* ✅ **Implementado** — UI autenticada `/app/market-data` com filtros, tabela de ranking por bairro, série temporal e disclaimers de fonte.
 
 # 2) API & Data Model (para guiar implementação)
 
@@ -1223,6 +1256,16 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-16` — 2026-02-27 — Hotfix M15: páginas públicas do blog (`/blog`, `/blog/:slug`, relacionados e latest da home) agora fazem fallback automático para source em arquivo quando `BLOG_SOURCE=db` e a API/blog DB estiver indisponível, evitando erro `fetch failed` em runtime.
 * `CP-16` — 2026-02-27 — Pass UI incremental do blog público: parser Markdown passou a gerar IDs estáveis para headings + TOC (`h2/h3`), post ganhou “Trilho de Viabilidade” (sticky desktop + accordion mobile com seção ativa via IntersectionObserver e offset de scroll), CTAs migraram para formato inline/contextual e a listagem `/blog` foi redesenhada com hierarquia editorial (1 destaque + grade compacta).
 * `CP-16` — 2026-02-27 — Hotfix UI blog: listagem pública (`/blog`) agora renderiza preview de `coverImage` quando disponível no artigo destaque e nos cards compactos, reforçando escaneabilidade editorial sem alterar SEO/KPI ou fluxo de dados.
+* `CP-17` — 2026-02-27 — Planejamento pós-MVP: addendum `docs/PRD_MARKET_DATA_ADDENDUM.md` criado para Market Data Module (SP MVP), definindo escopo, arquitetura ETL->agregado->API/BFF e critérios de aceite.
+* `CP-17` — 2026-02-27 — M16 entregue: Market Data SP (Tabela MVP) com migration `0044_market_data`, ETL `market_ingest`, endpoints públicos `/api/v1/public/market/*`, BFF `/api/market/*`, UI `/app/market-data` e hardening (tests + dry-run em planilha completa).
+* `CP-17` — 2026-02-27 — Evolução pós-MVP de Market Data SP: ETL com normalização reforçada de bairros (aliases + descarte de rótulos inválidos), consolidação de regiões no backend (agrupamento canônico em `price-m2` e `series`) e redesign da UI `/app/market-data` para painel de insights priorizando dados consolidados e qualidade amostral.
+* `CP-17` — 2026-02-27 — Hotfix UX Market Data: tabela de ranking ganhou paginação (25 por página) e coluna lateral foi ajustada com `content-start`/`items-start` para remover vazios visuais entre cards de insights.
+* `CP-17` — 2026-02-27 — Admin Ops Market Data implementado: upload de XLSX para Supabase Storage com presigned URL, execução assíncrona de ingestão via `/api/v1/admin/market/ingestions/*` com lock por cidade e polling no admin `/app/admin/market-data`, além da migration `0045_market_data_admin_ops`.
+* `CP-17` — 2026-02-27 — Hotfix de operação local: endpoint de storage ajustado para `localhost:8000/storage/v1/s3` (substituindo `localhost:5050/s3`) nos envs locais e resposta do proxy `/api/storage/upload` melhorada com `details` para facilitar diagnóstico de falhas de upload.
+* `CP-17` — 2026-02-27 — Correção final de endpoint Supabase S3 local: `S3_ENDPOINT/S3_PUBLIC_ENDPOINT` ajustados para `localhost:54321/storage/v1/s3` (Kong) após validação de que `:8000` retornava `404` para rota S3 compatível.
+* `CP-17` — 2026-02-27 — Hotfix de qualidade no ETL de bairros (SP): parser passou a descartar rótulos de condomínio/endereço (`torre`, `bloco`, `setor`, `subcond`, `studios`, etc.), extrair âncora de bairro quando disponível (ex.: `... VL MARIANA` -> `VILA MARIANA`) e reprocessamento `as_of_month=2025-12` executado sem dry-run para atualizar agregados.
+* `CP-17` — 2026-02-27 — Golden dictionary + fallback LLM na normalização de bairros (SP): adicionado dicionário canônico de bairros/distritos, resolver com cache e circuit-breaker de chamadas OpenRouter, integração no ETL (CLI/Admin) com métricas `llm_calls/llm_resolved`, e reprocessamento final `as_of_month=2025-12` removendo outliers residuais de bairro.
+* `CP-17` — 2026-02-27 — Market Data normalização operacional: migration `0046_market_region_aliases`, persistência de aliases pendentes no ETL, carga automática de aliases aprovados por execução e nova fila admin de revisão/aprovação/rejeição em `/app/admin/market-data`.
 
 ---
 
