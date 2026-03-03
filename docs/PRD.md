@@ -53,7 +53,7 @@
 * **Current Checkpoint:** `CP-17 — Market Data SP (Tabela MVP) — ALCANÇADO`
 * **Milestone em andamento:** `N/A (M16 concluído)`
 * **Próximo milestone (planejado):** `M17 — Market Data SP (Mapa Geográfico)`
-* **Última atualização:** `2026-02-27`
+* **Última atualização:** `2026-03-03`
 
 ## 1.2 Milestones (visão macro)
 
@@ -1266,6 +1266,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-17` — 2026-02-27 — Hotfix de qualidade no ETL de bairros (SP): parser passou a descartar rótulos de condomínio/endereço (`torre`, `bloco`, `setor`, `subcond`, `studios`, etc.), extrair âncora de bairro quando disponível (ex.: `... VL MARIANA` -> `VILA MARIANA`) e reprocessamento `as_of_month=2025-12` executado sem dry-run para atualizar agregados.
 * `CP-17` — 2026-02-27 — Golden dictionary + fallback LLM na normalização de bairros (SP): adicionado dicionário canônico de bairros/distritos, resolver com cache e circuit-breaker de chamadas OpenRouter, integração no ETL (CLI/Admin) com métricas `llm_calls/llm_resolved`, e reprocessamento final `as_of_month=2025-12` removendo outliers residuais de bairro.
 * `CP-17` — 2026-02-27 — Market Data normalização operacional: migration `0046_market_region_aliases`, persistência de aliases pendentes no ETL, carga automática de aliases aprovados por execução e nova fila admin de revisão/aprovação/rejeição em `/app/admin/market-data`.
+* `CP-17` — 2026-03-03 — Polimento de microcopy no dashboard: correção de acentuação em labels/títulos do header, cards, pipeline e central de ações (`Visão`, `Imóveis`, `Orçamento`, `Análise`, `Ações`, `Próximos`, `atenção`, `portfólio`).
 
 ---
 

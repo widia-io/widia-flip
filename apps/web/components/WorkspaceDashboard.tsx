@@ -32,13 +32,13 @@ const STATUS_CONFIG: Record<
   { label: string; color: string; gradient: string; bgLight: string }
 > = {
   prospecting: {
-    label: "Prospeccao",
+    label: "Prospecção",
     color: "text-slate-600 dark:text-slate-400",
     gradient: "from-slate-500 to-slate-600",
     bgLight: "bg-slate-500/10",
   },
   analyzing: {
-    label: "Analise",
+    label: "Análise",
     color: "text-blue-600 dark:text-blue-400",
     gradient: "from-blue-500 to-blue-600",
     bgLight: "bg-blue-500/10",
@@ -56,7 +56,7 @@ const STATUS_CONFIG: Record<
     bgLight: "bg-amber-500/10",
   },
   for_sale: {
-    label: "A Venda",
+    label: "À Venda",
     color: "text-emerald-600 dark:text-emerald-400",
     gradient: "from-emerald-500 to-emerald-600",
     bgLight: "bg-emerald-500/10",
@@ -115,8 +115,8 @@ export function WorkspaceDashboard({ data, workspaceSlug }: WorkspaceDashboardPr
     let primaryInsight = {
       type: "neutral" as "success" | "warning" | "action" | "neutral",
       icon: Building2,
-      title: `${totalActive} imoveis ativos`,
-      subtitle: "em seu portfolio",
+      title: `${totalActive} imóveis ativos`,
+      subtitle: "em seu portfólio",
       action: null as { label: string; href: string } | null,
     };
 
@@ -124,7 +124,7 @@ export function WorkspaceDashboard({ data, workspaceSlug }: WorkspaceDashboardPr
       primaryInsight = {
         type: "warning",
         icon: AlertTriangle,
-        title: `${overdueTotal} ${overdueTotal === 1 ? "item requer" : "itens requerem"} atencao`,
+        title: `${overdueTotal} ${overdueTotal === 1 ? "item requer" : "itens requerem"} atenção`,
         subtitle:
           overdueTotal === 1
             ? "custo ou tarefa em atraso"
@@ -135,10 +135,10 @@ export function WorkspaceDashboard({ data, workspaceSlug }: WorkspaceDashboardPr
       primaryInsight = {
         type: "success",
         icon: TrendingUp,
-        title: `${forSale} ${forSale === 1 ? "imovel pronto" : "imoveis prontos"} para venda`,
+        title: `${forSale} ${forSale === 1 ? "imóvel pronto" : "imóveis prontos"} para venda`,
         subtitle: "aguardando comprador",
         action: {
-          label: "Ver imoveis",
+          label: "Ver imóveis",
           href: `/app/properties?status=for_sale`,
         },
       };
@@ -157,7 +157,7 @@ export function WorkspaceDashboard({ data, workspaceSlug }: WorkspaceDashboardPr
       primaryInsight = {
         type: "neutral",
         icon: Target,
-        title: `${analyzing} em analise`,
+        title: `${analyzing} em análise`,
         subtitle: "avalie e decida",
         action: {
           label: "Analisar",
@@ -210,11 +210,11 @@ export function WorkspaceDashboard({ data, workspaceSlug }: WorkspaceDashboardPr
       <div className="rounded-2xl border border-dashed border-border bg-card">
         <EmptyState
           icon={Building2}
-          title="Nenhum imovel cadastrado"
-          description="Adicione imoveis ao seu workspace para visualizar o dashboard."
-          tip="Comece prospectando oportunidades ou adicionando imoveis manualmente."
+          title="Nenhum imóvel cadastrado"
+          description="Adicione imóveis ao seu workspace para visualizar o dashboard."
+          tip="Comece prospectando oportunidades ou adicionando imóveis manualmente."
           action={{
-            label: "Adicionar imovel",
+            label: "Adicionar imóvel",
             href: `/app/properties`,
           }}
         />
@@ -301,10 +301,10 @@ export function WorkspaceDashboard({ data, workspaceSlug }: WorkspaceDashboardPr
       >
         <StatCard
           icon={Building2}
-          label="Imoveis Ativos"
+          label="Imóveis Ativos"
           value={insights.totalActive}
           subtitle={
-            insights.sold > 0 ? `${insights.sold} vendidos` : "no portfolio"
+            insights.sold > 0 ? `${insights.sold} vendidos` : "no portfólio"
           }
           color="blue"
           href={`/app/properties`}
@@ -312,7 +312,7 @@ export function WorkspaceDashboard({ data, workspaceSlug }: WorkspaceDashboardPr
 
         <StatCard
           icon={DollarSign}
-          label="Orcamento"
+          label="Orçamento"
           value={
             costs.total_planned > 0 ? Math.round(insights.budgetPercent) : null
           }
@@ -360,7 +360,7 @@ export function WorkspaceDashboard({ data, workspaceSlug }: WorkspaceDashboardPr
           value={insights.overdueTotal > 0 ? insights.overdueTotal : null}
           customValue={insights.overdueTotal === 0 ? "OK" : undefined}
           subtitle={
-            insights.overdueTotal > 0 ? "precisam de atencao" : "Tudo em dia!"
+            insights.overdueTotal > 0 ? "precisam de atenção" : "Tudo em dia!"
           }
           color={insights.overdueTotal > 0 ? "red" : "emerald"}
           href={insights.overdueTotal > 0 ? `/app/costs` : undefined}
@@ -387,9 +387,9 @@ export function WorkspaceDashboard({ data, workspaceSlug }: WorkspaceDashboardPr
                   <TrendingUp className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Pipeline de Imoveis</h3>
+                  <h3 className="font-semibold">Pipeline de Imóveis</h3>
                   <p className="text-sm text-muted-foreground">
-                    {properties.total} imoveis no fluxo
+                    {properties.total} imóveis no fluxo
                   </p>
                 </div>
               </div>
@@ -512,8 +512,8 @@ export function WorkspaceDashboard({ data, workspaceSlug }: WorkspaceDashboardPr
                   <Zap className="h-5 w-5 text-amber-500" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Central de Acoes</h3>
-                  <p className="text-sm text-muted-foreground">Proximos passos</p>
+                  <h3 className="font-semibold">Central de Ações</h3>
+                  <p className="text-sm text-muted-foreground">Próximos passos</p>
                 </div>
               </div>
             </div>
