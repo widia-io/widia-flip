@@ -51,9 +51,9 @@
 ## 1.1 Current Checkpoint
 
 * **Current Checkpoint:** `CP-17 — Market Data SP (Tabela MVP) — ALCANÇADO`
-* **Milestone em andamento:** `N/A (M16 concluído)`
+* **Milestone em andamento:** `M17a — Oferta Inteligente em 60s (execução pós-MVP)`
 * **Próximo milestone (planejado):** `M17 — Market Data SP (Mapa Geográfico)`
-* **Última atualização:** `2026-03-03`
+* **Última atualização:** `2026-03-04`
 
 ## 1.2 Milestones (visão macro)
 
@@ -1267,6 +1267,12 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-17` — 2026-02-27 — Golden dictionary + fallback LLM na normalização de bairros (SP): adicionado dicionário canônico de bairros/distritos, resolver com cache e circuit-breaker de chamadas OpenRouter, integração no ETL (CLI/Admin) com métricas `llm_calls/llm_resolved`, e reprocessamento final `as_of_month=2025-12` removendo outliers residuais de bairro.
 * `CP-17` — 2026-02-27 — Market Data normalização operacional: migration `0046_market_region_aliases`, persistência de aliases pendentes no ETL, carga automática de aliases aprovados por execução e nova fila admin de revisão/aprovação/rejeição em `/app/admin/market-data`.
 * `CP-17` — 2026-03-03 — Polimento de microcopy no dashboard: correção de acentuação em labels/títulos do header, cards, pipeline e central de ações (`Visão`, `Imóveis`, `Orçamento`, `Análise`, `Ações`, `Próximos`, `atenção`, `portfólio`).
+* `CP-17` — 2026-03-03 — Planejamento pós-MVP: mini PRD da feature "Oferta Inteligente em 60s" adicionado em `docs/PRD_OFFER_INTELIGENTE_ADDENDUM.md` para orientar execução focada em conversão (escopo, contratos, métricas e rollout).
+* `CP-17` — 2026-03-03 — Refinamento do mini PRD "Oferta Inteligente em 60s": regras determinísticas para `confidence` e decisão `GO/REVIEW/NO_GO`, separação `generate` vs `save`, estratégia de gating orientada a ativação, detecção de obsolescência (`is_stale`) e instrumentação ampliada de fricção/paywall.
+* `CP-17` — 2026-03-03 — Refinamento v2 do mini PRD "Oferta Inteligente em 60s": pesos de `confidence` marcados como revisáveis com override por `workspace_settings`, gating fechado por tier após 1ª oferta, sanity check de `expected_sale_price` (`OPTIMISTIC_SALE_PRICE_ESTIMATE`) e rate limiting de `generate` (`10 req/min` por workspace, `429/RATE_LIMITED`).
+* `CP-17` — 2026-03-03 — Planejamento de execução M17a da "Oferta Inteligente em 60s" detalhado em task board por trilha (`DB/Shared -> API -> BFF -> UI -> Analytics -> Hardening`) com 16 tasks, dependências e Definition of Done no addendum.
+* `CP-17` — 2026-03-04 — M17a implementado (decisão-completa): migrations `0047/0048`, contratos em `packages/shared`, engine Go `offerintelligence` com `GO/REVIEW/NO_GO`, endpoints `/prospects/:id/offer-intelligence/{generate,save,history}` (rate limit 429 + `Retry-After`, gating trial/starter pós-1ª geração, staleness on-read), BFF Next + client typed, UI no `ProspectViewModal` (gerar/copiar/salvar/histórico/regenerar/CTA upgrade), feature flag `OFFER_INTELLIGENCE_ROLLOUT` (`off|internal|all`) e painel admin com métricas `offer_intelligence_*`.
+* `CP-17` — 2026-03-04 — Hardening M17a: adicionados testes de integração dos handlers de Oferta Inteligente com `sqlmock` cobrindo tenant isolation, missing inputs, paywall de histórico, rate limit (`429 + Retry-After`), `save` append-only e paginação/staleness de histórico.
 
 ---
 
@@ -1289,6 +1295,10 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
   * **Opção A (mais simples):** adicionar `event_type` de timeline para milestones manuais (ex: `renovation_milestone_created/updated`) + endpoint `POST/PUT` para criar/editar (mantém leitura via timeline).
   * **Opção B (mais correta):** tabela `schedule_items` com CRUD (itens de cronograma dedicados com `title`, `planned_date`, `done_at?`, `notes?`, `order?`), e timeline apenas como log.
   * **Regras:** manter minimalista (sem Gantt pesado), sem expandir pipeline além dos status do MVP.
+* ⬜ T-FUTURE.5 Oferta Inteligente em 60s (conversão)
+  * **Objetivo:** transformar análise em proposta executável com faixa de oferta, decisão GO/NO_GO e mensagem pronta para abordagem.
+  * **Documento de referência:** `docs/PRD_OFFER_INTELIGENTE_ADDENDUM.md`.
+  * **Regras:** manter contrato BFF + cálculo server-side + tenant isolation; sem envio automático externo no MVP.
 
 ---
 

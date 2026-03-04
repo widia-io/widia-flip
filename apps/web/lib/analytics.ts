@@ -192,6 +192,18 @@ export const EVENTS = {
   VIEW_BLOG_POST: "view_blog_post",
   BLOG_CTA_CLICK: "blog_cta_click",
   BLOG_TO_CALCULATOR: "blog_to_calculator",
+  OFFER_INTELLIGENCE_OPENED: "offer_intelligence_opened",
+  OFFER_INTELLIGENCE_GENERATED: "offer_intelligence_generated",
+  OFFER_INTELLIGENCE_SAVED: "offer_intelligence_saved",
+  OFFER_MESSAGE_COPIED: "offer_message_copied",
+  OFFER_INTELLIGENCE_REGENERATED: "offer_intelligence_regenerated",
+  OFFER_INTELLIGENCE_BLOCKED_MISSING_INPUTS: "offer_intelligence_blocked_missing_inputs",
+  OFFER_INTELLIGENCE_PAYWALL_VIEWED: "offer_intelligence_paywall_viewed",
+  OFFER_INTELLIGENCE_UPGRADE_CTA_CLICKED: "offer_intelligence_upgrade_cta_clicked",
+  OFFER_INTELLIGENCE_ASSUMPTIONS_USED: "offer_intelligence_assumptions_used",
+  OFFER_DECISION_REVIEW_REASON: "offer_decision_review_reason",
+  OFFER_INTELLIGENCE_RATE_LIMITED: "offer_intelligence_rate_limited",
+  OFFER_INTELLIGENCE_DELETED: "offer_intelligence_deleted",
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

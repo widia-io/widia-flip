@@ -31,6 +31,7 @@ Use `env.example` como referência e exporte as variáveis no seu shell (ou copi
   - `DATABASE_URL` (**obrigatório**)
   - `API_PORT` (default: `8080`)
   - `BETTER_AUTH_JWKS_URL` (default: `http://localhost:3000/api/auth/jwks`)
+  - `OFFER_INTELLIGENCE_ROLLOUT` (default: `off`, valores: `off|internal|all`)
   - `S3_ENDPOINT` (default: `http://localhost:9000`)
   - `S3_PUBLIC_ENDPOINT` (opcional; endpoint público usado para presigned URL)
   - `S3_ACCESS_KEY` (default: `minioadmin`)
@@ -49,6 +50,7 @@ export BLOG_SOURCE="db"
 export NEXT_PUBLIC_SITE_URL="https://meuflip.com"
 export DATABASE_URL="postgres://widia:widia@localhost:5432/widia_flip?sslmode=disable"
 export BETTER_AUTH_JWKS_URL="http://localhost:3000/api/auth/jwks"
+export OFFER_INTELLIGENCE_ROLLOUT="off"
 export S3_ENDPOINT="http://localhost:9000"
 export S3_PUBLIC_ENDPOINT="http://localhost:9000"
 export S3_ACCESS_KEY="minioadmin"

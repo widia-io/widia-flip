@@ -45,34 +45,45 @@ type funnelEventInsert struct {
 }
 
 type adminFunnelDailyItem struct {
-	Date                          string `json:"date"`
-	HomeViews                     int    `json:"homeViews"`
-	SignupStarted                 int    `json:"signupStarted"`
-	SignupCompleted               int    `json:"signupCompleted"`
-	LoginCompleted                int    `json:"loginCompleted"`
-	FirstSnapshotSaved            int    `json:"firstSnapshotSaved"`
-	CalculatorFullReportRequested int    `json:"calculatorFullReportRequested"`
-	CalculatorSaveClicked         int    `json:"calculatorSaveClicked"`
+	Date                               string `json:"date"`
+	HomeViews                          int    `json:"homeViews"`
+	SignupStarted                      int    `json:"signupStarted"`
+	SignupCompleted                    int    `json:"signupCompleted"`
+	LoginCompleted                     int    `json:"loginCompleted"`
+	FirstSnapshotSaved                 int    `json:"firstSnapshotSaved"`
+	CalculatorFullReportRequested      int    `json:"calculatorFullReportRequested"`
+	CalculatorSaveClicked              int    `json:"calculatorSaveClicked"`
+	OfferIntelligenceGenerated         int    `json:"offerIntelligenceGenerated"`
+	OfferIntelligenceSaved             int    `json:"offerIntelligenceSaved"`
+	OfferIntelligencePaywallViewed     int    `json:"offerIntelligencePaywallViewed"`
+	OfferIntelligenceUpgradeCtaClicked int    `json:"offerIntelligenceUpgradeCtaClicked"`
 }
 
 type adminFunnelDailyTotals struct {
-	HomeViews                     int `json:"homeViews"`
-	SignupStarted                 int `json:"signupStarted"`
-	SignupCompleted               int `json:"signupCompleted"`
-	LoginCompleted                int `json:"loginCompleted"`
-	FirstSnapshotSaved            int `json:"firstSnapshotSaved"`
-	CalculatorFullReportRequested int `json:"calculatorFullReportRequested"`
-	CalculatorSaveClicked         int `json:"calculatorSaveClicked"`
+	HomeViews                          int `json:"homeViews"`
+	SignupStarted                      int `json:"signupStarted"`
+	SignupCompleted                    int `json:"signupCompleted"`
+	LoginCompleted                     int `json:"loginCompleted"`
+	FirstSnapshotSaved                 int `json:"firstSnapshotSaved"`
+	CalculatorFullReportRequested      int `json:"calculatorFullReportRequested"`
+	CalculatorSaveClicked              int `json:"calculatorSaveClicked"`
+	OfferIntelligenceGenerated         int `json:"offerIntelligenceGenerated"`
+	OfferIntelligenceSaved             int `json:"offerIntelligenceSaved"`
+	OfferIntelligencePaywallViewed     int `json:"offerIntelligencePaywallViewed"`
+	OfferIntelligenceUpgradeCtaClicked int `json:"offerIntelligenceUpgradeCtaClicked"`
 }
 
 type adminFunnelDailyRates struct {
-	HomeToSignupStartPct     float64 `json:"homeToSignupStartPct"`
-	SignupStartToCompletePct float64 `json:"signupStartToCompletePct"`
-	SignupCompleteToLoginPct float64 `json:"signupCompleteToLoginPct"`
-	LoginToFirstSnapshotPct  float64 `json:"loginToFirstSnapshotPct"`
-	HomeToFirstSnapshotPct   float64 `json:"homeToFirstSnapshotPct"`
-	CalculatorToSaveClickPct float64 `json:"calculatorToSaveClickPct"`
-	CalculatorToReportReqPct float64 `json:"calculatorToReportRequestPct"`
+	HomeToSignupStartPct       float64 `json:"homeToSignupStartPct"`
+	SignupStartToCompletePct   float64 `json:"signupStartToCompletePct"`
+	SignupCompleteToLoginPct   float64 `json:"signupCompleteToLoginPct"`
+	LoginToFirstSnapshotPct    float64 `json:"loginToFirstSnapshotPct"`
+	HomeToFirstSnapshotPct     float64 `json:"homeToFirstSnapshotPct"`
+	CalculatorToSaveClickPct   float64 `json:"calculatorToSaveClickPct"`
+	CalculatorToReportReqPct   float64 `json:"calculatorToReportRequestPct"`
+	OfferGeneratedToSavedPct   float64 `json:"offerGeneratedToSavedPct"`
+	OfferGeneratedToPaywallPct float64 `json:"offerGeneratedToPaywallPct"`
+	OfferPaywallToUpgradePct   float64 `json:"offerPaywallToUpgradePct"`
 }
 
 type adminFunnelDailyResponse struct {
@@ -236,7 +247,11 @@ func (a *api) handleAdminFunnelDaily(w http.ResponseWriter, r *http.Request) {
 				COUNT(*) FILTER (WHERE event_name = 'login_completed') AS login_completed,
 				COUNT(*) FILTER (WHERE event_name = 'first_snapshot_saved') AS first_snapshot_saved,
 				COUNT(*) FILTER (WHERE event_name = 'calculator_full_report_requested') AS calculator_full_report_requested,
-				COUNT(*) FILTER (WHERE event_name = 'calculator_save_clicked') AS calculator_save_clicked
+				COUNT(*) FILTER (WHERE event_name = 'calculator_save_clicked') AS calculator_save_clicked,
+				COUNT(*) FILTER (WHERE event_name = 'offer_intelligence_generated') AS offer_intelligence_generated,
+				COUNT(*) FILTER (WHERE event_name = 'offer_intelligence_saved') AS offer_intelligence_saved,
+				COUNT(*) FILTER (WHERE event_name = 'offer_intelligence_paywall_viewed') AS offer_intelligence_paywall_viewed,
+				COUNT(*) FILTER (WHERE event_name = 'offer_intelligence_upgrade_cta_clicked') AS offer_intelligence_upgrade_cta_clicked
 			FROM flip.funnel_events
 			WHERE event_at >= (now() - ($1::int * INTERVAL '1 day'))
 			GROUP BY 1
@@ -249,7 +264,11 @@ func (a *api) handleAdminFunnelDaily(w http.ResponseWriter, r *http.Request) {
 			COALESCE(a.login_completed, 0),
 			COALESCE(a.first_snapshot_saved, 0),
 			COALESCE(a.calculator_full_report_requested, 0),
-			COALESCE(a.calculator_save_clicked, 0)
+			COALESCE(a.calculator_save_clicked, 0),
+			COALESCE(a.offer_intelligence_generated, 0),
+			COALESCE(a.offer_intelligence_saved, 0),
+			COALESCE(a.offer_intelligence_paywall_viewed, 0),
+			COALESCE(a.offer_intelligence_upgrade_cta_clicked, 0)
 		FROM days d
 		LEFT JOIN agg a ON a.day = d.day
 		ORDER BY d.day ASC
@@ -278,6 +297,10 @@ func (a *api) handleAdminFunnelDaily(w http.ResponseWriter, r *http.Request) {
 			&item.FirstSnapshotSaved,
 			&item.CalculatorFullReportRequested,
 			&item.CalculatorSaveClicked,
+			&item.OfferIntelligenceGenerated,
+			&item.OfferIntelligenceSaved,
+			&item.OfferIntelligencePaywallViewed,
+			&item.OfferIntelligenceUpgradeCtaClicked,
 		); err != nil {
 			log.Printf("admin funnel daily: scan error: %v", err)
 			writeError(w, http.StatusInternalServerError, apiError{
@@ -297,16 +320,23 @@ func (a *api) handleAdminFunnelDaily(w http.ResponseWriter, r *http.Request) {
 		totals.FirstSnapshotSaved += item.FirstSnapshotSaved
 		totals.CalculatorFullReportRequested += item.CalculatorFullReportRequested
 		totals.CalculatorSaveClicked += item.CalculatorSaveClicked
+		totals.OfferIntelligenceGenerated += item.OfferIntelligenceGenerated
+		totals.OfferIntelligenceSaved += item.OfferIntelligenceSaved
+		totals.OfferIntelligencePaywallViewed += item.OfferIntelligencePaywallViewed
+		totals.OfferIntelligenceUpgradeCtaClicked += item.OfferIntelligenceUpgradeCtaClicked
 	}
 
 	rates := adminFunnelDailyRates{
-		HomeToSignupStartPct:     percent(totals.SignupStarted, totals.HomeViews),
-		SignupStartToCompletePct: percent(totals.SignupCompleted, totals.SignupStarted),
-		SignupCompleteToLoginPct: percent(totals.LoginCompleted, totals.SignupCompleted),
-		LoginToFirstSnapshotPct:  percent(totals.FirstSnapshotSaved, totals.LoginCompleted),
-		HomeToFirstSnapshotPct:   percent(totals.FirstSnapshotSaved, totals.HomeViews),
-		CalculatorToSaveClickPct: percent(totals.CalculatorSaveClicked, totals.CalculatorFullReportRequested),
-		CalculatorToReportReqPct: percent(totals.CalculatorFullReportRequested, totals.HomeViews),
+		HomeToSignupStartPct:       percent(totals.SignupStarted, totals.HomeViews),
+		SignupStartToCompletePct:   percent(totals.SignupCompleted, totals.SignupStarted),
+		SignupCompleteToLoginPct:   percent(totals.LoginCompleted, totals.SignupCompleted),
+		LoginToFirstSnapshotPct:    percent(totals.FirstSnapshotSaved, totals.LoginCompleted),
+		HomeToFirstSnapshotPct:     percent(totals.FirstSnapshotSaved, totals.HomeViews),
+		CalculatorToSaveClickPct:   percent(totals.CalculatorSaveClicked, totals.CalculatorFullReportRequested),
+		CalculatorToReportReqPct:   percent(totals.CalculatorFullReportRequested, totals.HomeViews),
+		OfferGeneratedToSavedPct:   percent(totals.OfferIntelligenceSaved, totals.OfferIntelligenceGenerated),
+		OfferGeneratedToPaywallPct: percent(totals.OfferIntelligencePaywallViewed, totals.OfferIntelligenceGenerated),
+		OfferPaywallToUpgradePct:   percent(totals.OfferIntelligenceUpgradeCtaClicked, totals.OfferIntelligencePaywallViewed),
 	}
 
 	writeJSON(w, http.StatusOK, adminFunnelDailyResponse{

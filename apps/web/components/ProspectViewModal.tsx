@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2,
@@ -18,12 +18,30 @@ import {
   RefreshCw,
   TrendingUp,
   AlertTriangle,
+  Copy,
+  Sparkles,
+  Lock,
+  Trash2,
 } from "lucide-react";
 
-import type { Prospect } from "@widia/shared";
+import type {
+  Prospect,
+  OfferIntelligenceHistoryItem,
+  OfferIntelligencePreview,
+} from "@widia/shared";
 
 import { updateProspectAction } from "@/lib/actions/prospects";
 import { recomputeFlipScoreAction } from "@/lib/actions/flip-score";
+import {
+  generateOfferIntelligence,
+  listOfferIntelligenceHistory,
+  deleteOfferIntelligence,
+  OfferIntelligenceClientError,
+  OfferPaywallRequiredError,
+  OfferRateLimitedError,
+  saveOfferIntelligence,
+} from "@/lib/offer-intelligence-client";
+import { EVENTS, logEvent } from "@/lib/analytics";
 import { FlipScoreBadge } from "@/components/FlipScoreBadge";
 import { usePaywall } from "@/components/PaywallModal";
 import { InvestmentPremisesView } from "@/components/prospect/InvestmentPremisesView";
@@ -32,6 +50,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface StringNumberInputProps {
   readonly id?: string;
@@ -55,15 +82,6 @@ function StringNumberInput({ id, value, onChange, placeholder, disabled, allowDe
     />
   );
 }
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 interface ProspectViewModalProps {
   prospect: Prospect;
@@ -81,6 +99,31 @@ const statusConfig: Record<
   converted: { label: "Convertido", variant: "outline" },
 };
 
+const OFFER_INTELLIGENCE_REQUIRED_FIELDS: Record<string, string> = {
+  asking_price: "Preço pedido",
+  area_usable: "Área útil",
+  expected_sale_price: "Preço de venda esperado",
+  renovation_cost_estimate: "Custo estimado de reforma",
+};
+
+function formatOfferInputErrorMessage(error: OfferIntelligenceClientError): string {
+  if (
+    error.code === "VALIDATION_ERROR" &&
+    error.message.toLowerCase().includes("missing critical inputs")
+  ) {
+    const fields = (error.details ?? []).filter((field) => Boolean(field?.trim()));
+    const translated = fields.map((field) => OFFER_INTELLIGENCE_REQUIRED_FIELDS[field] ?? field);
+
+    if (translated.length > 0) {
+      return `Antes de finalizar a Oferta Inteligente, preencha estes campos:\n- ${translated.join("\n- ")}`;
+    }
+
+    return "Antes de finalizar a Oferta Inteligente, preencha os campos obrigatórios: preço pedido, área útil, preço de venda esperado e custo estimado de reforma.";
+  }
+
+  return `${error.code}: ${error.message}`;
+}
+
 export function ProspectViewModal({
   prospect,
   open,
@@ -93,7 +136,36 @@ export function ProspectViewModal({
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scoreError, setScoreError] = useState<string | null>(null);
+  const [offerPreview, setOfferPreview] = useState<OfferIntelligencePreview | null>(null);
+  const [offerHistory, setOfferHistory] = useState<OfferIntelligenceHistoryItem[]>([]);
+  const [offerHistoryCursor, setOfferHistoryCursor] = useState<string | null>(null);
+  const [isOfferGenerating, setIsOfferGenerating] = useState(false);
+  const [isOfferSaving, setIsOfferSaving] = useState(false);
+  const [offerDeletingHistoryId, setOfferDeletingHistoryId] = useState<string | null>(null);
+  const [isOfferHistoryLoading, setIsOfferHistoryLoading] = useState(false);
+  const [isOfferHistoryBlocked, setIsOfferHistoryBlocked] = useState(false);
+  const [offerError, setOfferError] = useState<string | null>(null);
+  const [offerSuccess, setOfferSuccess] = useState<string | null>(null);
+  const [offerRetryAfter, setOfferRetryAfter] = useState<number | null>(null);
+  const generateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { showPaywall } = usePaywall();
+
+  useEffect(() => {
+    if (open) {
+      logEvent(EVENTS.OFFER_INTELLIGENCE_OPENED, {
+        workspace_id: prospect.workspace_id,
+        prospect_id: prospect.id,
+      });
+    }
+  }, [open, prospect.id, prospect.workspace_id]);
+
+  useEffect(() => {
+    return () => {
+      if (generateTimeoutRef.current) {
+        clearTimeout(generateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleRecomputeScore = async (options: { force?: boolean; version?: "v0" | "v1" } = {}) => {
     setScoreError(null);
@@ -114,6 +186,183 @@ export function ProspectViewModal({
     } finally {
       setIsScoreRecomputing(false);
     }
+  };
+
+  const loadOfferHistory = async (reset = false, options?: { silentPaywall?: boolean }) => {
+    if (!reset && (isOfferHistoryBlocked || (offerPreview != null && !offerPreview.gating.history_enabled))) {
+      return;
+    }
+    setIsOfferHistoryLoading(true);
+    setOfferError(null);
+    try {
+      const response = await listOfferIntelligenceHistory(prospect.id, {
+        limit: 5,
+        cursor: reset ? undefined : offerHistoryCursor ?? undefined,
+      });
+      setOfferHistory((prev) =>
+        reset ? response.items : [...prev, ...response.items],
+      );
+      setOfferHistoryCursor(response.next_cursor ?? null);
+      setIsOfferHistoryBlocked(false);
+    } catch (e) {
+      if (e instanceof OfferPaywallRequiredError) {
+        if (!options?.silentPaywall) {
+          setOfferError(e.message);
+        }
+        setIsOfferHistoryBlocked(true);
+        logEvent(EVENTS.OFFER_INTELLIGENCE_PAYWALL_VIEWED, {
+          workspace_id: prospect.workspace_id,
+          prospect_id: prospect.id,
+          source: "history",
+        });
+      } else if (e instanceof OfferIntelligenceClientError) {
+        setOfferError(e.message);
+        setIsOfferHistoryBlocked(false);
+      } else {
+        setOfferError("Falha ao carregar histórico de ofertas.");
+        setIsOfferHistoryBlocked(false);
+      }
+    } finally {
+      setIsOfferHistoryLoading(false);
+    }
+  };
+
+  const runOfferGenerate = async (source: "prospect_modal" | "history_regenerate" = "prospect_modal") => {
+    setOfferError(null);
+    setOfferSuccess(null);
+    setOfferRetryAfter(null);
+
+    try {
+      const preview = await generateOfferIntelligence(prospect.id, { source });
+      setOfferPreview(preview);
+      setOfferHistory([]);
+      setOfferHistoryCursor(null);
+      setIsOfferHistoryBlocked(!preview.gating.history_enabled);
+      if (!preview.gating.full_access) {
+        logEvent(EVENTS.OFFER_INTELLIGENCE_PAYWALL_VIEWED, {
+          workspace_id: preview.workspace_id,
+          prospect_id: preview.prospect_id,
+          source: "generate_limited",
+        });
+      }
+    } catch (e) {
+      if (e instanceof OfferRateLimitedError) {
+        setOfferRetryAfter(e.retryAfter ?? null);
+        setOfferError(
+          e.retryAfter
+            ? `Limite atingido. Tente novamente em ${e.retryAfter}s.`
+            : "Limite de geração atingido. Aguarde e tente novamente.",
+        );
+      } else if (e instanceof OfferPaywallRequiredError) {
+        setOfferError(e.message);
+        logEvent(EVENTS.OFFER_INTELLIGENCE_PAYWALL_VIEWED, {
+          workspace_id: prospect.workspace_id,
+          prospect_id: prospect.id,
+          source,
+        });
+      } else if (e instanceof OfferIntelligenceClientError) {
+        setOfferError(formatOfferInputErrorMessage(e));
+      } else {
+        setOfferError("Erro ao gerar Oferta Inteligente.");
+      }
+    } finally {
+      setIsOfferGenerating(false);
+    }
+  };
+
+  const handleGenerateOffer = (source: "prospect_modal" | "history_regenerate" = "prospect_modal") => {
+    if (generateTimeoutRef.current) {
+      clearTimeout(generateTimeoutRef.current);
+    }
+    setIsOfferGenerating(true);
+    generateTimeoutRef.current = setTimeout(() => {
+      void runOfferGenerate(source);
+    }, 600);
+  };
+
+  const handleCopyOfferMessage = async () => {
+    if (!offerPreview) return;
+    const text =
+      offerPreview.gating.message_level === "full"
+        ? offerPreview.message_templates.full
+        : offerPreview.message_templates.short;
+    try {
+      await navigator.clipboard.writeText(text);
+      logEvent(EVENTS.OFFER_MESSAGE_COPIED, {
+        workspace_id: offerPreview.workspace_id,
+        prospect_id: offerPreview.prospect_id,
+        tier: offerPreview.tier,
+      });
+    } catch {
+      setOfferError("Falha ao copiar mensagem.");
+    }
+  };
+
+  const handleSaveOffer = async () => {
+    if (!offerPreview) return;
+    setIsOfferSaving(true);
+    setOfferError(null);
+    setOfferSuccess(null);
+    try {
+      await saveOfferIntelligence(prospect.id, { source: "prospect_modal" });
+      if (offerPreview.gating.history_enabled) {
+        setOfferSuccess("Oferta salva com sucesso no histórico.");
+      } else {
+        setOfferSuccess("Oferta salva. Faça upgrade para ver o histórico completo.");
+      }
+      if (offerPreview.gating.history_enabled) {
+        await loadOfferHistory(true);
+      }
+    } catch (e) {
+      setOfferSuccess(null);
+      if (e instanceof OfferPaywallRequiredError) {
+        setOfferError(e.message);
+      } else if (e instanceof OfferIntelligenceClientError) {
+        setOfferError(formatOfferInputErrorMessage(e));
+      } else {
+        setOfferError("Erro ao salvar oferta.");
+      }
+    } finally {
+      setIsOfferSaving(false);
+    }
+  };
+
+  const handleDeleteHistoryOffer = async (offerId: string) => {
+    if (!window.confirm("Tem certeza que deseja excluir esta oferta do histórico?")) {
+      return;
+    }
+
+    setOfferDeletingHistoryId(offerId);
+    setOfferError(null);
+    setOfferSuccess(null);
+
+    try {
+      await deleteOfferIntelligence(prospect.id, offerId);
+      setOfferHistory((prev) => prev.filter((item) => item.id !== offerId));
+      setOfferSuccess("Oferta removida do histórico.");
+      logEvent(EVENTS.OFFER_INTELLIGENCE_DELETED, {
+        workspace_id: prospect.workspace_id,
+        prospect_id: prospect.id,
+        source: "offer_history_delete",
+      });
+    } catch (e) {
+      if (e instanceof OfferIntelligenceClientError) {
+        setOfferError(e.message);
+      } else {
+        setOfferError("Erro ao excluir oferta.");
+      }
+    } finally {
+      setOfferDeletingHistoryId(null);
+    }
+  };
+
+  const handleUpgradeClick = () => {
+    logEvent(EVENTS.OFFER_INTELLIGENCE_UPGRADE_CTA_CLICKED, {
+      workspace_id: prospect.workspace_id,
+      prospect_id: prospect.id,
+      source: "offer_modal",
+    });
+    router.push("/app/billing");
   };
 
   // Form state initialized from prospect
@@ -175,6 +424,20 @@ export function ProspectViewModal({
     });
     setError(null);
     setIsEditing(false);
+    setOfferError(null);
+    setOfferSuccess(null);
+    setOfferRetryAfter(null);
+    setOfferPreview(null);
+    setOfferHistory([]);
+    setOfferHistoryCursor(null);
+    setIsOfferHistoryBlocked(false);
+    setIsOfferGenerating(false);
+    setIsOfferSaving(false);
+    setIsOfferHistoryLoading(false);
+    if (generateTimeoutRef.current) {
+      clearTimeout(generateTimeoutRef.current);
+      generateTimeoutRef.current = null;
+    }
   };
 
   const handleChange = (field: string, value: string | boolean) => {
@@ -230,6 +493,11 @@ export function ProspectViewModal({
     resetForm();
     onOpenChange(false);
   };
+
+  useEffect(() => {
+    if (!open) return;
+    void loadOfferHistory(true, { silentPaywall: true });
+  }, [open, prospect.id]);
 
   const formatCurrency = (value: number | null | undefined) => {
     if (value == null) return "-";
@@ -753,6 +1021,326 @@ export function ProspectViewModal({
               )}
             </section>
 
+            {/* Offer Intelligence (M17a) */}
+            <section className="space-y-3">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                <Sparkles className="h-4 w-4" />
+                Oferta Inteligente
+              </h3>
+              <div className="space-y-4 rounded-lg border p-4">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() =>
+                      handleGenerateOffer(
+                        offerPreview ? "history_regenerate" : "prospect_modal",
+                      )
+                    }
+                    disabled={isOfferGenerating}
+                  >
+                    {isOfferGenerating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Gerando...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        {offerPreview ? "Regenerar oferta" : "Gerar oferta em 60s"}
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyOfferMessage}
+                    disabled={!offerPreview}
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copiar mensagem
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSaveOffer}
+                    disabled={!offerPreview || isOfferSaving}
+                  >
+                    {isOfferSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      "Salvar oferta"
+                    )}
+                  </Button>
+                </div>
+
+                {offerError && (
+                  <div className="whitespace-pre-line rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {offerError}
+                    {offerRetryAfter ? ` (retry em ${offerRetryAfter}s)` : null}
+                  </div>
+                )}
+
+                {offerSuccess && (
+                  <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+                    {offerSuccess}
+                  </div>
+                )}
+
+                {!offerPreview && (
+                  <p className="text-sm text-muted-foreground">
+                    Gere uma oferta para receber decisão GO/REVIEW/NO_GO, cenários e mensagem pronta.
+                  </p>
+                )}
+
+                {offerPreview && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div className="rounded-md border p-3">
+                        <p className="text-xs text-muted-foreground">Decisão</p>
+                        <p className="mt-1 text-lg font-semibold">{offerPreview.decision}</p>
+                      </div>
+                      <div className="rounded-md border p-3">
+                        <p className="text-xs text-muted-foreground">Confiança</p>
+                        <p className="mt-1 text-lg font-semibold">
+                          {(offerPreview.confidence * 100).toFixed(0)}% ({offerPreview.confidence_bucket})
+                        </p>
+                      </div>
+                      <div className="rounded-md border p-3">
+                        <p className="text-xs text-muted-foreground">Risco</p>
+                        <p className="mt-1 text-lg font-semibold">{offerPreview.risk_score.toFixed(0)}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {offerPreview.scenarios.map((scenario) => (
+                        <div
+                          key={scenario.key}
+                          className="grid grid-cols-2 gap-2 rounded-md border p-3 text-sm sm:grid-cols-5"
+                        >
+                          <div>
+                            <p className="text-xs text-muted-foreground">Cenário</p>
+                            <p className="font-medium capitalize">{scenario.key}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Oferta</p>
+                            <p className="font-medium">{formatCurrency(scenario.offer_price)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Lucro</p>
+                            <p className="font-medium">{formatCurrency(scenario.net_profit)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Margem</p>
+                            <p className="font-medium">{scenario.margin.toFixed(1)}%</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">ROI</p>
+                            <p className="font-medium">{scenario.roi.toFixed(1)}%</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {offerPreview.reason_labels.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Por que essa decisão?</p>
+                        <ul className="space-y-1 text-sm text-muted-foreground">
+                          {offerPreview.reason_labels.map((label) => (
+                            <li key={label}>• {label}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {(offerPreview.assumptions.length > 0 || offerPreview.defaults_used.length > 0) && (
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="rounded-md border p-3">
+                          <p className="text-xs text-muted-foreground">Premissas</p>
+                          {offerPreview.assumptions.length > 0 ? (
+                            <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
+                              {offerPreview.assumptions.map((item) => (
+                                <li key={item}>• {item}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="mt-1 text-sm text-muted-foreground">Sem premissas adicionais.</p>
+                          )}
+                        </div>
+                        <div className="rounded-md border p-3">
+                          <p className="text-xs text-muted-foreground">Defaults usados</p>
+                          {offerPreview.defaults_used.length > 0 ? (
+                            <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
+                              {offerPreview.defaults_used.map((item) => (
+                                <li key={item}>• {item}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="mt-1 text-sm text-muted-foreground">Nenhum default aplicado.</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {!offerPreview.gating.full_access && (
+                      <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                        <p className="font-medium text-amber-800 dark:text-amber-400">
+                          Visualização limitada no plano atual
+                        </p>
+                        <p className="mt-1 text-amber-700 dark:text-amber-500">
+                          Você está vendo apenas o cenário recomendado e mensagem curta.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleUpgradeClick}
+                          className="mt-3"
+                        >
+                          <Lock className="mr-2 h-4 w-4" />
+                          Fazer upgrade
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {(offerPreview || offerHistory.length > 0 || isOfferHistoryLoading || isOfferHistoryBlocked) && (
+                <div className="rounded-lg border p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-sm font-medium">Histórico de ofertas</p>
+                    {!isOfferHistoryBlocked ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => void loadOfferHistory(true)}
+                        disabled={isOfferHistoryLoading}
+                      >
+                        {isOfferHistoryLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Atualizar"
+                        )}
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={handleUpgradeClick}>
+                        Liberar histórico
+                      </Button>
+                    )}
+                  </div>
+
+                  {isOfferHistoryBlocked ? (
+                    <p className="text-sm text-muted-foreground">
+                      Histórico bloqueado neste plano. Faça upgrade para acessar versões salvas e staleness.
+                    </p>
+                  ) : offerHistory.length === 0 ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">Nenhuma oferta salva ainda.</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void loadOfferHistory(true)}
+                        disabled={isOfferHistoryLoading}
+                      >
+                        Carregar histórico
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                          {offerHistory.map((item) => (
+                        <div key={item.id} className="rounded-md border p-3 text-sm">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{item.decision}</span>
+                              <span className="text-muted-foreground">
+                                {new Date(item.created_at).toLocaleString("pt-BR")}
+                              </span>
+                              {item.is_stale && (
+                                <Badge variant="secondary">
+                                  stale: {item.stale_reason ?? "SIM"}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {item.is_stale && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleGenerateOffer("history_regenerate")}
+                                >
+                                  Regenerar
+                                </Button>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={offerDeletingHistoryId === item.id}
+                                onClick={() => void handleDeleteHistoryOffer(item.id)}
+                              >
+                                {offerDeletingHistoryId === item.id ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Excluindo...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Excluir
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Oferta recomendada</p>
+                              <p className="font-medium">
+                                {formatCurrency(item.recommended_offer_price)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Margem</p>
+                              <p className="font-medium">
+                                {item.recommended_margin != null
+                                  ? `${item.recommended_margin.toFixed(1)}%`
+                                  : "—"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Lucro</p>
+                              <p className="font-medium">
+                                {formatCurrency(item.recommended_net_profit)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {offerHistoryCursor && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void loadOfferHistory(false)}
+                          disabled={isOfferHistoryLoading}
+                        >
+                          {isOfferHistoryLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Carregando...
+                            </>
+                          ) : (
+                            "Carregar mais"
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+
             {/* Location Section */}
             <section className="space-y-3">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
@@ -933,5 +1521,3 @@ export function ProspectViewModal({
     </Dialog>
   );
 }
-
-
