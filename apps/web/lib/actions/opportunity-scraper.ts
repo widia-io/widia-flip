@@ -4,9 +4,12 @@ import { revalidatePath } from "next/cache";
 import {
   ListOpportunityScraperPlaceholdersResponseSchema,
   OpportunityScraperPlaceholderSchema,
+  RunOpportunityCleanupLinksRequestSchema,
+  RunOpportunityCleanupLinksResponseSchema,
   RunOpportunityScraperRequestSchema,
   RunOpportunityScraperResponseSchema,
   UpsertOpportunityScraperPlaceholderRequestSchema,
+  type RunOpportunityCleanupLinksResponse,
   type OpportunityScraperPlaceholder,
   type RunOpportunityScraperResponse,
   type UpsertOpportunityScraperPlaceholderRequest,
@@ -18,7 +21,7 @@ function rethrowWithEndpointHint(error: unknown): never {
   const message = error instanceof Error ? error.message : "Erro desconhecido";
   if (message.includes("API_ERROR_404")) {
     throw new Error(
-      "Endpoint do scraper nao encontrado na API. Reinicie o backend (npm run dev:api) e aplique as migrations pendentes (0038/0039)."
+      "Endpoint de oportunidades nao encontrado na API. Reinicie o backend (npm run dev:api) e aplique as migrations pendentes."
     );
   }
   if (error instanceof Error) {
@@ -111,6 +114,31 @@ export async function runOpportunityScraper(input: {
         "A API em execucao nao suporta dry-run ainda. Reinicie/redeploy o backend (npm run dev:api)."
       );
     }
+    rethrowWithEndpointHint(error);
+  }
+}
+
+export async function runOpportunityCleanupLinks(input: {
+  limit?: number;
+  dry_run?: boolean;
+}): Promise<RunOpportunityCleanupLinksResponse> {
+  try {
+    const payload = RunOpportunityCleanupLinksRequestSchema.parse(input);
+
+    const raw = await apiFetch("/api/v1/admin/opportunities/scraper/cleanup-links", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const response = RunOpportunityCleanupLinksResponseSchema.parse(raw);
+
+    revalidatePath("/app/admin/opportunities");
+    revalidatePath("/app/admin/job-runs");
+    revalidatePath("/app/opportunities");
+
+    return response;
+  } catch (error) {
     rethrowWithEndpointHint(error);
   }
 }

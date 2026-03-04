@@ -33,7 +33,7 @@ export default async function AdminOpportunityScraperPage() {
           Oportunidades: Scraper
         </h1>
         <p className="text-muted-foreground">
-          Execute o scraper com parametros de cidade e bairro e gerencie placeholders.
+          Execute scraper, rode limpeza de links quebrados e gerencie placeholders.
         </p>
       </div>
 

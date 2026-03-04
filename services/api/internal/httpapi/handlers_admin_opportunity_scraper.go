@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -20,6 +22,11 @@ const (
 	defaultOpportunityScraperLimit = 50
 	maxOpportunityScraperLimit     = 200
 	defaultOpportunityState        = "pr"
+
+	defaultOpportunityCleanupLimit = 50
+	maxOpportunityCleanupLimit     = 300
+	opportunityCleanupBodyLimit    = 256 * 1024
+	opportunityCleanupUserAgent    = "Mozilla/5.0 (compatible; WidiaFlipBot/1.0; +https://widia.com.br)"
 )
 
 type opportunityScraperPlaceholderResponse struct {
@@ -85,6 +92,46 @@ type runOpportunityScraperResponse struct {
 	Placeholder *opportunityScraperPlaceholderResponse `json:"placeholder,omitempty"`
 }
 
+type runOpportunityCleanupLinksRequest struct {
+	Limit  int  `json:"limit,omitempty"`
+	DryRun bool `json:"dry_run"`
+}
+
+type runOpportunityCleanupLinksStats struct {
+	TotalCandidates int `json:"total_candidates"`
+	Checked         int `json:"checked"`
+	Unavailable     int `json:"unavailable_found"`
+	Deleted         int `json:"deleted"`
+	FetchErrors     int `json:"fetch_errors"`
+	DeleteErrors    int `json:"delete_errors"`
+}
+
+type runOpportunityCleanupBrokenLink struct {
+	SourceListingID string `json:"source_listing_id"`
+	CanonicalURL    string `json:"canonical_url"`
+	Reason          string `json:"reason"`
+	HTTPStatus      *int   `json:"http_status,omitempty"`
+}
+
+type runOpportunityCleanupLinksResponse struct {
+	JobRunID    string                            `json:"job_run_id"`
+	DryRun      bool                              `json:"dry_run"`
+	Stats       runOpportunityCleanupLinksStats   `json:"stats"`
+	BrokenLinks []runOpportunityCleanupBrokenLink `json:"broken_links"`
+}
+
+type opportunityCleanupCandidate struct {
+	RowID           string
+	SourceListingID string
+	CanonicalURL    string
+}
+
+type opportunityLinkCheckResult struct {
+	Unavailable bool
+	Reason      string
+	HTTPStatus  int
+}
+
 // handleAdminOpportunityScraperSubroutes routes /api/v1/admin/opportunities/scraper/*
 func (a *api) handleAdminOpportunityScraperSubroutes(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/admin/opportunities/scraper")
@@ -102,6 +149,12 @@ func (a *api) handleAdminOpportunityScraperSubroutes(w http.ResponseWriter, r *h
 	case path == "/run":
 		if r.Method == http.MethodPost {
 			a.handleAdminRunOpportunityScraper(w, r)
+		} else {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	case path == "/cleanup-links":
+		if r.Method == http.MethodPost {
+			a.handleAdminCleanupOpportunityLinks(w, r)
 		} else {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
@@ -429,6 +482,315 @@ func (a *api) handleAdminRunOpportunityScraper(w http.ResponseWriter, r *http.Re
 		Listings:    resultListings,
 		Placeholder: updatedPlaceholder,
 	})
+}
+
+// POST /api/v1/admin/opportunities/scraper/cleanup-links
+func (a *api) handleAdminCleanupOpportunityLinks(w http.ResponseWriter, r *http.Request) {
+	var req runOpportunityCleanupLinksRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, apiError{Code: "INVALID_BODY", Message: "invalid request body"})
+		return
+	}
+
+	limit := req.Limit
+	if limit <= 0 {
+		limit = defaultOpportunityCleanupLimit
+	}
+	if limit > maxOpportunityCleanupLimit {
+		limit = maxOpportunityCleanupLimit
+	}
+
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth context"})
+		return
+	}
+
+	triggerType := "admin_cleanup_links"
+	if req.DryRun {
+		triggerType = "admin_cleanup_links_dry_run"
+	}
+
+	jobRunID := uuid.New().String()
+	startedAt := time.Now()
+	paramsJSON, _ := json.Marshal(map[string]interface{}{
+		"source":  "ZAP",
+		"limit":   limit,
+		"dry_run": req.DryRun,
+	})
+
+	_, err := a.db.ExecContext(r.Context(), `
+		INSERT INTO opportunity_job_runs (id, job_name, status, trigger_type, triggered_by, started_at, params, created_at)
+		VALUES ($1, 'ZapOpportunityCleanupLinksWorker', 'running', $2, $3, $4, $5, $4)
+	`, jobRunID, triggerType, userID, startedAt, paramsJSON)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to create cleanup job run"})
+		return
+	}
+
+	candidates, err := a.listOpportunityCleanupCandidates(r.Context(), limit)
+	if err != nil {
+		errMessage := err.Error()
+		finishedAt := time.Now()
+		if updateErr := a.finishOpportunityJobRun(r.Context(), jobRunID, "failed", nil, &errMessage, finishedAt); updateErr != nil {
+			log.Printf("cleanup links: failed to finalize job run %s after error: %v", jobRunID, updateErr)
+		}
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to load opportunities for cleanup"})
+		return
+	}
+
+	stats := runOpportunityCleanupLinksStats{
+		TotalCandidates: len(candidates),
+	}
+
+	brokenLinks := make([]runOpportunityCleanupBrokenLink, 0, len(candidates))
+	httpClient := &http.Client{Timeout: 20 * time.Second}
+
+	for _, candidate := range candidates {
+		stats.Checked++
+
+		checkCtx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+		checkResult, checkErr := checkOpportunityLinkAvailability(checkCtx, httpClient, candidate.CanonicalURL)
+		cancel()
+
+		if checkErr != nil {
+			stats.FetchErrors++
+			log.Printf("cleanup links: failed to verify listing_id=%s url=%s: %v", candidate.SourceListingID, candidate.CanonicalURL, checkErr)
+			continue
+		}
+
+		if !checkResult.Unavailable {
+			continue
+		}
+
+		stats.Unavailable++
+		var statusPtr *int
+		if checkResult.HTTPStatus > 0 {
+			statusCode := checkResult.HTTPStatus
+			statusPtr = &statusCode
+		}
+		brokenLinks = append(brokenLinks, runOpportunityCleanupBrokenLink{
+			SourceListingID: candidate.SourceListingID,
+			CanonicalURL:    candidate.CanonicalURL,
+			Reason:          checkResult.Reason,
+			HTTPStatus:      statusPtr,
+		})
+
+		if req.DryRun {
+			continue
+		}
+
+		deleted, deleteErr := a.deleteOpportunitySourceListingByID(r.Context(), candidate.RowID)
+		if deleteErr != nil {
+			stats.DeleteErrors++
+			log.Printf("cleanup links: failed to delete source_listing_id=%s row_id=%s: %v", candidate.SourceListingID, candidate.RowID, deleteErr)
+			continue
+		}
+		if deleted {
+			stats.Deleted++
+		}
+	}
+
+	finishedAt := time.Now()
+	jobStats := map[string]interface{}{
+		"total_candidates":  stats.TotalCandidates,
+		"checked":           stats.Checked,
+		"unavailable_found": stats.Unavailable,
+		"deleted":           stats.Deleted,
+		"fetch_errors":      stats.FetchErrors,
+		"delete_errors":     stats.DeleteErrors,
+		"dry_run":           req.DryRun,
+	}
+
+	if updateErr := a.finishOpportunityJobRun(r.Context(), jobRunID, "completed", jobStats, nil, finishedAt); updateErr != nil {
+		log.Printf("cleanup links: failed to finalize job run %s: %v", jobRunID, updateErr)
+	}
+
+	writeJSON(w, http.StatusOK, runOpportunityCleanupLinksResponse{
+		JobRunID:    jobRunID,
+		DryRun:      req.DryRun,
+		Stats:       stats,
+		BrokenLinks: brokenLinks,
+	})
+}
+
+func (a *api) listOpportunityCleanupCandidates(ctx context.Context, limit int) ([]opportunityCleanupCandidate, error) {
+	rows, err := a.db.QueryContext(ctx, `
+		SELECT sl.id, sl.source_listing_id, sl.canonical_url
+		FROM opportunities o
+		JOIN source_listings sl ON o.source_listing_id = sl.id
+		WHERE LOWER(sl.source) = 'zap'
+		ORDER BY sl.last_seen_at ASC, sl.created_at ASC
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	candidates := make([]opportunityCleanupCandidate, 0, limit)
+	for rows.Next() {
+		var candidate opportunityCleanupCandidate
+		if scanErr := rows.Scan(&candidate.RowID, &candidate.SourceListingID, &candidate.CanonicalURL); scanErr != nil {
+			return nil, scanErr
+		}
+		candidates = append(candidates, candidate)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return candidates, nil
+}
+
+func (a *api) deleteOpportunitySourceListingByID(ctx context.Context, rowID string) (bool, error) {
+	result, err := a.db.ExecContext(ctx, `
+		DELETE FROM source_listings
+		WHERE id = $1
+	`, rowID)
+	if err != nil {
+		return false, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	return rowsAffected > 0, nil
+}
+
+func checkOpportunityLinkAvailability(ctx context.Context, client *http.Client, canonicalURL string) (opportunityLinkCheckResult, error) {
+	canonicalURL = strings.TrimSpace(canonicalURL)
+	if canonicalURL == "" {
+		return opportunityLinkCheckResult{Unavailable: true, Reason: "missing_url"}, nil
+	}
+
+	parsedURL, err := url.Parse(canonicalURL)
+	if err != nil || parsedURL.Host == "" || parsedURL.Scheme == "" {
+		return opportunityLinkCheckResult{Unavailable: true, Reason: "invalid_url"}, nil
+	}
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, canonicalURL, nil)
+	if err != nil {
+		return opportunityLinkCheckResult{}, fmt.Errorf("build request: %w", err)
+	}
+	request.Header.Set("User-Agent", opportunityCleanupUserAgent)
+	request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+
+	response, err := client.Do(request)
+	if err != nil {
+		return opportunityLinkCheckResult{}, fmt.Errorf("request listing: %w", err)
+	}
+	defer response.Body.Close()
+
+	statusCode := response.StatusCode
+	if statusCode == http.StatusTooManyRequests || statusCode == http.StatusForbidden || statusCode >= 500 {
+		return opportunityLinkCheckResult{}, fmt.Errorf("unreliable response status=%d", statusCode)
+	}
+
+	bodyBytes, err := io.ReadAll(io.LimitReader(response.Body, opportunityCleanupBodyLimit))
+	if err != nil {
+		return opportunityLinkCheckResult{}, fmt.Errorf("read listing body: %w", err)
+	}
+
+	finalURL := canonicalURL
+	if response.Request != nil && response.Request.URL != nil {
+		finalURL = response.Request.URL.String()
+	}
+
+	unavailable, reason := evaluateOpportunityListingAvailability(statusCode, finalURL, string(bodyBytes))
+	return opportunityLinkCheckResult{
+		Unavailable: unavailable,
+		Reason:      reason,
+		HTTPStatus:  statusCode,
+	}, nil
+}
+
+func evaluateOpportunityListingAvailability(statusCode int, finalURL, body string) (bool, string) {
+	if statusCode == http.StatusNotFound || statusCode == http.StatusGone {
+		return true, "status_not_found"
+	}
+
+	if redirectedAwayFromListing(finalURL) {
+		return true, "redirect_without_listing"
+	}
+
+	normalizedBody := normalizeOpportunityCheckText(body)
+	for _, marker := range unavailableOpportunityMarkers {
+		if strings.Contains(normalizedBody, marker) {
+			return true, "unavailable_marker"
+		}
+	}
+
+	return false, ""
+}
+
+func redirectedAwayFromListing(finalURL string) bool {
+	parsedURL, err := url.Parse(strings.TrimSpace(finalURL))
+	if err != nil || parsedURL.Host == "" {
+		return false
+	}
+
+	host := strings.ToLower(parsedURL.Host)
+	if !strings.Contains(host, "zapimoveis.com.br") {
+		return false
+	}
+
+	path := strings.ToLower(parsedURL.Path)
+	if path == "" {
+		return false
+	}
+
+	return !strings.Contains(path, "/imovel/")
+}
+
+var opportunityUnavailableTextReplacer = strings.NewReplacer(
+	"á", "a",
+	"à", "a",
+	"â", "a",
+	"ã", "a",
+	"ä", "a",
+	"é", "e",
+	"è", "e",
+	"ê", "e",
+	"ë", "e",
+	"í", "i",
+	"ì", "i",
+	"î", "i",
+	"ï", "i",
+	"ó", "o",
+	"ò", "o",
+	"ô", "o",
+	"õ", "o",
+	"ö", "o",
+	"ú", "u",
+	"ù", "u",
+	"û", "u",
+	"ü", "u",
+	"ç", "c",
+)
+
+var unavailableOpportunityMarkers = []string{
+	"anuncio nao encontrado",
+	"anuncio nao esta mais disponivel",
+	"este anuncio nao esta mais disponivel",
+	"imovel nao encontrado",
+	"imovel indisponivel",
+	"pagina nao encontrada",
+	"nao encontramos este anuncio",
+	"ops nao encontramos",
+	"conteudo nao encontrado",
+}
+
+func normalizeOpportunityCheckText(value string) string {
+	value = strings.ToLower(value)
+	value = opportunityUnavailableTextReplacer.Replace(value)
+	value = strings.Join(strings.Fields(value), " ")
+	return value
 }
 
 func (a *api) getOpportunityScraperPlaceholderByID(ctx context.Context, id string) (opportunityScraperPlaceholderResponse, error) {
