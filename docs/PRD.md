@@ -1269,6 +1269,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-17` — 2026-02-27 — Market Data normalização operacional: migration `0046_market_region_aliases`, persistência de aliases pendentes no ETL, carga automática de aliases aprovados por execução e nova fila admin de revisão/aprovação/rejeição em `/app/admin/market-data`.
 * `CP-17` — 2026-03-03 — Polimento de microcopy no dashboard: correção de acentuação em labels/títulos do header, cards, pipeline e central de ações (`Visão`, `Imóveis`, `Orçamento`, `Análise`, `Ações`, `Próximos`, `atenção`, `portfólio`).
 * `CP-17` — 2026-03-04 — Oportunidades: implementado job admin de limpeza de links quebrados (`/api/v1/admin/opportunities/scraper/cleanup-links`) com dry-run, registro em `opportunity_job_runs`, remoção de anúncios indisponíveis e UI de execução/resultado em `/app/admin/opportunities`.
+* `CP-17` — 2026-03-04 — Hardening do job de limpeza de links de oportunidades: rate-limit conservador entre requests (delay + jitter), backoff exponencial com suporte a `Retry-After` e stop automático após bloqueios consecutivos (`403/429/5xx`) para reduzir risco de ban temporário no scraping.
 
 ---
 

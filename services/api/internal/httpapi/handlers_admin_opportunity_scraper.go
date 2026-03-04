@@ -4,11 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,6 +30,12 @@ const (
 	maxOpportunityCleanupLimit     = 300
 	opportunityCleanupBodyLimit    = 256 * 1024
 	opportunityCleanupUserAgent    = "Mozilla/5.0 (compatible; WidiaFlipBot/1.0; +https://widia.com.br)"
+
+	opportunityCleanupMinDelay               = 1500 * time.Millisecond
+	opportunityCleanupMaxJitter              = 2500 * time.Millisecond
+	opportunityCleanupBackoffBase            = 8 * time.Second
+	opportunityCleanupBackoffMax             = 90 * time.Second
+	opportunityCleanupMaxConsecutiveThrottle = 3
 )
 
 type opportunityScraperPlaceholderResponse struct {
@@ -130,6 +139,74 @@ type opportunityLinkCheckResult struct {
 	Unavailable bool
 	Reason      string
 	HTTPStatus  int
+}
+
+type opportunityLinkCheckError struct {
+	statusCode int
+	retryAfter time.Duration
+	message    string
+}
+
+func (e *opportunityLinkCheckError) Error() string {
+	if e == nil {
+		return "link check error"
+	}
+	if e.statusCode > 0 {
+		return fmt.Sprintf("%s (status=%d)", e.message, e.statusCode)
+	}
+	return e.message
+}
+
+type opportunityCleanupRateLimiter struct {
+	backoff time.Duration
+}
+
+func newOpportunityCleanupRateLimiter() *opportunityCleanupRateLimiter {
+	return &opportunityCleanupRateLimiter{}
+}
+
+func (l *opportunityCleanupRateLimiter) Wait(ctx context.Context) error {
+	if l == nil {
+		return nil
+	}
+
+	jitter := time.Duration(rand.Int63n(int64(opportunityCleanupMaxJitter) + 1))
+	delay := opportunityCleanupMinDelay + jitter
+	if l.backoff > delay {
+		delay = l.backoff
+	}
+
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
+func (l *opportunityCleanupRateLimiter) ApplyBackoff(backoff time.Duration) {
+	if l == nil {
+		return
+	}
+	if backoff <= 0 {
+		return
+	}
+	if backoff > opportunityCleanupBackoffMax {
+		backoff = opportunityCleanupBackoffMax
+	}
+	if backoff > l.backoff {
+		l.backoff = backoff
+	}
+}
+
+func (l *opportunityCleanupRateLimiter) ResetBackoff() {
+	if l == nil {
+		return
+	}
+	l.backoff = 0
 }
 
 // handleAdminOpportunityScraperSubroutes routes /api/v1/admin/opportunities/scraper/*
@@ -547,8 +624,18 @@ func (a *api) handleAdminCleanupOpportunityLinks(w http.ResponseWriter, r *http.
 
 	brokenLinks := make([]runOpportunityCleanupBrokenLink, 0, len(candidates))
 	httpClient := &http.Client{Timeout: 20 * time.Second}
+	rateLimiter := newOpportunityCleanupRateLimiter()
+	consecutiveThrottleErrors := 0
+	throttledResponses := 0
+	stoppedEarly := false
 
 	for _, candidate := range candidates {
+		if waitErr := rateLimiter.Wait(r.Context()); waitErr != nil {
+			stoppedEarly = true
+			log.Printf("cleanup links: interrupted before finishing candidate scan: %v", waitErr)
+			break
+		}
+
 		stats.Checked++
 
 		checkCtx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
@@ -557,9 +644,40 @@ func (a *api) handleAdminCleanupOpportunityLinks(w http.ResponseWriter, r *http.
 
 		if checkErr != nil {
 			stats.FetchErrors++
-			log.Printf("cleanup links: failed to verify listing_id=%s url=%s: %v", candidate.SourceListingID, candidate.CanonicalURL, checkErr)
+			throttleErr, isThrottleErr := asOpportunityLinkCheckError(checkErr)
+			if isThrottleErr {
+				throttledResponses++
+				consecutiveThrottleErrors++
+				backoff := computeOpportunityCleanupBackoff(consecutiveThrottleErrors, throttleErr.retryAfter)
+				rateLimiter.ApplyBackoff(backoff)
+
+				log.Printf(
+					"cleanup links: throttled listing_id=%s url=%s status=%d consecutive=%d backoff=%s",
+					candidate.SourceListingID,
+					candidate.CanonicalURL,
+					throttleErr.statusCode,
+					consecutiveThrottleErrors,
+					backoff.String(),
+				)
+
+				if consecutiveThrottleErrors >= opportunityCleanupMaxConsecutiveThrottle {
+					stoppedEarly = true
+					log.Printf(
+						"cleanup links: stopping early after %d consecutive throttled responses",
+						consecutiveThrottleErrors,
+					)
+					break
+				}
+			} else {
+				consecutiveThrottleErrors = 0
+				rateLimiter.ResetBackoff()
+				log.Printf("cleanup links: failed to verify listing_id=%s url=%s: %v", candidate.SourceListingID, candidate.CanonicalURL, checkErr)
+			}
 			continue
 		}
+
+		consecutiveThrottleErrors = 0
+		rateLimiter.ResetBackoff()
 
 		if !checkResult.Unavailable {
 			continue
@@ -601,6 +719,8 @@ func (a *api) handleAdminCleanupOpportunityLinks(w http.ResponseWriter, r *http.
 		"deleted":           stats.Deleted,
 		"fetch_errors":      stats.FetchErrors,
 		"delete_errors":     stats.DeleteErrors,
+		"throttled":         throttledResponses,
+		"stopped_early":     stoppedEarly,
 		"dry_run":           req.DryRun,
 	}
 
@@ -689,7 +809,12 @@ func checkOpportunityLinkAvailability(ctx context.Context, client *http.Client, 
 
 	statusCode := response.StatusCode
 	if statusCode == http.StatusTooManyRequests || statusCode == http.StatusForbidden || statusCode >= 500 {
-		return opportunityLinkCheckResult{}, fmt.Errorf("unreliable response status=%d", statusCode)
+		retryAfter := parseRetryAfterDuration(response.Header.Get("Retry-After"), time.Now())
+		return opportunityLinkCheckResult{}, &opportunityLinkCheckError{
+			statusCode: statusCode,
+			retryAfter: retryAfter,
+			message:    "throttled or unstable response from source listing",
+		}
 	}
 
 	bodyBytes, err := io.ReadAll(io.LimitReader(response.Body, opportunityCleanupBodyLimit))
@@ -708,6 +833,73 @@ func checkOpportunityLinkAvailability(ctx context.Context, client *http.Client, 
 		Reason:      reason,
 		HTTPStatus:  statusCode,
 	}, nil
+}
+
+func asOpportunityLinkCheckError(err error) (*opportunityLinkCheckError, bool) {
+	if err == nil {
+		return nil, false
+	}
+	var checkErr *opportunityLinkCheckError
+	if errors.As(err, &checkErr) {
+		return checkErr, true
+	}
+	return nil, false
+}
+
+func parseRetryAfterDuration(raw string, now time.Time) time.Duration {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return 0
+	}
+
+	seconds, atoiErr := strconv.Atoi(value)
+	if atoiErr == nil && seconds > 0 {
+		return time.Duration(seconds) * time.Second
+	}
+
+	atTime, parseErr := http.ParseTime(value)
+	if parseErr != nil {
+		return 0
+	}
+
+	if now.IsZero() {
+		now = time.Now()
+	}
+	if !atTime.After(now) {
+		return 0
+	}
+
+	return atTime.Sub(now)
+}
+
+func computeOpportunityCleanupBackoff(consecutiveThrottle int, retryAfter time.Duration) time.Duration {
+	if consecutiveThrottle <= 0 {
+		consecutiveThrottle = 1
+	}
+
+	backoff := opportunityCleanupBackoffBase
+	for attempt := 1; attempt < consecutiveThrottle; attempt++ {
+		if backoff >= opportunityCleanupBackoffMax {
+			backoff = opportunityCleanupBackoffMax
+			break
+		}
+		backoff *= 2
+	}
+
+	if backoff > opportunityCleanupBackoffMax {
+		backoff = opportunityCleanupBackoffMax
+	}
+	if retryAfter > backoff {
+		backoff = retryAfter
+	}
+	if backoff > opportunityCleanupBackoffMax {
+		backoff = opportunityCleanupBackoffMax
+	}
+	if backoff < opportunityCleanupBackoffBase {
+		backoff = opportunityCleanupBackoffBase
+	}
+
+	return backoff
 }
 
 func evaluateOpportunityListingAvailability(statusCode int, finalURL, body string) (bool, string) {
