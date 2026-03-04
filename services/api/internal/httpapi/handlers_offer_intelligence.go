@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lib/pq"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/widia-projects/widia-flip/services/api/internal/auth"
 	"github.com/widia-projects/widia-flip/services/api/internal/llm"
 	"github.com/widia-projects/widia-flip/services/api/internal/offerintelligence"
@@ -701,7 +701,7 @@ func (a *api) handleOfferIntelligenceDelete(w http.ResponseWriter, r *http.Reque
 	}
 
 	a.trackOfferEvent(r.Context(), userID, prospect.WorkspaceID, "offer_intelligence_deleted", "history", map[string]any{
-		"prospect_id":            prospect.ID,
+		"prospect_id":             prospect.ID,
 		"offer_recommendation_id": recommendationID,
 	})
 

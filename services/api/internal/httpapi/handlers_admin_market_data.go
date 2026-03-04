@@ -482,13 +482,13 @@ func (a *api) runMarketIngestionAsync(job asyncMarketIngestionJob) {
 func (a *api) finishMarketIngestionRun(ctx context.Context, runID string, startedAt time.Time, result marketingest.RunResult, runErr error, dryRun bool) {
 	durationMs := time.Since(startedAt).Milliseconds()
 	stats := map[string]any{
-		"input_rows":     result.InputRows,
-		"valid_rows":     result.ValidRows,
-		"output_groups":  result.OutputGroups,
-		"touched_months": result.TouchedMonths,
-		"duration_ms":    durationMs,
-		"llm_calls":      result.LLMCalls,
-		"llm_resolved":   result.LLMResolved,
+		"input_rows":       result.InputRows,
+		"valid_rows":       result.ValidRows,
+		"output_groups":    result.OutputGroups,
+		"touched_months":   result.TouchedMonths,
+		"duration_ms":      durationMs,
+		"llm_calls":        result.LLMCalls,
+		"llm_resolved":     result.LLMResolved,
 		"alias_candidates": result.AliasCandidates,
 	}
 	if dryRun {

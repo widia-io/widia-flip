@@ -152,12 +152,12 @@ type TxRecord struct {
 }
 
 type ParseResult struct {
-	Records       []TxRecord
-	InputRows     int
-	ValidRows     int
-	TouchedMonths []time.Time
-	LLMCalls      int
-	LLMResolved   int
+	Records         []TxRecord
+	InputRows       int
+	ValidRows       int
+	TouchedMonths   []time.Time
+	LLMCalls        int
+	LLMResolved     int
 	AliasCandidates []AliasCandidate
 }
 

@@ -354,6 +354,10 @@ func prospectRows(prospectID, workspaceID string, expectedSale *float64) *sqlmoc
 		"iptu",
 		"offer_price",
 		"neighborhood",
+		"address",
+		"agency",
+		"broker_name",
+		"broker_phone",
 		"flip_score",
 	}).AddRow(
 		prospectID,
@@ -368,6 +372,10 @@ func prospectRows(prospectID, workspaceID string, expectedSale *float64) *sqlmoc
 		1200.0,
 		nil,
 		"Moema",
+		"Rua Teste, 100",
+		"Imobiliária Teste",
+		"Corretor Teste",
+		"+55 41 99999-9999",
 		80,
 	)
 }
