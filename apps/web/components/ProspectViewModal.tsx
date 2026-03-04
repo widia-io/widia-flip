@@ -506,9 +506,9 @@ export function ProspectViewModal({
     setError(null);
 
     const fd = new FormData();
-    if (formData.neighborhood) fd.set("neighborhood", formData.neighborhood);
-    if (formData.address) fd.set("address", formData.address);
-    if (formData.link) fd.set("link", formData.link);
+    fd.set("neighborhood", formData.neighborhood);
+    fd.set("address", formData.address);
+    fd.set("link", formData.link);
     if (formData.area_usable) fd.set("area_usable", formData.area_usable);
     if (formData.bedrooms) fd.set("bedrooms", formData.bedrooms);
     if (formData.suites) fd.set("suites", formData.suites);
@@ -516,15 +516,15 @@ export function ProspectViewModal({
     if (formData.parking) fd.set("parking", formData.parking);
     if (formData.floor) fd.set("floor", formData.floor);
     fd.set("elevator", formData.elevator ? "true" : "false");
-    if (formData.face) fd.set("face", formData.face);
-    if (formData.gas) fd.set("gas", formData.gas);
+    fd.set("face", formData.face);
+    fd.set("gas", formData.gas);
     if (formData.asking_price) fd.set("asking_price", formData.asking_price);
     if (formData.condo_fee) fd.set("condo_fee", formData.condo_fee);
     if (formData.iptu) fd.set("iptu", formData.iptu);
-    if (formData.agency) fd.set("agency", formData.agency);
-    if (formData.broker_name) fd.set("broker_name", formData.broker_name);
-    if (formData.broker_phone) fd.set("broker_phone", formData.broker_phone);
-    if (formData.comments) fd.set("comments", formData.comments);
+    fd.set("agency", formData.agency);
+    fd.set("broker_name", formData.broker_name);
+    fd.set("broker_phone", formData.broker_phone);
+    fd.set("comments", formData.comments);
     // M9 - Flip Score v1 investment inputs
     if (formData.offer_price) fd.set("offer_price", formData.offer_price);
     if (formData.expected_sale_price) fd.set("expected_sale_price", formData.expected_sale_price);
