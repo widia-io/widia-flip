@@ -136,6 +136,20 @@ export async function updatePropertyAction(
   }
 }
 
+export async function deletePropertyAction(propertyId: string) {
+  try {
+    await apiFetch(`/api/v1/properties/${propertyId}`, {
+      method: "DELETE",
+    });
+
+    revalidatePath("/app/properties");
+    return { success: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Erro ao excluir imóvel";
+    return { error: message };
+  }
+}
+
 export async function updatePropertyStatusAction(
   propertyId: string,
   statusPipeline: string,
