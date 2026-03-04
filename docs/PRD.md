@@ -1273,6 +1273,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-17` — 2026-03-03 — Planejamento de execução M17a da "Oferta Inteligente em 60s" detalhado em task board por trilha (`DB/Shared -> API -> BFF -> UI -> Analytics -> Hardening`) com 16 tasks, dependências e Definition of Done no addendum.
 * `CP-17` — 2026-03-04 — M17a implementado (decisão-completa): migrations `0047/0048`, contratos em `packages/shared`, engine Go `offerintelligence` com `GO/REVIEW/NO_GO`, endpoints `/prospects/:id/offer-intelligence/{generate,save,history}` (rate limit 429 + `Retry-After`, gating trial/starter pós-1ª geração, staleness on-read), BFF Next + client typed, UI no `ProspectViewModal` (gerar/copiar/salvar/histórico/regenerar/CTA upgrade), feature flag `OFFER_INTELLIGENCE_ROLLOUT` (`off|internal|all`) e painel admin com métricas `offer_intelligence_*`.
 * `CP-17` — 2026-03-04 — Hardening M17a: adicionados testes de integração dos handlers de Oferta Inteligente com `sqlmock` cobrindo tenant isolation, missing inputs, paywall de histórico, rate limit (`429 + Retry-After`), `save` append-only e paginação/staleness de histórico.
+* `CP-17` — 2026-03-04 — Ajustes de UX e mensagem da Oferta Inteligente: texto de erro de campos obrigatórios traduzido para pt-BR com guidance por campo, histórico passou a recarregar ao abrir modal, ação de excluir oferta adicionada no histórico, e mensagem para corretor via WhatsApp migrada para formato conversacional com tentativa OpenRouter + fallback determinístico.
 
 ---
 

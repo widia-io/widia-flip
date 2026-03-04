@@ -106,6 +106,26 @@ const OFFER_INTELLIGENCE_REQUIRED_FIELDS: Record<string, string> = {
   renovation_cost_estimate: "Custo estimado de reforma",
 };
 
+const OFFER_INTELLIGENCE_FIELD_TO_EDIT_ID: Record<string, string> = {
+  asking_price: "edit-price",
+  area_usable: "edit-area",
+  expected_sale_price: "edit-expected_sale_price",
+  renovation_cost_estimate: "edit-renovation_cost_estimate",
+};
+
+function extractOfferMissingFields(error: OfferIntelligenceClientError): string[] {
+  if (
+    error.code !== "VALIDATION_ERROR" ||
+    !error.message.toLowerCase().includes("missing critical inputs")
+  ) {
+    return [];
+  }
+
+  return (error.details ?? []).filter((field) =>
+    Object.prototype.hasOwnProperty.call(OFFER_INTELLIGENCE_REQUIRED_FIELDS, field),
+  );
+}
+
 function formatOfferInputErrorMessage(error: OfferIntelligenceClientError): string {
   if (
     error.code === "VALIDATION_ERROR" &&
@@ -147,7 +167,9 @@ export function ProspectViewModal({
   const [offerError, setOfferError] = useState<string | null>(null);
   const [offerSuccess, setOfferSuccess] = useState<string | null>(null);
   const [offerRetryAfter, setOfferRetryAfter] = useState<number | null>(null);
+  const [offerMissingFields, setOfferMissingFields] = useState<string[]>([]);
   const generateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingEditFocusIdRef = useRef<string | null>(null);
   const { showPaywall } = usePaywall();
 
   useEffect(() => {
@@ -166,6 +188,26 @@ export function ProspectViewModal({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isEditing || !pendingEditFocusIdRef.current) {
+      return;
+    }
+
+    const targetId = pendingEditFocusIdRef.current;
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(targetId);
+      if (el instanceof HTMLElement) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus();
+      }
+      pendingEditFocusIdRef.current = null;
+    }, 80);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isEditing]);
 
   const handleRecomputeScore = async (options: { force?: boolean; version?: "v0" | "v1" } = {}) => {
     setScoreError(null);
@@ -231,6 +273,7 @@ export function ProspectViewModal({
     setOfferError(null);
     setOfferSuccess(null);
     setOfferRetryAfter(null);
+    setOfferMissingFields([]);
 
     try {
       const preview = await generateOfferIntelligence(prospect.id, { source });
@@ -238,6 +281,7 @@ export function ProspectViewModal({
       setOfferHistory([]);
       setOfferHistoryCursor(null);
       setIsOfferHistoryBlocked(!preview.gating.history_enabled);
+      setOfferMissingFields([]);
       if (!preview.gating.full_access) {
         logEvent(EVENTS.OFFER_INTELLIGENCE_PAYWALL_VIEWED, {
           workspace_id: preview.workspace_id,
@@ -255,14 +299,17 @@ export function ProspectViewModal({
         );
       } else if (e instanceof OfferPaywallRequiredError) {
         setOfferError(e.message);
+        setOfferMissingFields([]);
         logEvent(EVENTS.OFFER_INTELLIGENCE_PAYWALL_VIEWED, {
           workspace_id: prospect.workspace_id,
           prospect_id: prospect.id,
           source,
         });
       } else if (e instanceof OfferIntelligenceClientError) {
+        setOfferMissingFields(extractOfferMissingFields(e));
         setOfferError(formatOfferInputErrorMessage(e));
       } else {
+        setOfferMissingFields([]);
         setOfferError("Erro ao gerar Oferta Inteligente.");
       }
     } finally {
@@ -303,6 +350,7 @@ export function ProspectViewModal({
     setIsOfferSaving(true);
     setOfferError(null);
     setOfferSuccess(null);
+    setOfferMissingFields([]);
     try {
       await saveOfferIntelligence(prospect.id, { source: "prospect_modal" });
       if (offerPreview.gating.history_enabled) {
@@ -317,14 +365,23 @@ export function ProspectViewModal({
       setOfferSuccess(null);
       if (e instanceof OfferPaywallRequiredError) {
         setOfferError(e.message);
+        setOfferMissingFields([]);
       } else if (e instanceof OfferIntelligenceClientError) {
+        setOfferMissingFields(extractOfferMissingFields(e));
         setOfferError(formatOfferInputErrorMessage(e));
       } else {
+        setOfferMissingFields([]);
         setOfferError("Erro ao salvar oferta.");
       }
     } finally {
       setIsOfferSaving(false);
     }
+  };
+
+  const openEditAndFocusOfferField = (fieldKey: string) => {
+    const targetId = OFFER_INTELLIGENCE_FIELD_TO_EDIT_ID[fieldKey];
+    pendingEditFocusIdRef.current = targetId ?? null;
+    setIsEditing(true);
   };
 
   const handleDeleteHistoryOffer = async (offerId: string) => {
@@ -427,6 +484,7 @@ export function ProspectViewModal({
     setOfferError(null);
     setOfferSuccess(null);
     setOfferRetryAfter(null);
+    setOfferMissingFields([]);
     setOfferPreview(null);
     setOfferHistory([]);
     setOfferHistoryCursor(null);
@@ -512,6 +570,42 @@ export function ProspectViewModal({
     label: prospect.status,
     variant: "secondary" as const,
   };
+
+  const offerRequiredFieldChecklist = [
+    {
+      key: "asking_price",
+      label: OFFER_INTELLIGENCE_REQUIRED_FIELDS.asking_price,
+      isFilled: prospect.asking_price != null && prospect.asking_price > 0,
+      value: prospect.asking_price != null ? formatCurrency(prospect.asking_price) : "Não preenchido",
+    },
+    {
+      key: "area_usable",
+      label: OFFER_INTELLIGENCE_REQUIRED_FIELDS.area_usable,
+      isFilled: prospect.area_usable != null && prospect.area_usable > 0,
+      value: prospect.area_usable != null ? `${prospect.area_usable} m²` : "Não preenchido",
+    },
+    {
+      key: "expected_sale_price",
+      label: OFFER_INTELLIGENCE_REQUIRED_FIELDS.expected_sale_price,
+      isFilled: prospect.expected_sale_price != null && prospect.expected_sale_price > 0,
+      value: prospect.expected_sale_price != null ? formatCurrency(prospect.expected_sale_price) : "Não preenchido",
+    },
+    {
+      key: "renovation_cost_estimate",
+      label: OFFER_INTELLIGENCE_REQUIRED_FIELDS.renovation_cost_estimate,
+      isFilled: prospect.renovation_cost_estimate != null && prospect.renovation_cost_estimate >= 0,
+      value: prospect.renovation_cost_estimate != null ? formatCurrency(prospect.renovation_cost_estimate) : "Não preenchido",
+    },
+  ] as const;
+  const missingOfferFieldKeys = offerRequiredFieldChecklist
+    .filter((field) => !field.isFilled)
+    .map((field) => field.key);
+  const prioritizedOfferMissingFields = offerMissingFields.length > 0 ? offerMissingFields : missingOfferFieldKeys;
+  const offerMessageForBroker = offerPreview
+    ? (offerPreview.gating.message_level === "full"
+        ? offerPreview.message_templates.full
+        : offerPreview.message_templates.short)
+    : "";
 
   // View mode component for displaying a field
   const ViewField = ({
@@ -1028,6 +1122,57 @@ export function ProspectViewModal({
                 Oferta Inteligente
               </h3>
               <div className="space-y-4 rounded-lg border p-4">
+                <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium">Checklist para gerar oferta</p>
+                    <Badge variant={missingOfferFieldKeys.length === 0 ? "default" : "secondary"}>
+                      {offerRequiredFieldChecklist.length - missingOfferFieldKeys.length}/{offerRequiredFieldChecklist.length} preenchidos
+                    </Badge>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {offerRequiredFieldChecklist.map((field) => {
+                      const isHighlightedMissing = prioritizedOfferMissingFields.includes(field.key);
+                      return (
+                        <button
+                          key={field.key}
+                          type="button"
+                          onClick={() => openEditAndFocusOfferField(field.key)}
+                          className={`flex items-center justify-between rounded-md border px-3 py-2 text-left transition-colors ${
+                            isHighlightedMissing
+                              ? "border-amber-500/60 bg-amber-500/10"
+                              : "border-border hover:bg-muted/50"
+                          }`}
+                        >
+                          <div className="space-y-0.5">
+                            <p className="text-xs text-muted-foreground">{field.label}</p>
+                            <p className="text-sm font-medium">{field.value}</p>
+                          </div>
+                          {field.isFilled ? (
+                            <Check className="h-4 w-4 text-emerald-600" />
+                          ) : (
+                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {missingOfferFieldKeys.length > 0 && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2">
+                      <p className="text-xs text-amber-800 dark:text-amber-400">
+                        Faltam {missingOfferFieldKeys.length} campo(s) para gerar a oferta com confiança.
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openEditAndFocusOfferField(prioritizedOfferMissingFields[0] ?? "expected_sale_price")}
+                      >
+                        Completar agora
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="default"
@@ -1058,7 +1203,7 @@ export function ProspectViewModal({
                     disabled={!offerPreview}
                   >
                     <Copy className="mr-2 h-4 w-4" />
-                    Copiar mensagem
+                    Copiar WhatsApp
                   </Button>
                   <Button
                     variant="outline"
@@ -1087,6 +1232,23 @@ export function ProspectViewModal({
                 {offerSuccess && (
                   <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
                     {offerSuccess}
+                  </div>
+                )}
+
+                {offerPreview && (
+                  <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-medium">Mensagem pronta para WhatsApp</p>
+                      <Badge variant="outline" className="text-[10px]">
+                        Corretor
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Copie e cole no WhatsApp para enviar a proposta ao corretor.
+                    </p>
+                    <div className="whitespace-pre-line rounded-md border bg-background px-3 py-2 text-sm">
+                      {offerMessageForBroker}
+                    </div>
                   </div>
                 )}
 
@@ -1341,6 +1503,8 @@ export function ProspectViewModal({
               )}
             </section>
 
+            <InvestmentPremisesView prospect={prospect} />
+
             {/* Location Section */}
             <section className="space-y-3">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
@@ -1443,9 +1607,6 @@ export function ProspectViewModal({
                 </div>
               </section>
             )}
-
-            {/* Investment Analysis (M9 - Flip Score v1) */}
-            <InvestmentPremisesView prospect={prospect} />
 
             {/* Contact Section */}
             {(prospect.agency ||

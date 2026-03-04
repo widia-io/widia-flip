@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"sort"
 	"strconv"
@@ -14,6 +16,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/google/uuid"
 	"github.com/widia-projects/widia-flip/services/api/internal/auth"
+	"github.com/widia-projects/widia-flip/services/api/internal/llm"
 	"github.com/widia-projects/widia-flip/services/api/internal/offerintelligence"
 )
 
@@ -105,6 +108,10 @@ type offerProspectRecord struct {
 	IPTU                   *float64
 	OfferPrice             *float64
 	Neighborhood           *string
+	Address                *string
+	Agency                 *string
+	BrokerName             *string
+	BrokerPhone            *string
 	FlipScore              *int
 }
 
@@ -207,6 +214,7 @@ func (a *api) handleOfferIntelligenceGenerate(w http.ResponseWriter, r *http.Req
 	if defaultWeightsApplied {
 		result.Assumptions = dedupeStringSlice(append(result.Assumptions, "Pesos de confiança inválidos; utilizado padrão do sistema"))
 	}
+	result = a.maybeEnhanceBrokerOfferMessage(r.Context(), prospect, result)
 
 	ownerUserID, billing, err := a.getWorkspaceOwnerBilling(r.Context(), prospect.WorkspaceID)
 	if err != nil {
@@ -311,6 +319,7 @@ func (a *api) handleOfferIntelligenceSave(w http.ResponseWriter, r *http.Request
 	if defaultWeightsApplied {
 		result.Assumptions = dedupeStringSlice(append(result.Assumptions, "Pesos de confiança inválidos; utilizado padrão do sistema"))
 	}
+	result = a.maybeEnhanceBrokerOfferMessage(r.Context(), prospect, result)
 
 	inputsJSON, err := json.Marshal(persistedOfferInputs{
 		AskingPrice:            prospect.AskingPrice,
@@ -746,6 +755,10 @@ func (a *api) getOfferProspect(ctx context.Context, prospectID string, userID st
 			p.iptu,
 			p.offer_price,
 			p.neighborhood,
+			p.address,
+			p.agency,
+			p.broker_name,
+			p.broker_phone,
 			p.flip_score
 		FROM prospecting_properties p
 		JOIN workspace_memberships m ON m.workspace_id = p.workspace_id
@@ -765,6 +778,10 @@ func (a *api) getOfferProspect(ctx context.Context, prospectID string, userID st
 		&row.IPTU,
 		&row.OfferPrice,
 		&row.Neighborhood,
+		&row.Address,
+		&row.Agency,
+		&row.BrokerName,
+		&row.BrokerPhone,
 		&row.FlipScore,
 	)
 	return row, err
@@ -883,6 +900,56 @@ func (a *api) markFirstOfferPreviewConsumed(ctx context.Context, workspaceID, us
 		return false, err
 	}
 	return rowsAffected > 0, nil
+}
+
+func (a *api) maybeEnhanceBrokerOfferMessage(
+	ctx context.Context,
+	prospect offerProspectRecord,
+	result offerintelligence.CalculationResult,
+) offerintelligence.CalculationResult {
+	recommended := getScenario(result.Scenarios, offerintelligence.ScenarioRecommended)
+	if recommended == nil {
+		return result
+	}
+
+	result.MessageTemplates.Short = buildDeterministicBrokerShortMessage(prospect, recommended.OfferPrice)
+	fallbackFull := buildDeterministicBrokerFullMessage(prospect, askingValue(prospect.AskingPrice), recommended.OfferPrice)
+	result.MessageTemplates.Full = fallbackFull
+
+	if a.llmClient == nil {
+		return result
+	}
+
+	askingPrice := 0.0
+	if prospect.AskingPrice != nil {
+		askingPrice = *prospect.AskingPrice
+	}
+
+	llmCtx, cancel := context.WithTimeout(ctx, 6500*time.Millisecond)
+	defer cancel()
+
+	message, err := a.llmClient.GenerateBrokerOfferMessage(llmCtx, llm.BrokerOfferMessageInput{
+		BrokerName:       valueOrDefault(prospect.BrokerName, ""),
+		Agency:           valueOrDefault(prospect.Agency, ""),
+		Address:          valueOrDefault(prospect.Address, ""),
+		Neighborhood:     valueOrDefault(prospect.Neighborhood, ""),
+		AskingPrice:      askingPrice,
+		SuggestedOffer:   recommended.OfferPrice,
+		Decision:         string(result.Decision),
+		MarginPct:        recommended.Margin,
+		NetProfit:        recommended.NetProfit,
+		ConfidenceBucket: string(result.ConfidenceBucket),
+		ReasonLabels:     result.ReasonLabels,
+	})
+	if err != nil || strings.TrimSpace(message) == "" {
+		if err != nil {
+			log.Printf("offer_intelligence_whatsapp_llm_fallback prospect_id=%s reason=%v", prospect.ID, err)
+		}
+		return result
+	}
+
+	result.MessageTemplates.Full = message
+	return result
 }
 
 func buildOfferPreviewResponse(
@@ -1008,6 +1075,103 @@ func getScenario(items []offerintelligence.Scenario, key offerintelligence.Scena
 func float64Ptr(v float64) *float64 {
 	value := v
 	return &value
+}
+
+func valueOrDefault(v *string, fallback string) string {
+	if v == nil {
+		return fallback
+	}
+	trimmed := strings.TrimSpace(*v)
+	if trimmed == "" {
+		return fallback
+	}
+	return trimmed
+}
+
+func askingValue(v *float64) float64 {
+	if v == nil {
+		return 0
+	}
+	return *v
+}
+
+func buildDeterministicBrokerShortMessage(prospect offerProspectRecord, suggestedOffer float64) string {
+	greeting := deterministicGreeting(prospect.BrokerName)
+	property := deterministicPropertyReference(prospect)
+	return fmt.Sprintf(
+		"%s Tenho interesse %s e consigo avançar com proposta de R$ %.0f. Você consegue levar ao proprietário e me retornar?",
+		greeting,
+		property,
+		suggestedOffer,
+	)
+}
+
+func buildDeterministicBrokerFullMessage(prospect offerProspectRecord, askingPrice float64, suggestedOffer float64) string {
+	greeting := deterministicGreeting(prospect.BrokerName)
+	property := deterministicPropertyReference(prospect)
+	agency := deterministicAgencyReference(prospect.Agency)
+	if askingPrice > 0 {
+		return fmt.Sprintf(
+			"%s Tenho interesse %s%s. Vi que o pedido está em R$ %.0f e consigo formalizar proposta de R$ %.0f. Se fizer sentido, você consegue levar ao proprietário e me retornar? Obrigado!",
+			greeting,
+			property,
+			agency,
+			askingPrice,
+			suggestedOffer,
+		)
+	}
+	return fmt.Sprintf(
+		"%s Tenho interesse %s%s e consigo formalizar proposta de R$ %.0f. Se fizer sentido, você consegue levar ao proprietário e me retornar? Obrigado!",
+		greeting,
+		property,
+		agency,
+		suggestedOffer,
+	)
+}
+
+func deterministicGreeting(brokerName *string) string {
+	hour := time.Now().Hour()
+	period := "Bom dia"
+	if hour >= 12 && hour < 18 {
+		period = "Boa tarde"
+	} else if hour >= 18 || hour < 5 {
+		period = "Boa noite"
+	}
+
+	name := ""
+	if brokerName != nil {
+		parts := strings.Fields(strings.TrimSpace(*brokerName))
+		if len(parts) > 0 {
+			name = parts[0]
+		}
+	}
+	if name != "" {
+		return fmt.Sprintf("Olá, %s! %s, tudo bem?", name, period)
+	}
+	return fmt.Sprintf("Olá! %s, tudo bem?", period)
+}
+
+func deterministicPropertyReference(prospect offerProspectRecord) string {
+	address := valueOrDefault(prospect.Address, "")
+	neighborhood := valueOrDefault(prospect.Neighborhood, "")
+	if address != "" && neighborhood != "" {
+		return fmt.Sprintf("no imóvel da %s (%s)", address, neighborhood)
+	}
+	if address != "" {
+		return fmt.Sprintf("no imóvel da %s", address)
+	}
+	if neighborhood != "" {
+		return fmt.Sprintf("no imóvel no bairro %s", neighborhood)
+	}
+	return "neste imóvel"
+}
+
+func deterministicAgencyReference(agency *string) string {
+	name := valueOrDefault(agency, "")
+	if name == "" {
+		return ""
+	}
+	return fmt.Sprintf(" com a %s", name)
 }
 
 func computeCurrentOfferHashes(
