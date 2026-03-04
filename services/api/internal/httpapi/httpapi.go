@@ -10,20 +10,23 @@ import (
 )
 
 type Deps struct {
-	DB                *sql.DB
-	BetterAuthJWKSURL string
-	S3Client          *storage.S3Client
-	LLMClient         *llm.Client
-	StorageProvider   string // "minio" or "supabase"
+	DB                       *sql.DB
+	BetterAuthJWKSURL        string
+	S3Client                 *storage.S3Client
+	LLMClient                *llm.Client
+	StorageProvider          string // "minio" or "supabase"
+	OfferIntelligenceRollout string
 }
 
 func NewHandler(deps Deps) http.Handler {
 	api := &api{
-		db:              deps.DB,
-		tokenVerifier:   auth.NewJWKSVerifier(deps.BetterAuthJWKSURL),
-		s3Client:        deps.S3Client,
-		llmClient:       deps.LLMClient,
-		storageProvider: deps.StorageProvider,
+		db:                       deps.DB,
+		tokenVerifier:            auth.NewJWKSVerifier(deps.BetterAuthJWKSURL),
+		s3Client:                 deps.S3Client,
+		llmClient:                deps.LLMClient,
+		storageProvider:          deps.StorageProvider,
+		offerIntelligenceRollout: deps.OfferIntelligenceRollout,
+		offerLimiter:             newOfferRateLimiter(),
 	}
 
 	// Public routes (no auth required)
@@ -150,9 +153,11 @@ func NewHandler(deps Deps) http.Handler {
 }
 
 type api struct {
-	db              *sql.DB
-	tokenVerifier   *auth.JWKSVerifier
-	s3Client        *storage.S3Client
-	llmClient       *llm.Client
-	storageProvider string
+	db                       *sql.DB
+	tokenVerifier            *auth.JWKSVerifier
+	s3Client                 *storage.S3Client
+	llmClient                *llm.Client
+	storageProvider          string
+	offerIntelligenceRollout string
+	offerLimiter             *offerRateLimiter
 }

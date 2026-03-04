@@ -327,7 +327,7 @@ export function MetricsDashboard({ metrics, funnel }: Props) {
           <CardTitle>Funnel Diário (Onda 0)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Home → Signup Start</div>
               <div className="mt-1 text-lg font-semibold">
@@ -358,9 +358,27 @@ export function MetricsDashboard({ metrics, funnel }: Props) {
                 {formatPercent(funnel.rates.homeToFirstSnapshotPct)}
               </div>
             </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Oferta: Gerado → Salvo</div>
+              <div className="mt-1 text-lg font-semibold">
+                {formatPercent(funnel.rates.offerGeneratedToSavedPct)}
+              </div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Oferta: Gerado → Paywall</div>
+              <div className="mt-1 text-lg font-semibold">
+                {formatPercent(funnel.rates.offerGeneratedToPaywallPct)}
+              </div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Oferta: Paywall → Upgrade CTA</div>
+              <div className="mt-1 text-lg font-semibold">
+                {formatPercent(funnel.rates.offerPaywallToUpgradePct)}
+              </div>
+            </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-11">
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Home Views</div>
               <div className="mt-1 text-xl font-semibold">{funnel.totals.homeViews}</div>
@@ -389,6 +407,22 @@ export function MetricsDashboard({ metrics, funnel }: Props) {
               <div className="text-xs text-muted-foreground">Calc: Salvar</div>
               <div className="mt-1 text-xl font-semibold">{funnel.totals.calculatorSaveClicked}</div>
             </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Oferta: Gerado</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.offerIntelligenceGenerated}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Oferta: Salvo</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.offerIntelligenceSaved}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Oferta: Paywall</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.offerIntelligencePaywallViewed}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Oferta: Upgrade CTA</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.offerIntelligenceUpgradeCtaClicked}</div>
+            </div>
           </div>
 
           <div className="rounded-md border">
@@ -403,6 +437,10 @@ export function MetricsDashboard({ metrics, funnel }: Props) {
                   <TableHead>1º Snapshot</TableHead>
                   <TableHead>Calc Relatório</TableHead>
                   <TableHead>Calc Salvar</TableHead>
+                  <TableHead>Oferta Gerado</TableHead>
+                  <TableHead>Oferta Salvo</TableHead>
+                  <TableHead>Oferta Paywall</TableHead>
+                  <TableHead>Oferta Upgrade CTA</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -416,6 +454,10 @@ export function MetricsDashboard({ metrics, funnel }: Props) {
                     <TableCell>{row.firstSnapshotSaved}</TableCell>
                     <TableCell>{row.calculatorFullReportRequested}</TableCell>
                     <TableCell>{row.calculatorSaveClicked}</TableCell>
+                    <TableCell>{row.offerIntelligenceGenerated}</TableCell>
+                    <TableCell>{row.offerIntelligenceSaved}</TableCell>
+                    <TableCell>{row.offerIntelligencePaywallViewed}</TableCell>
+                    <TableCell>{row.offerIntelligenceUpgradeCtaClicked}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

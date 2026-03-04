@@ -48,8 +48,10 @@ func NewClient(cfg Config) *Client {
 }
 
 type chatRequest struct {
-	Model    string        `json:"model"`
-	Messages []chatMessage `json:"messages"`
+	Model       string        `json:"model"`
+	Messages    []chatMessage `json:"messages"`
+	MaxTokens   int           `json:"max_tokens,omitempty"`
+	Temperature float64       `json:"temperature,omitempty"`
 }
 
 type chatMessage struct {
@@ -117,6 +119,47 @@ type neighborhoodNormalization struct {
 	Canonical  *string `json:"canonical"`
 	Confidence float64 `json:"confidence"`
 }
+
+type BrokerOfferMessageInput struct {
+	BrokerName       string
+	Agency           string
+	Address          string
+	Neighborhood     string
+	AskingPrice      float64
+	SuggestedOffer   float64
+	Decision         string
+	MarginPct        float64
+	NetProfit        float64
+	ConfidenceBucket string
+	ReasonLabels     []string
+}
+
+const brokerOfferMessagePrompt = `Você é um assistente comercial de negociações imobiliárias para flip.
+Escreva UMA mensagem em português brasileiro, pronta para copiar e colar no WhatsApp para um corretor.
+
+Regras obrigatórias:
+- Tom conversacional, humano e cordial (como conversa real no WhatsApp).
+- Texto curto (máximo 700 caracteres).
+- Não use markdown, não use blocos de código, não use aspas no início/fim.
+- Comece obrigatoriamente com esta saudação: %s
+- Use 1ª pessoa ("tenho interesse", "consigo enviar", "aguardo retorno").
+- Inclua: interesse no imóvel, referência do imóvel, valor da proposta e pedido de retorno.
+- Pergunte se o corretor consegue levar a proposta ao proprietário.
+- Não invente dados além dos fornecidos.
+- Evite tom robótico de relatório; escreva como mensagem pronta para enviar.
+
+Dados da análise:
+- Corretor: %s
+- Imobiliária: %s
+- Endereço: %s
+- Bairro: %s
+- Preço pedido: R$ %.0f
+- Oferta sugerida: R$ %.0f
+- Decisão: %s
+- Margem estimada: %.1f%%
+- Lucro estimado: R$ %.0f
+- Confiança: %s
+- Motivos principais: %s`
 
 func (c *Client) ExtractRiskAssessment(ctx context.Context, listingText string) (*flipscore.FlipRiskAssessment, error) {
 	if c.apiKey == "" {
@@ -225,6 +268,54 @@ func (c *Client) NormalizeNeighborhood(ctx context.Context, raw string, candidat
 	return canonical, parsed.Confidence, nil
 }
 
+func (c *Client) GenerateBrokerOfferMessage(ctx context.Context, input BrokerOfferMessageInput) (string, error) {
+	if c.apiKey == "" {
+		return "", fmt.Errorf("llm api key not configured")
+	}
+
+	greeting := buildWhatsAppGreeting(input.BrokerName, time.Now())
+
+	reasons := "não informado"
+	if len(input.ReasonLabels) > 0 {
+		reasons = strings.Join(input.ReasonLabels, "; ")
+	}
+
+	prompt := fmt.Sprintf(
+		brokerOfferMessagePrompt,
+		greeting,
+		normalizeText(input.BrokerName),
+		normalizeText(input.Agency),
+		normalizeText(input.Address),
+		normalizeText(input.Neighborhood),
+		input.AskingPrice,
+		input.SuggestedOffer,
+		normalizeText(input.Decision),
+		input.MarginPct,
+		input.NetProfit,
+		normalizeText(input.ConfidenceBucket),
+		normalizeText(reasons),
+	)
+
+	content, err := c.chatCompletion(ctx, prompt)
+	if err != nil {
+		return "", err
+	}
+
+	cleaned := sanitizeWhatsAppMessage(content)
+	if cleaned == "" {
+		return "", fmt.Errorf("empty broker offer message")
+	}
+	if !hasConversationalGreeting(cleaned) {
+		cleaned = strings.TrimSpace(greeting + " " + cleaned)
+	}
+
+	if len(cleaned) > 700 {
+		cleaned = cleaned[:700]
+	}
+
+	return cleaned, nil
+}
+
 func parseRiskAssessment(content string) (*flipscore.FlipRiskAssessment, error) {
 	content = strings.TrimSpace(content)
 
@@ -284,7 +375,9 @@ func parseNeighborhoodNormalization(content string) (*neighborhoodNormalization,
 
 func (c *Client) chatCompletion(ctx context.Context, prompt string) (string, error) {
 	reqBody := chatRequest{
-		Model: c.model,
+		Model:       c.model,
+		MaxTokens:   260,
+		Temperature: 0.3,
 		Messages: []chatMessage{
 			{Role: "user", Content: prompt},
 		},
@@ -375,4 +468,54 @@ func validateRiskAssessment(a *flipscore.FlipRiskAssessment) error {
 	}
 
 	return nil
+}
+
+func normalizeText(v string) string {
+	trimmed := strings.TrimSpace(v)
+	if trimmed == "" {
+		return "não informado"
+	}
+	return trimmed
+}
+
+func sanitizeWhatsAppMessage(content string) string {
+	out := strings.TrimSpace(content)
+	out = strings.TrimPrefix(out, "```")
+	out = strings.TrimSuffix(out, "```")
+	out = strings.TrimSpace(out)
+
+	if strings.HasPrefix(out, "\"") && strings.HasSuffix(out, "\"") && len(out) >= 2 {
+		out = strings.TrimSpace(out[1 : len(out)-1])
+	}
+
+	return out
+}
+
+func buildWhatsAppGreeting(brokerName string, now time.Time) string {
+	period := "Bom dia"
+	hour := now.Hour()
+	if hour >= 12 && hour < 18 {
+		period = "Boa tarde"
+	} else if hour >= 18 || hour < 5 {
+		period = "Boa noite"
+	}
+
+	name := firstName(brokerName)
+	if name != "" {
+		return fmt.Sprintf("Olá, %s! %s, tudo bem?", name, period)
+	}
+	return fmt.Sprintf("Olá! %s, tudo bem?", period)
+}
+
+func firstName(fullName string) string {
+	fields := strings.Fields(strings.TrimSpace(fullName))
+	if len(fields) == 0 {
+		return ""
+	}
+	return fields[0]
+}
+
+func hasConversationalGreeting(message string) bool {
+	m := strings.ToLower(strings.TrimSpace(message))
+	return strings.HasPrefix(m, "olá") || strings.HasPrefix(m, "ola")
 }

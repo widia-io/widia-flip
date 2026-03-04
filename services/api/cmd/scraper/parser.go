@@ -196,7 +196,7 @@ func parseDetailHTML(html string, summary ListingSummary) *ListingDetails {
 
 	// Quartos - padrão mais específico
 	quartoPatterns := []string{
-		`(\d+)\s*[Qq]uartos?\b`,     // "2 quartos"
+		`(\d+)\s*[Qq]uartos?\b`,        // "2 quartos"
 		`[Qq]uartos?\s*[:\-]?\s*(\d+)`, // "Quartos: 2"
 	}
 	for _, pattern := range quartoPatterns {
@@ -211,7 +211,7 @@ func parseDetailHTML(html string, summary ListingSummary) *ListingDetails {
 
 	// Banheiros - padrão mais específico
 	banheiroPatterns := []string{
-		`(\d+)\s*[Bb]anheiros?\b`,     // "2 banheiros"
+		`(\d+)\s*[Bb]anheiros?\b`,        // "2 banheiros"
 		`[Bb]anheiros?\s*[:\-]?\s*(\d+)`, // "Banheiros: 2"
 	}
 	for _, pattern := range banheiroPatterns {
@@ -226,7 +226,7 @@ func parseDetailHTML(html string, summary ListingSummary) *ListingDetails {
 
 	// Vagas - padrão mais específico
 	vagasPatterns := []string{
-		`(\d+)\s*[Vv]agas?\b`,     // "2 vagas"
+		`(\d+)\s*[Vv]agas?\b`,        // "2 vagas"
 		`[Vv]agas?\s*[:\-]?\s*(\d+)`, // "Vagas: 2"
 	}
 	for _, pattern := range vagasPatterns {
