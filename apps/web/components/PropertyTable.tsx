@@ -13,7 +13,9 @@ import {
   TableIcon,
   LayoutGrid,
   Columns,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import type { Property } from "@widia/shared";
 
@@ -37,9 +39,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { PropertyCard } from "@/components/PropertyCard";
 import { PropertyKanbanView } from "@/components/properties/PropertyKanbanView";
 import { getStatusConfig, PROPERTY_STATUS_CONFIG } from "@/lib/constants/property-status";
+import { deletePropertyAction } from "@/lib/actions/properties";
 
 interface PropertyTableProps {
   readonly properties: Property[];
@@ -187,6 +201,23 @@ export function PropertyTable({
     </div>
   );
 
+  const handleDeleteProperty = (property: Property) => {
+    startTransition(async () => {
+      const result = await deletePropertyAction(property.id);
+      if (result.success) {
+        toast.success("Imóvel excluído", {
+          description: property.address || property.neighborhood || "Registro removido com sucesso",
+        });
+        router.refresh();
+        return;
+      }
+
+      toast.error("Erro ao excluir imóvel", {
+        description: result.error,
+      });
+    });
+  };
+
   const renderTable = () => (
     <Card className="hidden lg:block">
       <Table>
@@ -234,12 +265,49 @@ export function PropertyTable({
                     {formatDate(property.created_at)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href={`/app/properties/${property.id}`}>
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        Abrir
-                      </Link>
-                    </Button>
+                    <div className="flex items-center justify-end gap-2">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            aria-label={`Excluir imóvel ${property.address || property.neighborhood || property.id}`}
+                            disabled={isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir imóvel?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação é irreversível e removerá o imóvel e seus dados relacionados.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteProperty(property)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              disabled={isPending}
+                            >
+                              {isPending ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : null}
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href={`/app/properties/${property.id}`}>
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Abrir
+                        </Link>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               );

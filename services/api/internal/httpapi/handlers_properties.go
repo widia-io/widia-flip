@@ -157,6 +157,8 @@ func (a *api) handlePropertiesSubroutes(w http.ResponseWriter, r *http.Request) 
 			a.handleGetProperty(w, r, propertyID)
 		case http.MethodPut:
 			a.handleUpdateProperty(w, r, propertyID)
+		case http.MethodDelete:
+			a.handleDeleteProperty(w, r, propertyID)
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
@@ -421,6 +423,36 @@ func (a *api) handleUpdateProperty(w http.ResponseWriter, r *http.Request, prope
 	}
 
 	writeJSON(w, http.StatusOK, p)
+}
+
+func (a *api) handleDeleteProperty(w http.ResponseWriter, r *http.Request, propertyID string) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, apiError{Code: "UNAUTHORIZED", Message: "missing auth"})
+		return
+	}
+
+	result, err := a.db.ExecContext(
+		r.Context(),
+		`DELETE FROM properties p
+		 USING workspace_memberships m
+		 WHERE p.id = $1
+		   AND m.workspace_id = p.workspace_id
+		   AND m.user_id = $2`,
+		propertyID, userID,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to delete property"})
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "property not found"})
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *api) handleUpdatePropertyStatus(w http.ResponseWriter, r *http.Request, propertyID string) {
