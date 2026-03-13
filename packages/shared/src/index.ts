@@ -2531,6 +2531,35 @@ export const RunOpportunityScraperResponseSchema = z.object({
 });
 export type RunOpportunityScraperResponse = z.infer<typeof RunOpportunityScraperResponseSchema>;
 
+export const RunOpportunityCleanupLinksRequestSchema = z.object({
+  limit: z.number().int().min(1).max(300).optional(),
+  dry_run: z.boolean().optional().default(true),
+});
+export type RunOpportunityCleanupLinksRequest = z.infer<typeof RunOpportunityCleanupLinksRequestSchema>;
+
+export const OpportunityCleanupBrokenLinkSchema = z.object({
+  source_listing_id: z.string(),
+  canonical_url: z.string(),
+  reason: z.string(),
+  http_status: z.number().nullable().optional(),
+});
+export type OpportunityCleanupBrokenLink = z.infer<typeof OpportunityCleanupBrokenLinkSchema>;
+
+export const RunOpportunityCleanupLinksResponseSchema = z.object({
+  job_run_id: z.string(),
+  dry_run: z.boolean(),
+  stats: z.object({
+    total_candidates: z.number(),
+    checked: z.number(),
+    unavailable_found: z.number(),
+    deleted: z.number(),
+    fetch_errors: z.number(),
+    delete_errors: z.number(),
+  }),
+  broken_links: z.array(OpportunityCleanupBrokenLinkSchema),
+});
+export type RunOpportunityCleanupLinksResponse = z.infer<typeof RunOpportunityCleanupLinksResponseSchema>;
+
 // Ebook Lead Capture
 
 export const EbookLeadRequestSchema = z.object({

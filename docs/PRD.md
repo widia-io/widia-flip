@@ -466,6 +466,7 @@ Deve existir:
 * ✅ T16.6 UI `/app/market-data` (filtros + tabela)
 * ✅ T16.7 Hardening (testes + smoke + validações de erro)
 * ✅ T16.8 Fechamento CP-17 + handoff M17 (mapa)
+* ✅ T16.9 Admin Oportunidades: job manual de varredura/limpeza de links quebrados com dry-run e remoção em cascata via `/app/admin/opportunities`
   **Checkpoint alvo:** `CP-17 — Market Data SP (Tabela MVP)` ✅
 
 ## 1.6 Status Atual (Audit 2026-01-30)
@@ -1276,6 +1277,8 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-17` — 2026-03-04 — Ajustes de UX e mensagem da Oferta Inteligente: texto de erro de campos obrigatórios traduzido para pt-BR com guidance por campo, histórico passou a recarregar ao abrir modal, ação de excluir oferta adicionada no histórico, e mensagem para corretor via WhatsApp migrada para formato conversacional com tentativa OpenRouter + fallback determinístico.
 * `CP-17` — 2026-03-04 — Hotfix na edição de prospect: limpeza de campos textuais (ex.: `comments`) agora persiste corretamente como vazio ao salvar no modal (frontend passou a enviar strings vazias no update).
 * `CP-17` — 2026-03-04 — Estabilização de testes da API + estilo Go: suíte `go test ./...` voltou a verde após atualizar testes de `market_ingest` e `offer_intelligence` para os contratos atuais, e `gofmt` aplicado nos arquivos pendentes do serviço `api`.
+* `CP-17` — 2026-03-04 — Oportunidades: implementado job admin de limpeza de links quebrados (`/api/v1/admin/opportunities/scraper/cleanup-links`) com dry-run, registro em `opportunity_job_runs`, remoção de anúncios indisponíveis e UI de execução/resultado em `/app/admin/opportunities`.
+* `CP-17` — 2026-03-04 — Hardening do job de limpeza de links de oportunidades: rate-limit conservador entre requests (delay + jitter), backoff exponencial com suporte a `Retry-After` e stop automático após bloqueios consecutivos (`403/429/5xx`) para reduzir risco de ban temporário no scraping.
 
 ---
 

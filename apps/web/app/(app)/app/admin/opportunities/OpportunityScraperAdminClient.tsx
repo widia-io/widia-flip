@@ -1,12 +1,17 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { ExternalLink, Loader2, Pencil, Play, Save, X } from "lucide-react";
+import { ExternalLink, Loader2, Pencil, Play, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import type { OpportunityScraperPlaceholder, RunOpportunityScraperResponse } from "@widia/shared";
+import type {
+  OpportunityScraperPlaceholder,
+  RunOpportunityCleanupLinksResponse,
+  RunOpportunityScraperResponse,
+} from "@widia/shared";
 
 import {
   createOpportunityScraperPlaceholder,
+  runOpportunityCleanupLinks,
   runOpportunityScraper,
   updateOpportunityScraperPlaceholder,
 } from "@/lib/actions/opportunity-scraper";
@@ -79,6 +84,9 @@ export function OpportunityScraperAdminClient({ initialPlaceholders }: Opportuni
 
   const [lastRunResult, setLastRunResult] = useState<RunOpportunityScraperResponse | null>(null);
   const [lastRunLabel, setLastRunLabel] = useState<string | null>(null);
+  const [cleanupLimit, setCleanupLimit] = useState("50");
+  const [cleanupDryRun, setCleanupDryRun] = useState(true);
+  const [lastCleanupResult, setLastCleanupResult] = useState<RunOpportunityCleanupLinksResponse | null>(null);
 
   const saveButtonLabel = useMemo(
     () => (editingPlaceholderId ? "Atualizar placeholder" : "Salvar placeholder"),
@@ -211,6 +219,34 @@ export function OpportunityScraperAdminClient({ initialPlaceholders }: Opportuni
     });
   };
 
+  const handleRunCleanupLinks = () => {
+    const limit = Number(cleanupLimit);
+    if (!Number.isInteger(limit) || limit <= 0) {
+      toast.error("Informe um limite valido (numero inteiro maior que zero)");
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const result = await runOpportunityCleanupLinks({
+          limit,
+          dry_run: cleanupDryRun,
+        });
+
+        setLastCleanupResult(result);
+
+        const actionLabel = result.dry_run ? "marcados para remocao" : "removidos";
+        toast.success("Limpeza de links concluida", {
+          description: `${result.stats.unavailable_found} links quebrados ${actionLabel}.`,
+        });
+      } catch (err) {
+        toast.error("Falha ao limpar links quebrados", {
+          description: err instanceof Error ? err.message : "Erro inesperado",
+        });
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -267,6 +303,106 @@ export function OpportunityScraperAdminClient({ initialPlaceholders }: Opportuni
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
             {isDryRun ? "Executar dry-run" : "Executar busca"}
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Limpeza de links quebrados</CardTitle>
+          <CardDescription>
+            Varre oportunidades salvas e remove anuncios do ZAP que nao existem mais.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="cleanup-limit">Limite de anuncios por execucao</Label>
+              <Input
+                id="cleanup-limit"
+                type="number"
+                min={1}
+                max={300}
+                value={cleanupLimit}
+                onChange={(event) => setCleanupLimit(event.target.value)}
+              />
+            </div>
+            <div className="flex items-end">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="cleanup-dry-run-toggle"
+                  checked={cleanupDryRun}
+                  onCheckedChange={(value) => setCleanupDryRun(value === true)}
+                />
+                <Label htmlFor="cleanup-dry-run-toggle" className="text-sm text-muted-foreground">
+                  Dry-run (nao deleta do banco)
+                </Label>
+              </div>
+            </div>
+          </div>
+
+          <Button onClick={handleRunCleanupLinks} disabled={isPending}>
+            {isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="mr-2 h-4 w-4" />
+            )}
+            {cleanupDryRun ? "Executar varredura (dry-run)" : "Executar limpeza agora"}
+          </Button>
+
+          {lastCleanupResult ? (
+            <div className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <Badge variant={lastCleanupResult.dry_run ? "secondary" : "default"}>
+                  {lastCleanupResult.dry_run ? "Dry-run" : "Persistido"}
+                </Badge>
+                <span>Candidatos: {lastCleanupResult.stats.total_candidates}</span>
+                <span>Checados: {lastCleanupResult.stats.checked}</span>
+                <span>Indisponiveis: {lastCleanupResult.stats.unavailable_found}</span>
+                <span>Deletados: {lastCleanupResult.stats.deleted}</span>
+                <span>Erros de fetch: {lastCleanupResult.stats.fetch_errors}</span>
+                <span>Erros de delete: {lastCleanupResult.stats.delete_errors}</span>
+              </div>
+
+              {lastCleanupResult.broken_links.length === 0 ? (
+                <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                  Nenhum link quebrado identificado nesta execucao.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Listing ID</TableHead>
+                        <TableHead>Motivo</TableHead>
+                        <TableHead>HTTP</TableHead>
+                        <TableHead className="text-right">Link</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {lastCleanupResult.broken_links.map((link) => (
+                        <TableRow key={`${link.source_listing_id}-${link.canonical_url}`}>
+                          <TableCell className="font-mono text-xs">{link.source_listing_id}</TableCell>
+                          <TableCell>{link.reason}</TableCell>
+                          <TableCell>{link.http_status ?? "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <a
+                              href={link.canonical_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-primary hover:underline"
+                            >
+                              Abrir
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
