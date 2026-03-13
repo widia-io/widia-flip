@@ -60,11 +60,12 @@ func main() {
 	}
 
 	handler := httpapi.NewHandler(httpapi.Deps{
-		DB:                db,
-		BetterAuthJWKSURL: cfg.BetterAuthJWKSURL,
-		S3Client:          s3Client,
-		LLMClient:         llmClient,
-		StorageProvider:   cfg.S3.Provider,
+		DB:                       db,
+		BetterAuthJWKSURL:        cfg.BetterAuthJWKSURL,
+		S3Client:                 s3Client,
+		LLMClient:                llmClient,
+		StorageProvider:          cfg.S3.Provider,
+		OfferIntelligenceRollout: cfg.OfferIntelligenceRollout,
 	})
 
 	srv := &http.Server{
@@ -74,7 +75,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("Go API listening on :%s", cfg.Port)
+		log.Printf("Go API listening on :%s (offer_intelligence_rollout=%s)", cfg.Port, cfg.OfferIntelligenceRollout)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %v", err)
 		}

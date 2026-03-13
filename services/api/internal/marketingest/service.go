@@ -135,12 +135,12 @@ func RunFromFile(ctx context.Context, db *sql.DB, cfg RunConfig) (RunResult, err
 	if ingestErr != nil {
 		if ownedRun {
 			_ = FinishRun(ctx, db, runID, "failed", result.InputRows, result.ValidRows, 0, ingestErr, map[string]any{
-				"input_rows":     result.InputRows,
-				"valid_rows":     result.ValidRows,
-				"output_groups":  0,
-				"touched_months": result.TouchedMonths,
-				"llm_calls":      result.LLMCalls,
-				"llm_resolved":   result.LLMResolved,
+				"input_rows":       result.InputRows,
+				"valid_rows":       result.ValidRows,
+				"output_groups":    0,
+				"touched_months":   result.TouchedMonths,
+				"llm_calls":        result.LLMCalls,
+				"llm_resolved":     result.LLMResolved,
 				"alias_candidates": result.AliasCandidates,
 			}, time.Now().UTC())
 		}
@@ -150,12 +150,12 @@ func RunFromFile(ctx context.Context, db *sql.DB, cfg RunConfig) (RunResult, err
 	result.OutputGroups = outputGroups
 	if ownedRun {
 		_ = FinishRun(ctx, db, runID, "success", result.InputRows, result.ValidRows, result.OutputGroups, nil, map[string]any{
-			"input_rows":     result.InputRows,
-			"valid_rows":     result.ValidRows,
-			"output_groups":  result.OutputGroups,
-			"touched_months": result.TouchedMonths,
-			"llm_calls":      result.LLMCalls,
-			"llm_resolved":   result.LLMResolved,
+			"input_rows":       result.InputRows,
+			"valid_rows":       result.ValidRows,
+			"output_groups":    result.OutputGroups,
+			"touched_months":   result.TouchedMonths,
+			"llm_calls":        result.LLMCalls,
+			"llm_resolved":     result.LLMResolved,
 			"alias_candidates": result.AliasCandidates,
 		}, time.Now().UTC())
 	}

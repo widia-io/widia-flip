@@ -68,7 +68,7 @@ func scoreAll(listings []SourceListing, medianM2 float64) []Opportunity {
 // score calcula o score de um anúncio individual
 func score(listing SourceListing, medianM2 float64) Opportunity {
 	opp := Opportunity{
-		SourceListing: listing,
+		SourceListing:  listing,
 		ScoreBreakdown: ScoreBreakdown{},
 	}
 

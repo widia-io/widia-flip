@@ -6,12 +6,13 @@ import (
 )
 
 type Config struct {
-	Port              string
-	DatabaseURL       string
-	BetterAuthJWKSURL string
-	InternalAPISecret string
-	S3                S3Config
-	LLM               LLMConfig
+	Port                     string
+	DatabaseURL              string
+	BetterAuthJWKSURL        string
+	InternalAPISecret        string
+	OfferIntelligenceRollout string
+	S3                       S3Config
+	LLM                      LLMConfig
 }
 
 type LLMConfig struct {
@@ -32,10 +33,11 @@ type S3Config struct {
 
 func Load() (Config, error) {
 	cfg := Config{
-		Port:              getenv("API_PORT", "8080"),
-		DatabaseURL:       os.Getenv("DATABASE_URL"),
-		BetterAuthJWKSURL: getenv("BETTER_AUTH_JWKS_URL", "http://localhost:3000/api/auth/jwks"),
-		InternalAPISecret: os.Getenv("INTERNAL_API_SECRET"),
+		Port:                     getenv("API_PORT", "8080"),
+		DatabaseURL:              os.Getenv("DATABASE_URL"),
+		BetterAuthJWKSURL:        getenv("BETTER_AUTH_JWKS_URL", "http://localhost:3000/api/auth/jwks"),
+		InternalAPISecret:        os.Getenv("INTERNAL_API_SECRET"),
+		OfferIntelligenceRollout: getenv("OFFER_INTELLIGENCE_ROLLOUT", "off"),
 		S3: S3Config{
 			Endpoint:       getenv("S3_ENDPOINT", "http://localhost:8000/storage/v1/s3"),
 			PublicEndpoint: getenv("S3_PUBLIC_ENDPOINT", getenv("S3_ENDPOINT", "http://localhost:8000/storage/v1/s3")),
@@ -54,6 +56,11 @@ func Load() (Config, error) {
 
 	if cfg.DatabaseURL == "" {
 		return cfg, errors.New("DATABASE_URL is required")
+	}
+	if cfg.OfferIntelligenceRollout != "off" &&
+		cfg.OfferIntelligenceRollout != "internal" &&
+		cfg.OfferIntelligenceRollout != "all" {
+		return cfg, errors.New("OFFER_INTELLIGENCE_ROLLOUT must be off|internal|all")
 	}
 
 	return cfg, nil

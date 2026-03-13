@@ -1253,6 +1253,149 @@ export const EnforcementErrorResponseSchema = z.object({
 });
 export type EnforcementErrorResponse = z.infer<typeof EnforcementErrorResponseSchema>;
 
+// M17a - Oferta Inteligente
+
+export const OfferDecisionEnum = z.enum(["GO", "REVIEW", "NO_GO"]);
+export type OfferDecision = z.infer<typeof OfferDecisionEnum>;
+
+export const OfferConfidenceBucketEnum = z.enum(["high", "medium", "low"]);
+export type OfferConfidenceBucket = z.infer<typeof OfferConfidenceBucketEnum>;
+
+export const OfferReasonCodeEnum = z.enum([
+  "LOW_MARGIN",
+  "LOW_NET_PROFIT",
+  "LOW_DATA_CONFIDENCE",
+  "MISSING_CRITICAL_INPUT",
+  "HIGH_RENOVATION_RISK",
+  "MARKET_SAMPLE_TOO_LOW",
+  "UNFAVORABLE_BREAK_EVEN",
+  "OPTIMISTIC_SALE_PRICE_ESTIMATE",
+]);
+export type OfferReasonCode = z.infer<typeof OfferReasonCodeEnum>;
+
+export const OfferScenarioKeyEnum = z.enum(["aggressive", "recommended", "ceiling"]);
+export type OfferScenarioKey = z.infer<typeof OfferScenarioKeyEnum>;
+
+export const OfferMessageLevelEnum = z.enum(["short", "full"]);
+export type OfferMessageLevel = z.infer<typeof OfferMessageLevelEnum>;
+
+export const OfferStaleReasonEnum = z.enum([
+  "INPUT_CHANGED",
+  "SETTINGS_CHANGED",
+  "FORMULA_CHANGED",
+]);
+export type OfferStaleReason = z.infer<typeof OfferStaleReasonEnum>;
+
+export const OfferIntelligenceSourceEnum = z.enum([
+  "prospect_modal",
+  "history_regenerate",
+  "direct",
+]);
+export type OfferIntelligenceSource = z.infer<typeof OfferIntelligenceSourceEnum>;
+
+export const OfferScenarioSchema = z.object({
+  key: OfferScenarioKeyEnum,
+  offer_price: z.number(),
+  net_profit: z.number(),
+  roi: z.number(),
+  margin: z.number(),
+  break_even_sale_price: z.number(),
+});
+export type OfferScenario = z.infer<typeof OfferScenarioSchema>;
+
+export const OfferMessageTemplatesSchema = z.object({
+  short: z.string(),
+  full: z.string(),
+});
+export type OfferMessageTemplates = z.infer<typeof OfferMessageTemplatesSchema>;
+
+export const OfferIntelligenceGatingSchema = z.object({
+  full_access: z.boolean(),
+  allowed_scenarios: z.array(OfferScenarioKeyEnum),
+  history_enabled: z.boolean(),
+  message_level: OfferMessageLevelEnum,
+});
+export type OfferIntelligenceGating = z.infer<typeof OfferIntelligenceGatingSchema>;
+
+export const OfferIntelligenceGenerateRequestSchema = z.object({
+  source: OfferIntelligenceSourceEnum.optional(),
+});
+export type OfferIntelligenceGenerateRequest = z.infer<typeof OfferIntelligenceGenerateRequestSchema>;
+
+export const OfferIntelligenceSaveRequestSchema = z.object({
+  source: OfferIntelligenceSourceEnum.optional(),
+});
+export type OfferIntelligenceSaveRequest = z.infer<typeof OfferIntelligenceSaveRequestSchema>;
+
+export const OfferIntelligencePreviewSchema = z.object({
+  prospect_id: z.string(),
+  workspace_id: z.string(),
+  formula_version: z.string(),
+  generated_at: z.string(),
+  decision: OfferDecisionEnum,
+  confidence: z.number(),
+  confidence_bucket: OfferConfidenceBucketEnum,
+  reason_codes: z.array(OfferReasonCodeEnum),
+  reason_labels: z.array(z.string()),
+  risk_score: z.number(),
+  assumptions: z.array(z.string()),
+  defaults_used: z.array(z.string()),
+  scenarios: z.array(OfferScenarioSchema),
+  message_templates: OfferMessageTemplatesSchema,
+  gating: OfferIntelligenceGatingSchema,
+  input_hash: z.string(),
+  settings_hash: z.string(),
+  tier: z.string(),
+  limited: z.boolean(),
+});
+export type OfferIntelligencePreview = z.infer<typeof OfferIntelligencePreviewSchema>;
+
+export const OfferIntelligenceSaveResponseSchema = z.object({
+  offer_recommendation_id: z.string(),
+  created_at: z.string(),
+  decision: OfferDecisionEnum,
+  confidence_bucket: OfferConfidenceBucketEnum,
+  recommended_offer_price: z.number().nullable(),
+});
+export type OfferIntelligenceSaveResponse = z.infer<typeof OfferIntelligenceSaveResponseSchema>;
+
+export const OfferIntelligenceHistoryItemSchema = z.object({
+  id: z.string(),
+  prospect_id: z.string(),
+  workspace_id: z.string(),
+  created_at: z.string(),
+  formula_version: z.string(),
+  decision: OfferDecisionEnum,
+  confidence: z.number(),
+  confidence_bucket: OfferConfidenceBucketEnum,
+  reason_codes: z.array(OfferReasonCodeEnum),
+  reason_labels: z.array(z.string()),
+  recommended_offer_price: z.number().nullable(),
+  recommended_margin: z.number().nullable(),
+  recommended_net_profit: z.number().nullable(),
+  scenarios: z.array(OfferScenarioSchema),
+  message_templates: OfferMessageTemplatesSchema,
+  assumptions: z.array(z.string()),
+  defaults_used: z.array(z.string()),
+  input_hash: z.string(),
+  settings_hash: z.string(),
+  is_stale: z.boolean(),
+  stale_reason: OfferStaleReasonEnum.nullable().optional(),
+});
+export type OfferIntelligenceHistoryItem = z.infer<typeof OfferIntelligenceHistoryItemSchema>;
+
+export const OfferIntelligenceHistoryResponseSchema = z.object({
+  items: z.array(OfferIntelligenceHistoryItemSchema),
+  next_cursor: z.string().nullable().optional(),
+});
+export type OfferIntelligenceHistoryResponse = z.infer<typeof OfferIntelligenceHistoryResponseSchema>;
+
+export const OfferIntelligenceHistoryQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  cursor: z.string().optional(),
+});
+export type OfferIntelligenceHistoryQuery = z.infer<typeof OfferIntelligenceHistoryQuerySchema>;
+
 // Helper to detect enforcement errors
 export function isEnforcementError(
   error: unknown
@@ -1792,6 +1935,10 @@ export const AdminFunnelDailyItemSchema = z.object({
   firstSnapshotSaved: z.number(),
   calculatorFullReportRequested: z.number(),
   calculatorSaveClicked: z.number(),
+  offerIntelligenceGenerated: z.number(),
+  offerIntelligenceSaved: z.number(),
+  offerIntelligencePaywallViewed: z.number(),
+  offerIntelligenceUpgradeCtaClicked: z.number(),
 });
 export type AdminFunnelDailyItem = z.infer<typeof AdminFunnelDailyItemSchema>;
 
@@ -1803,6 +1950,10 @@ export const AdminFunnelDailyTotalsSchema = z.object({
   firstSnapshotSaved: z.number(),
   calculatorFullReportRequested: z.number(),
   calculatorSaveClicked: z.number(),
+  offerIntelligenceGenerated: z.number(),
+  offerIntelligenceSaved: z.number(),
+  offerIntelligencePaywallViewed: z.number(),
+  offerIntelligenceUpgradeCtaClicked: z.number(),
 });
 export type AdminFunnelDailyTotals = z.infer<typeof AdminFunnelDailyTotalsSchema>;
 
@@ -1814,6 +1965,9 @@ export const AdminFunnelDailyRatesSchema = z.object({
   homeToFirstSnapshotPct: z.number(),
   calculatorToSaveClickPct: z.number(),
   calculatorToReportRequestPct: z.number(),
+  offerGeneratedToSavedPct: z.number(),
+  offerGeneratedToPaywallPct: z.number(),
+  offerPaywallToUpgradePct: z.number(),
 });
 export type AdminFunnelDailyRates = z.infer<typeof AdminFunnelDailyRatesSchema>;
 

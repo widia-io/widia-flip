@@ -168,7 +168,7 @@ func (a *api) handleProspectsSubroutes(w http.ResponseWriter, r *http.Request) {
 	// /api/v1/prospects/:id/convert
 	if len(parts) == 2 && parts[1] == "convert" {
 		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			writeError(w, http.StatusMethodNotAllowed, apiError{Code: "METHOD_NOT_ALLOWED", Message: "method not allowed"})
 			return
 		}
 		a.handleConvertProspect(w, r, prospectID)
@@ -178,7 +178,7 @@ func (a *api) handleProspectsSubroutes(w http.ResponseWriter, r *http.Request) {
 	// /api/v1/prospects/:id/restore
 	if len(parts) == 2 && parts[1] == "restore" {
 		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			writeError(w, http.StatusMethodNotAllowed, apiError{Code: "METHOD_NOT_ALLOWED", Message: "method not allowed"})
 			return
 		}
 		a.handleRestoreProspect(w, r, prospectID)
@@ -188,10 +188,55 @@ func (a *api) handleProspectsSubroutes(w http.ResponseWriter, r *http.Request) {
 	// /api/v1/prospects/:id/flip-score/recompute
 	if len(parts) == 3 && parts[1] == "flip-score" && parts[2] == "recompute" {
 		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			writeError(w, http.StatusMethodNotAllowed, apiError{Code: "METHOD_NOT_ALLOWED", Message: "method not allowed"})
 			return
 		}
 		a.handleFlipScoreRecompute(w, r, prospectID)
+		return
+	}
+
+	// /api/v1/prospects/:id/offer-intelligence/generate
+	if len(parts) == 3 && parts[1] == "offer-intelligence" && parts[2] == "generate" {
+		if r.Method != http.MethodPost {
+			writeError(w, http.StatusMethodNotAllowed, apiError{Code: "METHOD_NOT_ALLOWED", Message: "method not allowed"})
+			return
+		}
+		a.handleOfferIntelligenceGenerate(w, r, prospectID)
+		return
+	}
+
+	// /api/v1/prospects/:id/offer-intelligence/save
+	if len(parts) == 3 && parts[1] == "offer-intelligence" && parts[2] == "save" {
+		if r.Method != http.MethodPost {
+			writeError(w, http.StatusMethodNotAllowed, apiError{Code: "METHOD_NOT_ALLOWED", Message: "method not allowed"})
+			return
+		}
+		a.handleOfferIntelligenceSave(w, r, prospectID)
+		return
+	}
+
+	// /api/v1/prospects/:id/offer-intelligence/history
+	if len(parts) == 3 && parts[1] == "offer-intelligence" && parts[2] == "history" {
+		if r.Method != http.MethodGet {
+			writeError(w, http.StatusMethodNotAllowed, apiError{Code: "METHOD_NOT_ALLOWED", Message: "method not allowed"})
+			return
+		}
+		a.handleOfferIntelligenceHistory(w, r, prospectID)
+		return
+	}
+
+	// /api/v1/prospects/:id/offer-intelligence/:recommendation_id
+	if len(parts) == 3 && parts[1] == "offer-intelligence" {
+		if parts[2] == "generate" || parts[2] == "save" || parts[2] == "history" {
+			writeError(w, http.StatusMethodNotAllowed, apiError{Code: "METHOD_NOT_ALLOWED", Message: "method not allowed"})
+			return
+		}
+
+		if r.Method != http.MethodDelete {
+			writeError(w, http.StatusMethodNotAllowed, apiError{Code: "METHOD_NOT_ALLOWED", Message: "method not allowed"})
+			return
+		}
+		a.handleOfferIntelligenceDelete(w, r, prospectID, parts[2])
 		return
 	}
 
@@ -205,12 +250,12 @@ func (a *api) handleProspectsSubroutes(w http.ResponseWriter, r *http.Request) {
 		case http.MethodDelete:
 			a.handleDeleteProspect(w, r, prospectID)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			writeError(w, http.StatusMethodNotAllowed, apiError{Code: "METHOD_NOT_ALLOWED", Message: "method not allowed"})
 		}
 		return
 	}
 
-	w.WriteHeader(http.StatusNotFound)
+	writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "endpoint not found"})
 }
 
 func (a *api) handleListProspects(w http.ResponseWriter, r *http.Request) {

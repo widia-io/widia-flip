@@ -101,6 +101,7 @@ func parseFlags() config {
 	cfg.Source = strings.TrimSpace(cfg.Source)
 	cfg.FilePath = strings.TrimSpace(cfg.FilePath)
 	cfg.AsOfMonth = strings.TrimSpace(cfg.AsOfMonth)
+	cfg.LLMModel = strings.TrimSpace(cfg.LLMModel)
 
 	if cfg.City != marketingest.DefaultCity {
 		log.Fatalf("unsupported city %q (M16 supports only %q)", cfg.City, marketingest.DefaultCity)
