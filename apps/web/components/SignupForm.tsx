@@ -10,7 +10,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PhoneInput } from "@/components/PhoneInput";
 import { EVENTS, ensureAnalyticsSessionId, logEvent } from "@/lib/analytics";
 
-export function SignupForm() {
+interface SignupFormProps {
+  trackingSource?: string;
+  trackingPostSlug?: string;
+  trackingCtaPosition?: string;
+}
+
+export function SignupForm({
+  trackingSource = "login_page",
+  trackingPostSlug,
+  trackingCtaPosition,
+}: SignupFormProps) {
   const [, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => {
       await signUpEmailAction(formData);
@@ -26,8 +36,10 @@ export function SignupForm() {
       onSubmitCapture={() => {
         ensureAnalyticsSessionId();
         logEvent(EVENTS.SIGNUP_STARTED, {
-          source: "login_page",
+          source: trackingSource,
           location: "signup_form",
+          post_slug: trackingPostSlug,
+          cta_position: trackingCtaPosition,
         });
       }}
     >

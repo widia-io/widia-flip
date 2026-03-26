@@ -2,28 +2,9 @@ import { NextResponse } from "next/server";
 
 import { SaveCalculatorRequestSchema } from "@widia/shared";
 import { getServerSession, getServerAccessToken } from "@/lib/serverAuth";
-import { logEvent } from "@/lib/analytics";
+import { buildForwardedAnalyticsHeaders, trackServerEvent } from "@/lib/serverAnalytics";
 
 const GO_API_BASE_URL = process.env.GO_API_BASE_URL ?? "http://localhost:8080";
-
-function getCookieValue(cookieHeader: string, key: string): string | null {
-  const parts = cookieHeader.split(";").map((part) => part.trim());
-  for (const part of parts) {
-    const [cookieKey, ...rest] = part.split("=");
-    if (cookieKey === key) {
-      return decodeURIComponent(rest.join("="));
-    }
-  }
-  return null;
-}
-
-function detectDeviceType(userAgent: string): "mobile" | "desktop" | "tablet" | "unknown" {
-  const ua = userAgent.toLowerCase();
-  if (!ua) return "unknown";
-  if (ua.includes("ipad") || ua.includes("tablet")) return "tablet";
-  if (ua.includes("mobile") || ua.includes("android") || ua.includes("iphone")) return "mobile";
-  return "desktop";
-}
 
 async function apiFetchWithToken<T>(
   token: string,
@@ -92,20 +73,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Log event
-    logEvent("save_clicked", { is_logged_in: true });
-
-    const cookieHeader = request.headers.get("cookie") ?? "";
-    const sessionId = getCookieValue(cookieHeader, "widia_session_id");
-    const analyticsHeaders = new Headers();
-    if (sessionId) {
-      analyticsHeaders.set("X-Widia-Session-ID", sessionId);
-    }
-    analyticsHeaders.set("X-Widia-Path", "/calculator");
-    analyticsHeaders.set(
-      "X-Widia-Device",
-      detectDeviceType(request.headers.get("user-agent") ?? ""),
-    );
+    const analyticsHeaders = buildForwardedAnalyticsHeaders(request);
 
     // Step 1: Get user's workspace
     const workspacesRes = await apiFetchWithToken<{ items: { id: string }[] }>(
@@ -183,10 +151,14 @@ export async function POST(request: Request) {
       },
     );
 
-    // Log success
-    logEvent("property_saved", {
-      property_id: property.id,
-      snapshot_id: snapshot.snapshot_id,
+    await trackServerEvent(request, {
+      event: "property_saved",
+      token,
+      workspaceId,
+      properties: {
+        property_id: property.id,
+        snapshot_id: snapshot.snapshot_id,
+      },
     });
 
     return NextResponse.json({

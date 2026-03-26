@@ -53,7 +53,7 @@
 * **Current Checkpoint:** `CP-17 — Market Data SP (Tabela MVP) — ALCANÇADO`
 * **Milestone em andamento:** `M17a — Oferta Inteligente em 60s (execução pós-MVP)`
 * **Próximo milestone (planejado):** `M17 — Market Data SP (Mapa Geográfico)`
-* **Última atualização:** `2026-03-04`
+* **Última atualização:** `2026-03-25`
 
 ## 1.2 Milestones (visão macro)
 
@@ -1276,6 +1276,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-17` — 2026-03-04 — Ajustes de UX e mensagem da Oferta Inteligente: texto de erro de campos obrigatórios traduzido para pt-BR com guidance por campo, histórico passou a recarregar ao abrir modal, ação de excluir oferta adicionada no histórico, e mensagem para corretor via WhatsApp migrada para formato conversacional com tentativa OpenRouter + fallback determinístico.
 * `CP-17` — 2026-03-04 — Hotfix na edição de prospect: limpeza de campos textuais (ex.: `comments`) agora persiste corretamente como vazio ao salvar no modal (frontend passou a enviar strings vazias no update).
 * `CP-17` — 2026-03-04 — Estabilização de testes da API + estilo Go: suíte `go test ./...` voltou a verde após atualizar testes de `market_ingest` e `offer_intelligence` para os contratos atuais, e `gofmt` aplicado nos arquivos pendentes do serviço `api`.
+* `CP-17` — 2026-03-25 — WID-38 entregue: saneamento do funil com owner único por evento, helper server-safe no Next para tracking/forward de contexto, Oferta Inteligente reaproveitando `session_id/request_id/path/device`, admin usando jornadas únicas (`rawTotals`, `duplicateDeltas`, `warnings`) e definições oficiais documentadas em `docs/FUNNEL_KPI_DEFINITIONS.md`.
 
 ---
 

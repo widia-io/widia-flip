@@ -311,6 +311,38 @@ func TestHandleOfferIntelligenceHistoryPaywallAfterFirstPreview(t *testing.T) {
 	}
 }
 
+func TestTrackOfferEventUsesRequestContext(t *testing.T) {
+	a, mock, cleanup := newOfferIntelligenceTestAPI(t)
+	defer cleanup()
+
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO flip.funnel_events")).
+		WithArgs(
+			"offer_intelligence_generated",
+			"sess-real-1",
+			"user-1",
+			"workspace-1",
+			"control",
+			"prospect_modal",
+			"mobile",
+			"/app/prospects",
+			"req-123",
+			true,
+			sqlmock.AnyArg(),
+			sqlmock.AnyArg(),
+		).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	req := authedJSONRequest(http.MethodPost, "/api/v1/prospects/prospect-1/offer-intelligence/generate", `{}`, "user-1")
+	req.Header.Set("X-Widia-Session-ID", "sess-real-1")
+	req.Header.Set("X-Widia-Path", "/app/prospects")
+	req.Header.Set("X-Widia-Device", "mobile")
+	req.Header.Set("X-Request-ID", "req-123")
+
+	a.trackOfferEvent(req, "user-1", "workspace-1", "offer_intelligence_generated", "prospect_modal", map[string]any{
+		"prospect_id": "prospect-1",
+	})
+}
+
 func newOfferIntelligenceTestAPI(t *testing.T) (*api, sqlmock.Sqlmock, func()) {
 	t.Helper()
 

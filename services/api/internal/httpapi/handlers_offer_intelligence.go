@@ -186,7 +186,7 @@ func (a *api) handleOfferIntelligenceGenerate(w http.ResponseWriter, r *http.Req
 			Message: "too many offer intelligence generate requests",
 			Details: []string{"retry_after_seconds=" + strconv.Itoa(retryAfterSec)},
 		})
-		a.trackOfferEvent(r.Context(), userID, prospect.WorkspaceID, "offer_intelligence_rate_limited", req.Source, map[string]any{
+		a.trackOfferEvent(r, userID, prospect.WorkspaceID, "offer_intelligence_rate_limited", req.Source, map[string]any{
 			"prospect_id": prospect.ID,
 			"retry_after": retryAfterSec,
 		})
@@ -201,7 +201,7 @@ func (a *api) handleOfferIntelligenceGenerate(w http.ResponseWriter, r *http.Req
 				Message: "missing critical inputs",
 				Details: missing.Fields,
 			})
-			a.trackOfferEvent(r.Context(), userID, prospect.WorkspaceID, "offer_intelligence_blocked_missing_inputs", req.Source, map[string]any{
+			a.trackOfferEvent(r, userID, prospect.WorkspaceID, "offer_intelligence_blocked_missing_inputs", req.Source, map[string]any{
 				"prospect_id":    prospect.ID,
 				"missing_fields": missing.Fields,
 			})
@@ -251,18 +251,24 @@ func (a *api) handleOfferIntelligenceGenerate(w http.ResponseWriter, r *http.Req
 		"defaults_count":    len(preview.DefaultsUsed),
 		"owner_user_id":     ownerUserID,
 	}
-	a.trackOfferEvent(r.Context(), userID, prospect.WorkspaceID, "offer_intelligence_generated", req.Source, eventProps)
+	a.trackOfferEvent(r, userID, prospect.WorkspaceID, "offer_intelligence_generated", req.Source, eventProps)
 	if req.Source == "history_regenerate" {
-		a.trackOfferEvent(r.Context(), userID, prospect.WorkspaceID, "offer_intelligence_regenerated", req.Source, eventProps)
+		a.trackOfferEvent(r, userID, prospect.WorkspaceID, "offer_intelligence_regenerated", req.Source, eventProps)
+	}
+	if !preview.Gating.FullAccess {
+		a.trackOfferEvent(r, userID, prospect.WorkspaceID, "offer_intelligence_paywall_viewed", "generate_limited", map[string]any{
+			"prospect_id": prospect.ID,
+			"tier":        billing.Tier,
+		})
 	}
 	if len(preview.Assumptions) > 0 {
-		a.trackOfferEvent(r.Context(), userID, prospect.WorkspaceID, "offer_intelligence_assumptions_used", req.Source, map[string]any{
+		a.trackOfferEvent(r, userID, prospect.WorkspaceID, "offer_intelligence_assumptions_used", req.Source, map[string]any{
 			"prospect_id":       prospect.ID,
 			"assumptions_count": len(preview.Assumptions),
 		})
 	}
 	if preview.Decision == string(offerintelligence.DecisionReview) {
-		a.trackOfferEvent(r.Context(), userID, prospect.WorkspaceID, "offer_decision_review_reason", req.Source, map[string]any{
+		a.trackOfferEvent(r, userID, prospect.WorkspaceID, "offer_decision_review_reason", req.Source, map[string]any{
 			"prospect_id":  prospect.ID,
 			"reason_codes": preview.ReasonCodes,
 			"decision":     preview.Decision,
@@ -415,7 +421,7 @@ func (a *api) handleOfferIntelligenceSave(w http.ResponseWriter, r *http.Request
 	}
 
 	_, billing, _ := a.getWorkspaceOwnerBilling(r.Context(), prospect.WorkspaceID)
-	a.trackOfferEvent(r.Context(), userID, prospect.WorkspaceID, "offer_intelligence_saved", req.Source, map[string]any{
+	a.trackOfferEvent(r, userID, prospect.WorkspaceID, "offer_intelligence_saved", req.Source, map[string]any{
 		"prospect_id":             prospect.ID,
 		"offer_recommendation_id": recommendationID,
 		"decision":                string(result.Decision),
@@ -471,7 +477,7 @@ func (a *api) handleOfferIntelligenceHistory(w http.ResponseWriter, r *http.Requ
 			"Histórico completo da Oferta Inteligente disponível em planos Pro e Growth.",
 			enforcementDetails{Tier: billing.Tier, Metric: "offer_intelligence_history"},
 		)
-		a.trackOfferEvent(r.Context(), userID, prospect.WorkspaceID, "offer_intelligence_paywall_viewed", "history", map[string]any{
+		a.trackOfferEvent(r, userID, prospect.WorkspaceID, "offer_intelligence_paywall_viewed", "history", map[string]any{
 			"prospect_id": prospect.ID,
 			"tier":        billing.Tier,
 		})
@@ -700,7 +706,7 @@ func (a *api) handleOfferIntelligenceDelete(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	a.trackOfferEvent(r.Context(), userID, prospect.WorkspaceID, "offer_intelligence_deleted", "history", map[string]any{
+	a.trackOfferEvent(r, userID, prospect.WorkspaceID, "offer_intelligence_deleted", "history", map[string]any{
 		"prospect_id":             prospect.ID,
 		"offer_recommendation_id": recommendationID,
 	})
@@ -1266,7 +1272,7 @@ func dedupeStringSlice(values []string) []string {
 	return result
 }
 
-func (a *api) trackOfferEvent(ctx context.Context, userID, workspaceID, eventName, source string, metadata map[string]any) {
+func (a *api) trackOfferEvent(r *http.Request, userID, workspaceID, eventName, source string, metadata map[string]any) {
 	if userID == "" || workspaceID == "" || eventName == "" {
 		return
 	}
@@ -1275,17 +1281,23 @@ func (a *api) trackOfferEvent(ctx context.Context, userID, workspaceID, eventNam
 	}
 	uid := userID
 	wid := workspaceID
+	requestID := strings.TrimSpace(r.Header.Get("X-Request-ID"))
 
-	_ = a.insertFunnelEvent(ctx, funnelEventInsert{
+	var requestIDPtr *string
+	if requestID != "" {
+		requestIDPtr = &requestID
+	}
+
+	_ = a.insertFunnelEvent(r.Context(), funnelEventInsert{
 		EventName:       eventName,
-		SessionID:       normalizeSessionID("", ""),
+		SessionID:       normalizeSessionID(r.Header.Get("X-Widia-Session-ID"), requestID),
 		UserID:          &uid,
 		WorkspaceID:     &wid,
 		Variant:         "control",
 		Source:          source,
-		DeviceType:      "unknown",
-		Path:            "/app/prospects",
-		RequestID:       nil,
+		DeviceType:      normalizeDevice(r.Header.Get("X-Widia-Device"), r.Header.Get("User-Agent")),
+		Path:            normalizePath(r.Header.Get("X-Widia-Path")),
+		RequestID:       requestIDPtr,
 		IsAuthenticated: true,
 		Metadata:        metadata,
 		EventAt:         time.Now().UTC(),

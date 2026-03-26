@@ -8,6 +8,7 @@ import {
 } from "@widia/shared";
 
 import { getServerAccessToken, getServerSession } from "@/lib/serverAuth";
+import { buildForwardedAnalyticsHeaders } from "@/lib/serverAnalytics";
 
 const GO_API_BASE_URL = process.env.GO_API_BASE_URL ?? "http://localhost:8080";
 
@@ -58,10 +59,10 @@ export async function GET(
       `${GO_API_BASE_URL}/api/v1/prospects/${id}/offer-intelligence/history?${query.toString()}`,
       {
         method: "GET",
-        headers: {
+        headers: buildForwardedAnalyticsHeaders(request, {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
-        },
+        }),
         cache: "no-store",
       },
     );

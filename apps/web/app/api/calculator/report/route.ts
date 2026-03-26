@@ -4,7 +4,8 @@ import {
   PublicCalculatorLeadRequestSchema,
   PublicCalculatorLeadResponseSchema,
 } from "@widia/shared";
-import { EVENTS, logEvent } from "@/lib/analytics";
+import { EVENTS } from "@/lib/analytics";
+import { buildForwardedAnalyticsHeaders, trackServerEvent } from "@/lib/serverAnalytics";
 
 const GO_API_BASE_URL = process.env.GO_API_BASE_URL ?? "http://localhost:8080";
 
@@ -36,15 +37,9 @@ export async function POST(request: Request) {
       );
     }
 
-    logEvent(EVENTS.LEAD_CAPTURE_SUBMITTED, {
-      has_purchase_price: parsed.data.purchase_price !== undefined,
-      has_sale_price: parsed.data.sale_price !== undefined,
-      marketing_consent: parsed.data.marketingConsent,
-    });
-
     const res = await fetch(`${GO_API_BASE_URL}/api/v1/public/calculator-leads`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: buildForwardedAnalyticsHeaders(request, { "Content-Type": "application/json" }),
       body: JSON.stringify(parsed.data),
     });
 
@@ -91,8 +86,20 @@ export async function POST(request: Request) {
       );
     }
 
-    logEvent(EVENTS.FULL_REPORT_UNLOCKED, {
-      lead_id: parsedResponse.data.lead_id,
+    await trackServerEvent(request, {
+      event: EVENTS.LEAD_CAPTURE_SUBMITTED,
+      properties: {
+        lead_id: parsedResponse.data.lead_id,
+        has_purchase_price: parsed.data.purchase_price !== undefined,
+        has_sale_price: parsed.data.sale_price !== undefined,
+        marketing_consent: parsed.data.marketingConsent,
+      },
+    });
+    await trackServerEvent(request, {
+      event: EVENTS.FULL_REPORT_UNLOCKED,
+      properties: {
+        lead_id: parsedResponse.data.lead_id,
+      },
     });
 
     return NextResponse.json(parsedResponse.data);

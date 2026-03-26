@@ -13,7 +13,7 @@ export function AuthPageFunnelTracker({ success }: AuthPageFunnelTrackerProps) {
     ensureAnalyticsSessionId();
 
     if (!success) return;
-    if (success !== "verify_email" && success !== "account_created") return;
+    if (success !== "verify_email") return;
 
     const key = `widia_signup_completed_${success}`;
     if (window.sessionStorage.getItem(key)) return;

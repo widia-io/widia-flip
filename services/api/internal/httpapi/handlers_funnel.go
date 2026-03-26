@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/widia-projects/widia-flip/services/api/internal/auth"
 )
 
@@ -44,22 +46,7 @@ type funnelEventInsert struct {
 	EventAt         time.Time
 }
 
-type adminFunnelDailyItem struct {
-	Date                               string `json:"date"`
-	HomeViews                          int    `json:"homeViews"`
-	SignupStarted                      int    `json:"signupStarted"`
-	SignupCompleted                    int    `json:"signupCompleted"`
-	LoginCompleted                     int    `json:"loginCompleted"`
-	FirstSnapshotSaved                 int    `json:"firstSnapshotSaved"`
-	CalculatorFullReportRequested      int    `json:"calculatorFullReportRequested"`
-	CalculatorSaveClicked              int    `json:"calculatorSaveClicked"`
-	OfferIntelligenceGenerated         int    `json:"offerIntelligenceGenerated"`
-	OfferIntelligenceSaved             int    `json:"offerIntelligenceSaved"`
-	OfferIntelligencePaywallViewed     int    `json:"offerIntelligencePaywallViewed"`
-	OfferIntelligenceUpgradeCtaClicked int    `json:"offerIntelligenceUpgradeCtaClicked"`
-}
-
-type adminFunnelDailyTotals struct {
+type adminFunnelCounts struct {
 	HomeViews                          int `json:"homeViews"`
 	SignupStarted                      int `json:"signupStarted"`
 	SignupCompleted                    int `json:"signupCompleted"`
@@ -71,6 +58,11 @@ type adminFunnelDailyTotals struct {
 	OfferIntelligenceSaved             int `json:"offerIntelligenceSaved"`
 	OfferIntelligencePaywallViewed     int `json:"offerIntelligencePaywallViewed"`
 	OfferIntelligenceUpgradeCtaClicked int `json:"offerIntelligenceUpgradeCtaClicked"`
+}
+
+type adminFunnelDailyItem struct {
+	Date string `json:"date"`
+	adminFunnelCounts
 }
 
 type adminFunnelDailyRates struct {
@@ -87,10 +79,36 @@ type adminFunnelDailyRates struct {
 }
 
 type adminFunnelDailyResponse struct {
-	Days   int                    `json:"days"`
-	Items  []adminFunnelDailyItem `json:"items"`
-	Totals adminFunnelDailyTotals `json:"totals"`
-	Rates  adminFunnelDailyRates  `json:"rates"`
+	Days            int                    `json:"days"`
+	Items           []adminFunnelDailyItem `json:"items"`
+	Totals          adminFunnelCounts      `json:"totals"`
+	RawTotals       adminFunnelCounts      `json:"rawTotals"`
+	DuplicateDeltas adminFunnelCounts      `json:"duplicateDeltas"`
+	Rates           adminFunnelDailyRates  `json:"rates"`
+	Warnings        []string               `json:"warnings"`
+}
+
+type adminFunnelEventRow struct {
+	ID        string
+	EventName string
+	Day       time.Time
+	SessionID string
+	UserID    sql.NullString
+	RequestID sql.NullString
+}
+
+var adminFunnelTrackedEvents = []string{
+	"home_view",
+	"signup_started",
+	"signup_completed",
+	"login_completed",
+	"first_snapshot_saved",
+	"calculator_full_report_requested",
+	"calculator_save_clicked",
+	"offer_intelligence_generated",
+	"offer_intelligence_saved",
+	"offer_intelligence_paywall_viewed",
+	"offer_intelligence_upgrade_cta_clicked",
 }
 
 func (a *api) handlePublicFunnelEvent(w http.ResponseWriter, r *http.Request) {
@@ -230,49 +248,30 @@ func (a *api) handleAdminFunnelDaily(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	location, err := time.LoadLocation("America/Sao_Paulo")
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, apiError{
+			Code:    "INTERNAL_ERROR",
+			Message: "failed to load reporting timezone",
+		})
+		return
+	}
+
+	windowStartUTC, windowEndUTC, dayKeys := buildAdminFunnelWindow(days, location)
 	rows, err := a.db.QueryContext(r.Context(), `
-		WITH days AS (
-			SELECT generate_series(
-				((now() AT TIME ZONE 'America/Sao_Paulo')::date - ($1::int - 1)),
-				(now() AT TIME ZONE 'America/Sao_Paulo')::date,
-				'1 day'::interval
-			)::date AS day
-		),
-		agg AS (
-			SELECT
-				(event_at AT TIME ZONE 'America/Sao_Paulo')::date AS day,
-				COUNT(*) FILTER (WHERE event_name = 'home_view') AS home_views,
-				COUNT(*) FILTER (WHERE event_name = 'signup_started') AS signup_started,
-				COUNT(*) FILTER (WHERE event_name = 'signup_completed') AS signup_completed,
-				COUNT(*) FILTER (WHERE event_name = 'login_completed') AS login_completed,
-				COUNT(*) FILTER (WHERE event_name = 'first_snapshot_saved') AS first_snapshot_saved,
-				COUNT(*) FILTER (WHERE event_name = 'calculator_full_report_requested') AS calculator_full_report_requested,
-				COUNT(*) FILTER (WHERE event_name = 'calculator_save_clicked') AS calculator_save_clicked,
-				COUNT(*) FILTER (WHERE event_name = 'offer_intelligence_generated') AS offer_intelligence_generated,
-				COUNT(*) FILTER (WHERE event_name = 'offer_intelligence_saved') AS offer_intelligence_saved,
-				COUNT(*) FILTER (WHERE event_name = 'offer_intelligence_paywall_viewed') AS offer_intelligence_paywall_viewed,
-				COUNT(*) FILTER (WHERE event_name = 'offer_intelligence_upgrade_cta_clicked') AS offer_intelligence_upgrade_cta_clicked
-			FROM flip.funnel_events
-			WHERE event_at >= (now() - ($1::int * INTERVAL '1 day'))
-			GROUP BY 1
-		)
 		SELECT
-			d.day,
-			COALESCE(a.home_views, 0),
-			COALESCE(a.signup_started, 0),
-			COALESCE(a.signup_completed, 0),
-			COALESCE(a.login_completed, 0),
-			COALESCE(a.first_snapshot_saved, 0),
-			COALESCE(a.calculator_full_report_requested, 0),
-			COALESCE(a.calculator_save_clicked, 0),
-			COALESCE(a.offer_intelligence_generated, 0),
-			COALESCE(a.offer_intelligence_saved, 0),
-			COALESCE(a.offer_intelligence_paywall_viewed, 0),
-			COALESCE(a.offer_intelligence_upgrade_cta_clicked, 0)
-		FROM days d
-		LEFT JOIN agg a ON a.day = d.day
-		ORDER BY d.day ASC
-	`, days)
+			id::text,
+			event_name,
+			(event_at AT TIME ZONE 'America/Sao_Paulo')::date AS day,
+			session_id,
+			user_id::text,
+			request_id
+		FROM flip.funnel_events
+		WHERE event_at >= $1
+		  AND event_at < $2
+		  AND event_name = ANY($3)
+		ORDER BY event_at ASC
+	`, windowStartUTC, windowEndUTC, pq.Array(adminFunnelTrackedEvents))
 	if err != nil {
 		log.Printf("admin funnel daily: query error: %v", err)
 		writeError(w, http.StatusInternalServerError, apiError{
@@ -283,24 +282,28 @@ func (a *api) handleAdminFunnelDaily(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	items := make([]adminFunnelDailyItem, 0, days)
-	totals := adminFunnelDailyTotals{}
+	itemsByDate := make(map[string]*adminFunnelDailyItem, len(dayKeys))
+	items := make([]adminFunnelDailyItem, len(dayKeys))
+	for index, dayKey := range dayKeys {
+		items[index] = adminFunnelDailyItem{Date: dayKey}
+		itemsByDate[dayKey] = &items[index]
+	}
+
+	rawTotals := adminFunnelCounts{}
+	totals := adminFunnelCounts{}
+	dailySeen := make(map[string]map[string]map[string]struct{}, len(dayKeys))
+	totalSeen := make(map[string]map[string]struct{}, len(adminFunnelTrackedEvents))
+	legacySyntheticRows := 0
+
 	for rows.Next() {
-		var day time.Time
-		var item adminFunnelDailyItem
+		var row adminFunnelEventRow
 		if err := rows.Scan(
-			&day,
-			&item.HomeViews,
-			&item.SignupStarted,
-			&item.SignupCompleted,
-			&item.LoginCompleted,
-			&item.FirstSnapshotSaved,
-			&item.CalculatorFullReportRequested,
-			&item.CalculatorSaveClicked,
-			&item.OfferIntelligenceGenerated,
-			&item.OfferIntelligenceSaved,
-			&item.OfferIntelligencePaywallViewed,
-			&item.OfferIntelligenceUpgradeCtaClicked,
+			&row.ID,
+			&row.EventName,
+			&row.Day,
+			&row.SessionID,
+			&row.UserID,
+			&row.RequestID,
 		); err != nil {
 			log.Printf("admin funnel daily: scan error: %v", err)
 			writeError(w, http.StatusInternalServerError, apiError{
@@ -310,40 +313,56 @@ func (a *api) handleAdminFunnelDaily(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		item.Date = day.Format("2006-01-02")
-		items = append(items, item)
+		rawTotals.increment(row.EventName)
+		dateKey := row.Day.Format("2006-01-02")
+		journeyKey := buildAdminFunnelJourneyKey(row)
 
-		totals.HomeViews += item.HomeViews
-		totals.SignupStarted += item.SignupStarted
-		totals.SignupCompleted += item.SignupCompleted
-		totals.LoginCompleted += item.LoginCompleted
-		totals.FirstSnapshotSaved += item.FirstSnapshotSaved
-		totals.CalculatorFullReportRequested += item.CalculatorFullReportRequested
-		totals.CalculatorSaveClicked += item.CalculatorSaveClicked
-		totals.OfferIntelligenceGenerated += item.OfferIntelligenceGenerated
-		totals.OfferIntelligenceSaved += item.OfferIntelligenceSaved
-		totals.OfferIntelligencePaywallViewed += item.OfferIntelligencePaywallViewed
-		totals.OfferIntelligenceUpgradeCtaClicked += item.OfferIntelligenceUpgradeCtaClicked
+		if strings.HasPrefix(strings.TrimSpace(row.SessionID), "srv_") && !row.RequestID.Valid && row.UserID.Valid {
+			legacySyntheticRows++
+		}
+
+		if _, ok := dailySeen[dateKey]; !ok {
+			dailySeen[dateKey] = make(map[string]map[string]struct{})
+		}
+		if _, ok := dailySeen[dateKey][row.EventName]; !ok {
+			dailySeen[dateKey][row.EventName] = make(map[string]struct{})
+		}
+		if _, ok := dailySeen[dateKey][row.EventName][journeyKey]; !ok {
+			dailySeen[dateKey][row.EventName][journeyKey] = struct{}{}
+			if item := itemsByDate[dateKey]; item != nil {
+				item.increment(row.EventName)
+			}
+		}
+
+		if _, ok := totalSeen[row.EventName]; !ok {
+			totalSeen[row.EventName] = make(map[string]struct{})
+		}
+		if _, ok := totalSeen[row.EventName][journeyKey]; !ok {
+			totalSeen[row.EventName][journeyKey] = struct{}{}
+			totals.increment(row.EventName)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		log.Printf("admin funnel daily: rows error: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{
+			Code:    "DB_ERROR",
+			Message: "failed to read funnel metrics",
+		})
+		return
 	}
 
-	rates := adminFunnelDailyRates{
-		HomeToSignupStartPct:       percent(totals.SignupStarted, totals.HomeViews),
-		SignupStartToCompletePct:   percent(totals.SignupCompleted, totals.SignupStarted),
-		SignupCompleteToLoginPct:   percent(totals.LoginCompleted, totals.SignupCompleted),
-		LoginToFirstSnapshotPct:    percent(totals.FirstSnapshotSaved, totals.LoginCompleted),
-		HomeToFirstSnapshotPct:     percent(totals.FirstSnapshotSaved, totals.HomeViews),
-		CalculatorToSaveClickPct:   percent(totals.CalculatorSaveClicked, totals.CalculatorFullReportRequested),
-		CalculatorToReportReqPct:   percent(totals.CalculatorFullReportRequested, totals.HomeViews),
-		OfferGeneratedToSavedPct:   percent(totals.OfferIntelligenceSaved, totals.OfferIntelligenceGenerated),
-		OfferGeneratedToPaywallPct: percent(totals.OfferIntelligencePaywallViewed, totals.OfferIntelligenceGenerated),
-		OfferPaywallToUpgradePct:   percent(totals.OfferIntelligenceUpgradeCtaClicked, totals.OfferIntelligencePaywallViewed),
-	}
+	duplicateDeltas := rawTotals.subtract(totals)
+	rates := buildAdminFunnelRates(totals)
+	warnings := buildAdminFunnelWarnings(rawTotals, duplicateDeltas, rates, legacySyntheticRows)
 
 	writeJSON(w, http.StatusOK, adminFunnelDailyResponse{
-		Days:   days,
-		Items:  items,
-		Totals: totals,
-		Rates:  rates,
+		Days:            days,
+		Items:           items,
+		Totals:          totals,
+		RawTotals:       rawTotals,
+		DuplicateDeltas: duplicateDeltas,
+		Rates:           rates,
+		Warnings:        warnings,
 	})
 }
 
@@ -560,4 +579,135 @@ func truncateString(raw string, maxLen int) string {
 		return raw
 	}
 	return raw[:maxLen]
+}
+
+func (c *adminFunnelCounts) increment(eventName string) {
+	switch eventName {
+	case "home_view":
+		c.HomeViews++
+	case "signup_started":
+		c.SignupStarted++
+	case "signup_completed":
+		c.SignupCompleted++
+	case "login_completed":
+		c.LoginCompleted++
+	case "first_snapshot_saved":
+		c.FirstSnapshotSaved++
+	case "calculator_full_report_requested":
+		c.CalculatorFullReportRequested++
+	case "calculator_save_clicked":
+		c.CalculatorSaveClicked++
+	case "offer_intelligence_generated":
+		c.OfferIntelligenceGenerated++
+	case "offer_intelligence_saved":
+		c.OfferIntelligenceSaved++
+	case "offer_intelligence_paywall_viewed":
+		c.OfferIntelligencePaywallViewed++
+	case "offer_intelligence_upgrade_cta_clicked":
+		c.OfferIntelligenceUpgradeCtaClicked++
+	}
+}
+
+func (c adminFunnelCounts) subtract(other adminFunnelCounts) adminFunnelCounts {
+	return adminFunnelCounts{
+		HomeViews:                          c.HomeViews - other.HomeViews,
+		SignupStarted:                      c.SignupStarted - other.SignupStarted,
+		SignupCompleted:                    c.SignupCompleted - other.SignupCompleted,
+		LoginCompleted:                     c.LoginCompleted - other.LoginCompleted,
+		FirstSnapshotSaved:                 c.FirstSnapshotSaved - other.FirstSnapshotSaved,
+		CalculatorFullReportRequested:      c.CalculatorFullReportRequested - other.CalculatorFullReportRequested,
+		CalculatorSaveClicked:              c.CalculatorSaveClicked - other.CalculatorSaveClicked,
+		OfferIntelligenceGenerated:         c.OfferIntelligenceGenerated - other.OfferIntelligenceGenerated,
+		OfferIntelligenceSaved:             c.OfferIntelligenceSaved - other.OfferIntelligenceSaved,
+		OfferIntelligencePaywallViewed:     c.OfferIntelligencePaywallViewed - other.OfferIntelligencePaywallViewed,
+		OfferIntelligenceUpgradeCtaClicked: c.OfferIntelligenceUpgradeCtaClicked - other.OfferIntelligenceUpgradeCtaClicked,
+	}
+}
+
+func (i *adminFunnelDailyItem) increment(eventName string) {
+	i.adminFunnelCounts.increment(eventName)
+}
+
+func buildAdminFunnelWindow(days int, location *time.Location) (time.Time, time.Time, []string) {
+	nowLocal := time.Now().In(location)
+	endLocal := time.Date(nowLocal.Year(), nowLocal.Month(), nowLocal.Day(), 0, 0, 0, 0, location)
+	startLocal := endLocal.AddDate(0, 0, -(days - 1))
+
+	labels := make([]string, 0, days)
+	for current := startLocal; !current.After(endLocal); current = current.AddDate(0, 0, 1) {
+		labels = append(labels, current.Format("2006-01-02"))
+	}
+
+	return startLocal.UTC(), endLocal.AddDate(0, 0, 1).UTC(), labels
+}
+
+func buildAdminFunnelJourneyKey(row adminFunnelEventRow) string {
+	sessionID := strings.TrimSpace(row.SessionID)
+	if sessionID != "" {
+		return sessionID
+	}
+	if row.UserID.Valid && strings.TrimSpace(row.UserID.String) != "" {
+		return "user:" + strings.TrimSpace(row.UserID.String)
+	}
+	if row.RequestID.Valid && strings.TrimSpace(row.RequestID.String) != "" {
+		return "request:" + strings.TrimSpace(row.RequestID.String)
+	}
+	return "event:" + row.ID
+}
+
+func buildAdminFunnelRates(totals adminFunnelCounts) adminFunnelDailyRates {
+	return adminFunnelDailyRates{
+		HomeToSignupStartPct:       percent(totals.SignupStarted, totals.HomeViews),
+		SignupStartToCompletePct:   percent(totals.SignupCompleted, totals.SignupStarted),
+		SignupCompleteToLoginPct:   percent(totals.LoginCompleted, totals.SignupCompleted),
+		LoginToFirstSnapshotPct:    percent(totals.FirstSnapshotSaved, totals.LoginCompleted),
+		HomeToFirstSnapshotPct:     percent(totals.FirstSnapshotSaved, totals.HomeViews),
+		CalculatorToSaveClickPct:   percent(totals.CalculatorSaveClicked, totals.CalculatorFullReportRequested),
+		CalculatorToReportReqPct:   percent(totals.CalculatorFullReportRequested, totals.HomeViews),
+		OfferGeneratedToSavedPct:   percent(totals.OfferIntelligenceSaved, totals.OfferIntelligenceGenerated),
+		OfferGeneratedToPaywallPct: percent(totals.OfferIntelligencePaywallViewed, totals.OfferIntelligenceGenerated),
+		OfferPaywallToUpgradePct:   percent(totals.OfferIntelligenceUpgradeCtaClicked, totals.OfferIntelligencePaywallViewed),
+	}
+}
+
+func buildAdminFunnelWarnings(
+	rawTotals adminFunnelCounts,
+	duplicateDeltas adminFunnelCounts,
+	rates adminFunnelDailyRates,
+	legacySyntheticRows int,
+) []string {
+	warnings := make([]string, 0, 3)
+
+	if rawTotals != duplicateDeltas && (duplicateDeltas.HomeViews > 0 ||
+		duplicateDeltas.SignupStarted > 0 ||
+		duplicateDeltas.SignupCompleted > 0 ||
+		duplicateDeltas.LoginCompleted > 0 ||
+		duplicateDeltas.FirstSnapshotSaved > 0 ||
+		duplicateDeltas.CalculatorFullReportRequested > 0 ||
+		duplicateDeltas.CalculatorSaveClicked > 0 ||
+		duplicateDeltas.OfferIntelligenceGenerated > 0 ||
+		duplicateDeltas.OfferIntelligenceSaved > 0 ||
+		duplicateDeltas.OfferIntelligencePaywallViewed > 0 ||
+		duplicateDeltas.OfferIntelligenceUpgradeCtaClicked > 0) {
+		warnings = append(warnings, "Eventos duplicados foram detectados na janela selecionada; os cards usam jornadas únicas e o diagnóstico mostra o volume bruto.")
+	}
+
+	if rates.HomeToSignupStartPct > 100 ||
+		rates.SignupStartToCompletePct > 100 ||
+		rates.SignupCompleteToLoginPct > 100 ||
+		rates.LoginToFirstSnapshotPct > 100 ||
+		rates.HomeToFirstSnapshotPct > 100 ||
+		rates.CalculatorToSaveClickPct > 100 ||
+		rates.CalculatorToReportReqPct > 100 ||
+		rates.OfferGeneratedToSavedPct > 100 ||
+		rates.OfferGeneratedToPaywallPct > 100 ||
+		rates.OfferPaywallToUpgradePct > 100 {
+		warnings = append(warnings, "A janela selecionada contém legado inconsistente; percentuais acima de 100% devem ser tratados como histórico contaminado e são ocultados no painel.")
+	}
+
+	if legacySyntheticRows > 0 {
+		warnings = append(warnings, "Parte do histórico foi registrada com session_id sintético server-side antes do saneamento do BFF; comparações antigas de Oferta Inteligente podem permanecer infladas.")
+	}
+
+	return warnings
 }

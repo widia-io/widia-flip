@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { EVENTS, logEvent } from "@/lib/analytics";
+import { EVENTS } from "@/lib/analytics";
 import type { BlogCtaTarget } from "@/lib/blog-source";
+import { trackServerEvent } from "@/lib/serverAnalytics";
 
 const VALID_TARGETS: ReadonlySet<BlogCtaTarget> = new Set(["calculator", "signup"]);
 const VALID_CTA_POSITIONS: ReadonlySet<string> = new Set(["hero", "mid", "footer"]);
@@ -23,7 +24,7 @@ function resolveTarget(rawValue: string | null): BlogCtaTarget | null {
     : null;
 }
 
-export function GET(request: NextRequest) {
+export async function GET(request: NextRequest) {
   const target = resolveTarget(request.nextUrl.searchParams.get("to"));
   const postSlug = sanitizeSlug(request.nextUrl.searchParams.get("post"));
   const ctaPosition = sanitizeCtaPosition(request.nextUrl.searchParams.get("cta"));
@@ -45,11 +46,14 @@ export function GET(request: NextRequest) {
   destinationUrl.searchParams.set("post", postSlug);
   destinationUrl.searchParams.set("cta", ctaPosition);
 
-  logEvent(EVENTS.BLOG_CTA_CLICK, {
+  await trackServerEvent(request, {
+    event: EVENTS.BLOG_CTA_CLICK,
     source: "blog",
-    post_slug: postSlug,
-    cta_position: ctaPosition,
-    to: target,
+    properties: {
+      post_slug: postSlug,
+      cta_position: ctaPosition,
+      to: target,
+    },
   });
 
   return NextResponse.redirect(destinationUrl);

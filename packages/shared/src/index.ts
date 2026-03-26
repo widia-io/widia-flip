@@ -1942,7 +1942,7 @@ export const AdminFunnelDailyItemSchema = z.object({
 });
 export type AdminFunnelDailyItem = z.infer<typeof AdminFunnelDailyItemSchema>;
 
-export const AdminFunnelDailyTotalsSchema = z.object({
+export const AdminFunnelCountsSchema = z.object({
   homeViews: z.number(),
   signupStarted: z.number(),
   signupCompleted: z.number(),
@@ -1955,7 +1955,7 @@ export const AdminFunnelDailyTotalsSchema = z.object({
   offerIntelligencePaywallViewed: z.number(),
   offerIntelligenceUpgradeCtaClicked: z.number(),
 });
-export type AdminFunnelDailyTotals = z.infer<typeof AdminFunnelDailyTotalsSchema>;
+export type AdminFunnelCounts = z.infer<typeof AdminFunnelCountsSchema>;
 
 export const AdminFunnelDailyRatesSchema = z.object({
   homeToSignupStartPct: z.number(),
@@ -1974,8 +1974,11 @@ export type AdminFunnelDailyRates = z.infer<typeof AdminFunnelDailyRatesSchema>;
 export const AdminFunnelDailyResponseSchema = z.object({
   days: z.number(),
   items: z.array(AdminFunnelDailyItemSchema),
-  totals: AdminFunnelDailyTotalsSchema,
+  totals: AdminFunnelCountsSchema,
+  rawTotals: AdminFunnelCountsSchema,
+  duplicateDeltas: AdminFunnelCountsSchema,
   rates: AdminFunnelDailyRatesSchema,
+  warnings: z.array(z.string()),
 });
 export type AdminFunnelDailyResponse = z.infer<typeof AdminFunnelDailyResponseSchema>;
 

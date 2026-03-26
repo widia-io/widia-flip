@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2,
@@ -230,7 +230,7 @@ export function ProspectViewModal({
     }
   };
 
-  const loadOfferHistory = async (reset = false, options?: { silentPaywall?: boolean }) => {
+  const loadOfferHistory = useCallback(async (reset = false, options?: { silentPaywall?: boolean }) => {
     if (!reset && (isOfferHistoryBlocked || (offerPreview != null && !offerPreview.gating.history_enabled))) {
       return;
     }
@@ -252,11 +252,6 @@ export function ProspectViewModal({
           setOfferError(e.message);
         }
         setIsOfferHistoryBlocked(true);
-        logEvent(EVENTS.OFFER_INTELLIGENCE_PAYWALL_VIEWED, {
-          workspace_id: prospect.workspace_id,
-          prospect_id: prospect.id,
-          source: "history",
-        });
       } else if (e instanceof OfferIntelligenceClientError) {
         setOfferError(e.message);
         setIsOfferHistoryBlocked(false);
@@ -267,7 +262,7 @@ export function ProspectViewModal({
     } finally {
       setIsOfferHistoryLoading(false);
     }
-  };
+  }, [isOfferHistoryBlocked, offerHistoryCursor, offerPreview, prospect.id]);
 
   const runOfferGenerate = async (source: "prospect_modal" | "history_regenerate" = "prospect_modal") => {
     setOfferError(null);
@@ -282,13 +277,6 @@ export function ProspectViewModal({
       setOfferHistoryCursor(null);
       setIsOfferHistoryBlocked(!preview.gating.history_enabled);
       setOfferMissingFields([]);
-      if (!preview.gating.full_access) {
-        logEvent(EVENTS.OFFER_INTELLIGENCE_PAYWALL_VIEWED, {
-          workspace_id: preview.workspace_id,
-          prospect_id: preview.prospect_id,
-          source: "generate_limited",
-        });
-      }
     } catch (e) {
       if (e instanceof OfferRateLimitedError) {
         setOfferRetryAfter(e.retryAfter ?? null);
@@ -300,11 +288,6 @@ export function ProspectViewModal({
       } else if (e instanceof OfferPaywallRequiredError) {
         setOfferError(e.message);
         setOfferMissingFields([]);
-        logEvent(EVENTS.OFFER_INTELLIGENCE_PAYWALL_VIEWED, {
-          workspace_id: prospect.workspace_id,
-          prospect_id: prospect.id,
-          source,
-        });
       } else if (e instanceof OfferIntelligenceClientError) {
         setOfferMissingFields(extractOfferMissingFields(e));
         setOfferError(formatOfferInputErrorMessage(e));
@@ -397,11 +380,6 @@ export function ProspectViewModal({
       await deleteOfferIntelligence(prospect.id, offerId);
       setOfferHistory((prev) => prev.filter((item) => item.id !== offerId));
       setOfferSuccess("Oferta removida do histórico.");
-      logEvent(EVENTS.OFFER_INTELLIGENCE_DELETED, {
-        workspace_id: prospect.workspace_id,
-        prospect_id: prospect.id,
-        source: "offer_history_delete",
-      });
     } catch (e) {
       if (e instanceof OfferIntelligenceClientError) {
         setOfferError(e.message);
@@ -555,7 +533,7 @@ export function ProspectViewModal({
   useEffect(() => {
     if (!open) return;
     void loadOfferHistory(true, { silentPaywall: true });
-  }, [open, prospect.id]);
+  }, [loadOfferHistory, open, prospect.id]);
 
   const formatCurrency = (value: number | null | undefined) => {
     if (value == null) return "-";
