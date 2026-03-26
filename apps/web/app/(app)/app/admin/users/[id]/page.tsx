@@ -144,7 +144,7 @@ export default async function AdminUserDetailPage({
         <CardContent>
           <UserActions
             userId={user.id}
-            currentTier={user.tier ?? "starter"}
+            currentTier={user.tier ?? "free"}
             isActive={user.isActive}
             isAdmin={user.isAdmin}
           />

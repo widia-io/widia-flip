@@ -46,7 +46,7 @@ export function UserActions({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [tier, setTier] = useState<BillingTier>(
-    (currentTier as BillingTier) || "starter"
+    (currentTier as BillingTier) || "free"
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -107,6 +107,7 @@ export function UserActions({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="free">Free</SelectItem>
               <SelectItem value="starter">Starter</SelectItem>
               <SelectItem value="pro">Pro</SelectItem>
               <SelectItem value="growth">Growth</SelectItem>

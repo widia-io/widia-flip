@@ -51,7 +51,7 @@
 ## 1.1 Current Checkpoint
 
 * **Current Checkpoint:** `CP-17 — Market Data SP (Tabela MVP) — ALCANÇADO`
-* **Milestone em andamento:** `M17a — Oferta Inteligente em 60s (execução pós-MVP)`
+* **Milestone em andamento:** `WID-39 — Plano Grátis + Reset de Trial (execução pós-MVP) — ENTREGUE`
 * **Próximo milestone (planejado):** `M17 — Market Data SP (Mapa Geográfico)`
 * **Última atualização:** `2026-03-25`
 
@@ -428,6 +428,16 @@ Deve existir:
 * ✅ T13.7 Unsubscribe público: rota `/unsubscribe/:token` que grava `marketing_opt_out_at`
 * ✅ T13.8 Admin UI: lista de campanhas + criar campanha + botão "Enviar agora" com confirmação
   **Checkpoint alvo:** `CP-14 — Email Marketing (Mini Mailchimp)` ✅
+
+### WID-39 — Plano Grátis + Reset de Trial (execução pós-MVP)
+
+* ✅ W39.1 Shared + DB: adicionar tier `free` e migration `0049_user_billing_free_tier`
+* ✅ W39.2 Go API: lazy-create de billing em `free/active`, `is_subscribed=false` para `free`, validações/maps/admin compatíveis
+* ✅ W39.3 Entitlements: limites do `free` definidos em `1` workspace, `5` prospects, `1` snapshot, `1` doc, `5` imports URL, `25MB` storage e `0` suppliers
+* ✅ W39.4 Checkout/Stripe: contrato pago-only (`starter/pro/growth`) mantido no BFF; `free` não entra no fluxo Stripe
+* ✅ W39.5 Paywall + Oferta Inteligente: `free` entra no cohort limitado de ativação; CTA de upgrade passa a começar em `starter`
+* ✅ W39.6 Web copy/UI: home, pricing, login/signup, billing, paywall, badges e onboarding migrados para a mensagem “começar grátis”
+* ✅ W39.7 Validação: `go test ./services/api/internal/httpapi/...`, `npm run typecheck:web` e `npm run build:web`
 
 ### M14 — Blog Público + SEO Content Engine
 
@@ -1277,6 +1287,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-17` — 2026-03-04 — Hotfix na edição de prospect: limpeza de campos textuais (ex.: `comments`) agora persiste corretamente como vazio ao salvar no modal (frontend passou a enviar strings vazias no update).
 * `CP-17` — 2026-03-04 — Estabilização de testes da API + estilo Go: suíte `go test ./...` voltou a verde após atualizar testes de `market_ingest` e `offer_intelligence` para os contratos atuais, e `gofmt` aplicado nos arquivos pendentes do serviço `api`.
 * `CP-17` — 2026-03-25 — WID-38 entregue: saneamento do funil com owner único por evento, helper server-safe no Next para tracking/forward de contexto, Oferta Inteligente reaproveitando `session_id/request_id/path/device`, admin usando jornadas únicas (`rawTotals`, `duplicateDeltas`, `warnings`) e definições oficiais documentadas em `docs/FUNNEL_KPI_DEFINITIONS.md`.
+* `CP-17` — 2026-03-25 — WID-39 entregue: novo tier `free` (`1` workspace, `5` prospects, `1` snapshot, `1` doc, `5` imports URL, `25MB`, `0` suppliers), fim do lazy-create em `pro trial`, checkout pago-only (`starter/pro/growth`), `is_subscribed=false` para `free`, gating/paywall da Oferta Inteligente incluindo `free`, cópia comercial migrada para “começar grátis” e validação concluída com `go test ./services/api/internal/httpapi/...`, `npm run typecheck:web` e `npm run build:web`.
 
 ---
 
@@ -1353,24 +1364,46 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 > * Limite de **workspaces** é por **usuário** (contagem absoluta de workspaces ativos).
 
 * **Workspaces ativos por usuário**
+  * Free: até **1**
   * Starter: até **1**
   * Pro: até **3**
   * Growth: até **10**
 
-* **Prospects por mês**
+* **Prospects**
+  * Free: até **5**
   * Starter: até **50**
   * Pro: até **300**
   * Growth: **ilimitado** (999999)
 
-* **Snapshots por mês** (cash + financing somados)
+* **Snapshots** (cash + financing somados)
+  * Free: até **1**
   * Starter: até **30**
   * Pro: até **200**
   * Growth: **ilimitado** (999999)
 
-* **Uploads de documentos por mês**
+* **Uploads de documentos**
+  * Free: até **1**
+  * Starter: até **5**
+  * Pro: até **50**
+  * Growth: até **200**
+
+* **Imports via URL**
+  * Free: até **5**
+  * Starter: até **5**
+  * Pro: até **50**
+  * Growth: **ilimitado** (999999)
+
+* **Storage**
+  * Free: até **25MB**
+  * Starter: até **100MB**
+  * Pro: até **2GB**
+  * Growth: até **20GB**
+
+* **Fornecedores por workspace**
+  * Free: até **0**
   * Starter: até **10**
-  * Pro: até **100**
-  * Growth: até **500**
+  * Pro: até **50**
+  * Growth: **ilimitado** (999999)
 
 ## 10.4 Métricas (definição objetiva)
 
@@ -1390,11 +1423,12 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 
 ### M10 — Billing Foundation (Stripe) + Entitlements (soft)
 
-* Stripe: criar **Products/Prices** para `starter/pro/growth` (mensal) e registrar `price_id` no app.
+* Stripe: criar **Products/Prices** apenas para `starter/pro/growth` (mensal/anual) e registrar `price_id` no app.
+* Novo usuário entra em `free/active` por default, sem Stripe e sem `trial_end`.
 * Fluxos:
   * `/app/workspaces/:id/billing` → “Assinar / trocar plano”
   * Checkout (Stripe Checkout Session) criado por Route Handler no Next
-  * Webhook Stripe atualiza `workspace_billing` (customer/subscription/status/tier)
+  * Webhook Stripe atualiza `user_billing` (customer/subscription/status/tier)
 * Entitlements v0:
   * API retorna `tier` + limites configurados (sem bloquear nada ainda)
   * UI exibe “Plano atual” (sem paywall)

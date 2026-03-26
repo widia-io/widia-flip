@@ -17,6 +17,7 @@ interface TierBadgeProps {
 }
 
 const TIER_LABELS: Record<string, string> = {
+  free: "Grátis",
   starter: "Essencial",
   pro: "Investidor",
   growth: "Profissional",
@@ -53,6 +54,10 @@ export function TierBadge({ entitlements }: TierBadgeProps) {
       content += ` \u2022 ${daysLeft}d`;
       tooltipText = `Seu período de teste termina em ${daysLeft} dia${daysLeft !== 1 ? "s" : ""}`;
     }
+  } else if (billing.tier === "free") {
+    variant = "outline";
+    content = "Grátis";
+    tooltipText = "Plano grátis ativo. Clique para ver limites e fazer upgrade.";
   } else if (status === "past_due" || status === "unpaid") {
     variant = "destructive";
     tooltipText = "Pagamento pendente - atualize sua forma de pagamento";

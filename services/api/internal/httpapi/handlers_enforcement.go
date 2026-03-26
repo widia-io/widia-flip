@@ -107,7 +107,7 @@ func (a *api) checkBillingStatus(ctx context.Context, userID string) (bool, user
 	billing, err := a.getUserBilling(ctx, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			// No billing record: auto-create with 14-day trial
+			// No billing record: auto-create with the free default tier.
 			billing, err = a.createDefaultBilling(ctx, userID)
 			if err != nil {
 				return false, userBilling{}, err
@@ -158,7 +158,7 @@ func (a *api) countUserWorkspaces(ctx context.Context, userID string) (int, erro
 func (a *api) checkWorkspaceCreationLimit(ctx context.Context, userID string, billing userBilling) (bool, int, int, string) {
 	limits := tierLimitsMap[billing.Tier]
 	if limits.MaxWorkspaces == 0 {
-		limits = tierLimitsMap["starter"]
+		limits = tierLimitsMap["free"]
 	}
 
 	count, err := a.countUserWorkspaces(ctx, userID)
@@ -175,7 +175,7 @@ func (a *api) checkWorkspaceCreationLimit(ctx context.Context, userID string, bi
 func (a *api) checkProspectCreationLimit(ctx context.Context, userID string, workspaceID string, billing userBilling) (bool, int, int, string, time.Time, time.Time) {
 	limits := tierLimitsMap[billing.Tier]
 	if limits.MaxProspectsPerMonth == 0 {
-		limits = tierLimitsMap["starter"]
+		limits = tierLimitsMap["free"]
 	}
 
 	periodStart, periodEnd, _ := a.getBillingPeriod(ctx, userID)
@@ -192,7 +192,7 @@ func (a *api) checkProspectCreationLimit(ctx context.Context, userID string, wor
 func (a *api) checkSnapshotCreationLimit(ctx context.Context, userID string, workspaceID string, billing userBilling) (bool, int, int, string, time.Time, time.Time) {
 	limits := tierLimitsMap[billing.Tier]
 	if limits.MaxSnapshotsPerMonth == 0 {
-		limits = tierLimitsMap["starter"]
+		limits = tierLimitsMap["free"]
 	}
 
 	periodStart, periodEnd, _ := a.getBillingPeriod(ctx, userID)
@@ -209,7 +209,7 @@ func (a *api) checkSnapshotCreationLimit(ctx context.Context, userID string, wor
 func (a *api) checkDocumentCreationLimit(ctx context.Context, userID string, workspaceID string, billing userBilling) (bool, int, int, string, time.Time, time.Time) {
 	limits := tierLimitsMap[billing.Tier]
 	if limits.MaxDocsPerMonth == 0 {
-		limits = tierLimitsMap["starter"]
+		limits = tierLimitsMap["free"]
 	}
 
 	periodStart, periodEnd, _ := a.getBillingPeriod(ctx, userID)
@@ -226,7 +226,7 @@ func (a *api) checkDocumentCreationLimit(ctx context.Context, userID string, wor
 func (a *api) checkURLImportLimit(ctx context.Context, userID string, workspaceID string, billing userBilling) (bool, int, int, string, time.Time, time.Time) {
 	limits := tierLimitsMap[billing.Tier]
 	if limits.MaxURLImportsPerMonth == 0 {
-		limits = tierLimitsMap["starter"]
+		limits = tierLimitsMap["free"]
 	}
 
 	periodStart, periodEnd, _ := a.getBillingPeriod(ctx, userID)
@@ -243,7 +243,7 @@ func (a *api) checkURLImportLimit(ctx context.Context, userID string, workspaceI
 func (a *api) checkStorageLimit(ctx context.Context, workspaceID string, billing userBilling, additionalBytes int64) (bool, int64, int64, string) {
 	limits := tierLimitsMap[billing.Tier]
 	if limits.MaxStorageBytes == 0 {
-		limits = tierLimitsMap["starter"]
+		limits = tierLimitsMap["free"]
 	}
 
 	storageUsed, err := a.getWorkspaceStorageUsed(ctx, workspaceID)

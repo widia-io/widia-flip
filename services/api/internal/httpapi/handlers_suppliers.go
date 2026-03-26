@@ -545,7 +545,7 @@ func (a *api) enforceSupplierCreation(w http.ResponseWriter, r *http.Request, us
 	// Get tier limits
 	limits := tierLimitsMap[billing.Tier]
 	if limits.MaxWorkspaces == 0 {
-		limits = tierLimitsMap["starter"]
+		limits = tierLimitsMap["free"]
 	}
 
 	// Count current suppliers in workspace

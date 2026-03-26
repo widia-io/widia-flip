@@ -120,6 +120,70 @@ func TestHandleOfferIntelligenceGenerateRateLimited(t *testing.T) {
 	}
 }
 
+func TestHandleOfferIntelligenceGenerateFreeGetsFirstFullPreview(t *testing.T) {
+	a, mock, cleanup := newOfferIntelligenceTestAPI(t)
+	defer cleanup()
+
+	const (
+		userID      = "user-1"
+		ownerUserID = "owner-1"
+		prospectID  = "prospect-1"
+		workspaceID = "workspace-1"
+	)
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM prospecting_properties p")).
+		WithArgs(prospectID, userID).
+		WillReturnRows(prospectRows(prospectID, workspaceID, float64Ptr(460000)))
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM workspace_settings")).
+		WithArgs(workspaceID).
+		WillReturnRows(workspaceSettingsRows(10, nil))
+
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT created_by_user_id FROM workspaces WHERE id = $1")).
+		WithArgs(workspaceID).
+		WillReturnRows(sqlmock.NewRows([]string{"created_by_user_id"}).AddRow(ownerUserID))
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM user_billing")).
+		WithArgs(ownerUserID).
+		WillReturnRows(userBillingRows(ownerUserID, "free", "active"))
+
+	mock.ExpectExec(regexp.QuoteMeta(`
+		UPDATE workspace_settings
+		SET offer_first_full_preview_consumed_at = NOW(),
+			offer_first_full_preview_user_id = $2,
+			updated_at = NOW()
+		WHERE workspace_id = $1
+		  AND offer_first_full_preview_consumed_at IS NULL
+	`)).
+		WithArgs(workspaceID, userID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	expectFunnelEventInsert(mock)
+
+	rr := httptest.NewRecorder()
+	req := authedJSONRequest(http.MethodPost, "/api/v1/prospects/"+prospectID+"/offer-intelligence/generate", `{}`, userID)
+	a.handleOfferIntelligenceGenerate(rr, req, prospectID)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status=%d want=%d body=%s", rr.Code, http.StatusOK, rr.Body.String())
+	}
+
+	var payload offerIntelligencePreviewResponse
+	if err := json.Unmarshal(rr.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("json.Unmarshal: %v body=%s", err, rr.Body.String())
+	}
+
+	if payload.Tier != "free" {
+		t.Fatalf("tier=%s want=free", payload.Tier)
+	}
+	if !payload.Gating.FullAccess || payload.Limited {
+		t.Fatalf("expected first free preview to be full access, got gating=%+v limited=%v", payload.Gating, payload.Limited)
+	}
+	if !payload.Gating.HistoryEnabled {
+		t.Fatalf("expected first free preview to keep history enabled in response")
+	}
+}
+
 func TestHandleOfferIntelligenceSaveAppendOnly(t *testing.T) {
 	a, mock, cleanup := newOfferIntelligenceTestAPI(t)
 	defer cleanup()
@@ -296,6 +360,49 @@ func TestHandleOfferIntelligenceHistoryPaywallAfterFirstPreview(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("FROM user_billing")).
 		WithArgs(ownerUserID).
 		WillReturnRows(userBillingRows(ownerUserID, "starter", "trialing"))
+
+	expectFunnelEventInsert(mock)
+
+	rr := httptest.NewRecorder()
+	req := authedJSONRequest(http.MethodGet, "/api/v1/prospects/"+prospectID+"/offer-intelligence/history", "", userID)
+	a.handleOfferIntelligenceHistory(rr, req, prospectID)
+
+	if rr.Code != StatusPaymentRequired {
+		t.Fatalf("status=%d want=%d body=%s", rr.Code, StatusPaymentRequired, rr.Body.String())
+	}
+	if got := decodeAPIErrorCode(t, rr); got != ErrCodePaywallRequired {
+		t.Fatalf("error.code=%s want=%s", got, ErrCodePaywallRequired)
+	}
+}
+
+func TestHandleOfferIntelligenceHistoryPaywallAfterFirstPreviewForFree(t *testing.T) {
+	a, mock, cleanup := newOfferIntelligenceTestAPI(t)
+	defer cleanup()
+
+	const (
+		userID      = "user-1"
+		ownerUserID = "owner-1"
+		prospectID  = "prospect-1"
+		workspaceID = "workspace-1"
+	)
+
+	consumedAt := time.Now().UTC().Add(-2 * time.Hour)
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM prospecting_properties p")).
+		WithArgs(prospectID, userID).
+		WillReturnRows(prospectRows(prospectID, workspaceID, float64Ptr(460000)))
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM workspace_settings")).
+		WithArgs(workspaceID).
+		WillReturnRows(workspaceSettingsRows(10, &consumedAt))
+
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT created_by_user_id FROM workspaces WHERE id = $1")).
+		WithArgs(workspaceID).
+		WillReturnRows(sqlmock.NewRows([]string{"created_by_user_id"}).AddRow(ownerUserID))
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM user_billing")).
+		WithArgs(ownerUserID).
+		WillReturnRows(userBillingRows(ownerUserID, "free", "active"))
 
 	expectFunnelEventInsert(mock)
 

@@ -133,10 +133,17 @@ func (a *api) handleFlipScoreRecompute(w http.ResponseWriter, r *http.Request, p
 		}
 
 		billing, err := a.getUserBilling(r.Context(), ownerUserID)
-		tier := "starter"
+		tier := "free"
 		if err == nil {
 			tier = billing.Tier
-		} else if err != sql.ErrNoRows {
+		} else if err == sql.ErrNoRows {
+			billing, err = a.createDefaultBilling(r.Context(), ownerUserID)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to initialize billing"})
+				return
+			}
+			tier = billing.Tier
+		} else {
 			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to check billing"})
 			return
 		}

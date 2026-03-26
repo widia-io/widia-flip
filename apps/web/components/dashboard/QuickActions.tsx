@@ -69,12 +69,12 @@ export function QuickActions({ hasWorkspaces }: QuickActionsProps) {
           </div>
           <div>
             <h3 className="font-semibold">
-              {hasWorkspaces ? "Criar novo projeto" : "Comece sua jornada"}
+              {hasWorkspaces ? "Criar novo projeto" : "Comece grátis"}
             </h3>
             <p className="text-sm text-muted-foreground">
               {hasWorkspaces
                 ? "Adicione mais um projeto"
-                : "Crie seu primeiro projeto para comecar"}
+                : "Crie seu primeiro projeto para validar um deal rapidamente"}
             </p>
           </div>
         </div>
@@ -155,7 +155,7 @@ export function QuickActions({ hasWorkspaces }: QuickActionsProps) {
           </div>
           <div className="relative flex justify-center">
             <span className="bg-gradient-to-r from-transparent via-background to-transparent px-4 text-xs text-muted-foreground">
-              ou experimente gratis
+              ou teste a calculadora grátis
             </span>
           </div>
         </div>
@@ -170,11 +170,11 @@ export function QuickActions({ hasWorkspaces }: QuickActionsProps) {
               <div className="flex items-center gap-2">
                 <span className="font-medium">Calculadora de Flip</span>
                 <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-600 dark:text-emerald-400">
-                  Gratis
+                  Grátis
                 </span>
               </div>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                Teste o calculo de viabilidade sem criar conta
+                Teste o cálculo de viabilidade sem criar conta
               </p>
             </div>
             <ArrowRight className="h-5 w-5 text-emerald-600 transition-transform group-hover:translate-x-1 dark:text-emerald-400" />

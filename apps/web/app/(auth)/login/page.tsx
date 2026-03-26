@@ -40,7 +40,7 @@ export default async function LoginPage(props: {
           </CardTitle>
           <CardDescription>
             {tab === "signup"
-              ? "Comece a gerenciar seus flips imobiliários"
+              ? "Crie sua conta grátis e chegue ao primeiro valor mais rápido"
               : "Entre para acessar sua conta"}
           </CardDescription>
         </CardHeader>
