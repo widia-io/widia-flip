@@ -118,8 +118,12 @@ export function SignupForm({
       </div>
 
       <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? "Criando conta..." : "Criar conta"}
+        {isPending ? "Criando conta..." : "Criar conta grátis"}
       </Button>
+
+      <p className="text-center text-xs text-muted-foreground">
+        Você começa no plano grátis. Faça upgrade quando precisar de mais volume.
+      </p>
     </form>
   );
 }

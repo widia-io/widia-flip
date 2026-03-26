@@ -222,9 +222,9 @@ func (a *api) handleOfferIntelligenceGenerate(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	isTrialStarter := billing.Status == "trialing" || billing.Tier == "starter"
+	isLimitedTier := billing.Status == "trialing" || billing.Tier == "free" || billing.Tier == "starter"
 	fullAccess := true
-	if isTrialStarter {
+	if isLimitedTier {
 		if settings.FirstFullPreviewConsumed == nil {
 			consumed, markErr := a.markFirstOfferPreviewConsumed(r.Context(), prospect.WorkspaceID, userID)
 			if markErr != nil {
@@ -472,7 +472,7 @@ func (a *api) handleOfferIntelligenceHistory(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if (billing.Status == "trialing" || billing.Tier == "starter") && settings.FirstFullPreviewConsumed != nil {
+	if (billing.Status == "trialing" || billing.Tier == "free" || billing.Tier == "starter") && settings.FirstFullPreviewConsumed != nil {
 		writeEnforcementError(w, ErrCodePaywallRequired,
 			"Histórico completo da Oferta Inteligente disponível em planos Pro e Growth.",
 			enforcementDetails{Tier: billing.Tier, Metric: "offer_intelligence_history"},

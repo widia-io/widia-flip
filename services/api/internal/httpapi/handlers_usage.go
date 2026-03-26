@@ -377,7 +377,7 @@ func (a *api) handleGetUserUsage(w http.ResponseWriter, r *http.Request) {
 	// Get tier limits
 	limits := tierLimitsMap[billing.Tier]
 	if limits.MaxWorkspaces == 0 {
-		limits = tierLimitsMap["starter"]
+		limits = tierLimitsMap["free"]
 	}
 
 	// Count aggregated usage across all workspaces (cumulative, except URL imports)
@@ -492,7 +492,7 @@ func (a *api) handleGetWorkspaceUsage(w http.ResponseWriter, r *http.Request, wo
 	// Get tier limits
 	limits := tierLimitsMap[billing.Tier]
 	if limits.MaxWorkspaces == 0 {
-		limits = tierLimitsMap["starter"]
+		limits = tierLimitsMap["free"]
 	}
 
 	// Count usage for each metric (cumulative, except URL imports)

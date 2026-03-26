@@ -131,7 +131,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           <DialogDescription>
             {mode === "login"
               ? "Entre para salvar sua análise e acessar todos os recursos."
-              : "Crie sua conta para salvar análises e gerenciar seus flips."}
+              : "Crie sua conta grátis para salvar análises e gerenciar seus flips."}
           </DialogDescription>
         </DialogHeader>
 
@@ -203,7 +203,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             </div>
             <Button type="submit" disabled={isLoading} className="w-full">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Criar conta
+              Criar conta grátis
             </Button>
           </form>
         )}
@@ -243,4 +243,3 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     </Dialog>
   );
 }
-

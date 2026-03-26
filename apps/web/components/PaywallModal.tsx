@@ -27,6 +27,7 @@ interface PaywallModalProps {
 }
 
 const TIER_LABELS: Record<BillingTier, string> = {
+  free: "Grátis",
   starter: "Essencial",
   pro: "Investidor",
   growth: "Profissional",
@@ -40,6 +41,8 @@ const METRIC_LABELS: Record<string, string> = {
   url_imports: "Importações URL",
   storage_bytes: "Storage",
   flip_score_v1: "Flip Score v1",
+  suppliers: "Fornecedores",
+  offer_intelligence_history: "Histórico da Oferta Inteligente",
 };
 
 function formatDate(dateString: string): string {
@@ -109,16 +112,27 @@ export function PaywallModal({
   };
 
   const getNextTier = (currentTier: BillingTier): BillingTier | null => {
+    if (currentTier === "free") return "starter";
     if (currentTier === "starter") return "pro";
     if (currentTier === "pro") return "growth";
     return null;
   };
 
-  const nextTier = getNextTier(details.tier as BillingTier);
-  const nextTierLimits = nextTier ? TIER_LIMITS[nextTier] : null;
+  const getFeatureUnlockTier = (metric: string | undefined, currentTier: BillingTier): BillingTier | null => {
+    if (metric === "flip_score_v1") {
+      if (currentTier === "growth" || currentTier === "pro") return null;
+      return "pro";
+    }
+    return getNextTier(currentTier);
+  };
 
   // Special case: Feature access (flip_score_v1)
   const isFeatureAccess = details.metric === "flip_score_v1";
+  const currentTier = details.tier as BillingTier;
+  const nextTier = isFeatureAccess
+    ? getFeatureUnlockTier(details.metric, currentTier)
+    : getNextTier(currentTier);
+  const nextTierLimits = nextTier ? TIER_LIMITS[nextTier] : null;
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -227,6 +241,9 @@ export function PaywallModal({
                     )}
                     {details.metric === "documents" && (
                       <>Até {nextTierLimits.max_docs_per_month} documentos/mês</>
+                    )}
+                    {details.metric === "suppliers" && (
+                      <>Até {nextTierLimits.max_suppliers} fornecedores</>
                     )}
                   </p>
                 </div>

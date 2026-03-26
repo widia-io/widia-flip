@@ -55,7 +55,7 @@ export function WelcomeHero({
                 Ola{firstName ? `, ${firstName}` : ""}!
               </h1>
               <p className="mt-1 text-muted-foreground">
-                Pronto para lucrar mais nos seus flips?
+                Comece no plano grátis e valide seu próximo deal com mais clareza.
               </p>
             </motion.div>
           </div>
@@ -108,7 +108,7 @@ export function WelcomeHero({
               <p className="text-xs text-muted-foreground">
                 {completedSteps === totalSteps
                   ? "Tudo pronto!"
-                  : "Continue sua jornada"}
+                  : "Chegue ao primeiro valor"}
               </p>
             </div>
           </motion.div>

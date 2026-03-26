@@ -139,7 +139,7 @@ export default async function HomePage() {
                     data-funnel-cta="header_signup"
                     data-funnel-location="header"
                   >
-                    Testar grátis
+                    Começar grátis
                   </Link>
                 </Button>
               </>
@@ -198,7 +198,7 @@ export default async function HomePage() {
                     data-funnel-cta="hero_primary"
                     data-funnel-location="hero"
                   >
-                    Testar grátis por 7 dias
+                    Começar grátis
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>

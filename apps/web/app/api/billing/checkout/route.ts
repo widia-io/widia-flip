@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getServerSession } from "@/lib/serverAuth";
-import { CreateCheckoutRequestSchema, type ActiveBannerResponse } from "@widia/shared";
+import { CreateCheckoutRequestSchema, type ActiveBannerResponse, type PaidBillingTier } from "@widia/shared";
 
 function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const PRICE_IDS: Record<string, Record<string, string | undefined>> = {
+    const PRICE_IDS: Record<PaidBillingTier, Record<string, string | undefined>> = {
       starter: {
         monthly: process.env.STRIPE_PRICE_ID_STARTER,
         yearly: process.env.STRIPE_PRICE_ID_STARTER_YEARLY,

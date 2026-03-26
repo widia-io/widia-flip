@@ -1042,8 +1042,11 @@ export type RecomputeFlipScoreResponse = z.infer<typeof RecomputeFlipScoreRespon
 
 // M10 - Billing & Entitlements
 
-export const BillingTierEnum = z.enum(["starter", "pro", "growth"]);
+export const BillingTierEnum = z.enum(["free", "starter", "pro", "growth"]);
 export type BillingTier = z.infer<typeof BillingTierEnum>;
+
+export const PaidBillingTierEnum = z.enum(["starter", "pro", "growth"]);
+export type PaidBillingTier = z.infer<typeof PaidBillingTierEnum>;
 
 export const BillingStatusEnum = z.enum([
   "active",
@@ -1071,6 +1074,15 @@ export const TierLimitsSchema = z.object({
 export type TierLimits = z.infer<typeof TierLimitsSchema>;
 
 export const TIER_LIMITS: Record<BillingTier, TierLimits> = {
+  free: {
+    max_workspaces: 1,
+    max_prospects_per_month: 5,
+    max_snapshots_per_month: 1,
+    max_docs_per_month: 1,
+    max_url_imports_per_month: 5,
+    max_storage_bytes: 25 * 1024 * 1024, // 25MB
+    max_suppliers: 0,
+  },
   starter: {
     max_workspaces: 1,
     max_prospects_per_month: 50,
@@ -1101,7 +1113,7 @@ export const TIER_LIMITS: Record<BillingTier, TierLimits> = {
 };
 
 // Prices in BRL (2 meses gratis no anual = 10x mensal)
-export const TIER_PRICES: Record<BillingTier, { monthly: number; yearly: number }> = {
+export const TIER_PRICES: Record<PaidBillingTier, { monthly: number; yearly: number }> = {
   starter: { monthly: 39, yearly: 390 },
   pro: { monthly: 119, yearly: 1190 },
   growth: { monthly: 249, yearly: 2490 },
@@ -1133,7 +1145,7 @@ export const UserEntitlementsSchema = z.object({
 export type UserEntitlements = z.infer<typeof UserEntitlementsSchema>;
 
 export const CreateCheckoutRequestSchema = z.object({
-  tier: BillingTierEnum,
+  tier: PaidBillingTierEnum,
   interval: BillingIntervalEnum.default("monthly"),
   success_url: z.string().url(),
   cancel_url: z.string().url(),

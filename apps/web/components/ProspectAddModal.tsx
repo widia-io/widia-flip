@@ -160,7 +160,7 @@ export function ProspectAddModal({ workspaceId, canAccessFlipScoreV1 = false }: 
               code: "LIMIT_EXCEEDED",
               message: data.error?.message ?? "Limite de importações via URL atingido",
               details: {
-                tier: "starter", // Will be updated by actual tier from backend if needed
+                tier: "free", // Will be updated by actual tier from backend if needed
                 metric: "url_imports",
               },
             },
@@ -682,4 +682,3 @@ export function ProspectAddModal({ workspaceId, canAccessFlipScoreV1 = false }: 
     </Dialog>
   );
 }
-

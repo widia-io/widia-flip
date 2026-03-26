@@ -26,6 +26,7 @@ function TierBadge({ tier }: { tier: string | null }) {
   }
 
   const variants: Record<string, "default" | "secondary" | "outline"> = {
+    free: "secondary",
     starter: "outline",
     pro: "default",
     growth: "secondary",

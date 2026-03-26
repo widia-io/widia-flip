@@ -13,9 +13,10 @@ interface BillingStatusCardProps {
 }
 
 const TIER_LABELS: Record<string, string> = {
-  starter: "Starter",
-  pro: "Pro",
-  growth: "Growth",
+  free: "Grátis",
+  starter: "Essencial",
+  pro: "Investidor",
+  growth: "Profissional",
 };
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -58,6 +59,7 @@ export function BillingStatusCard({ entitlements }: BillingStatusCardProps) {
   const isTrialExpired = billing.status === "trialing" &&
     billing.trial_end &&
     new Date(billing.trial_end).getTime() < Date.now();
+  const isFreePlan = billing.tier === "free";
 
   const handleOpenPortal = () => {
     setPortalError(null);
@@ -158,7 +160,13 @@ export function BillingStatusCard({ entitlements }: BillingStatusCardProps) {
 
       {!billing.stripe_customer_id && billing.status === "trialing" && (
         <p className="text-sm text-muted-foreground">
-          Você está no período de teste gratuito de 7 dias.
+          Você está em um período de teste gratuito.
+        </p>
+      )}
+
+      {!billing.stripe_customer_id && isFreePlan && (
+        <p className="text-sm text-muted-foreground">
+          Você está no plano grátis. Faça upgrade quando precisar de mais volume e recursos.
         </p>
       )}
     </div>

@@ -24,6 +24,15 @@ type tierLimits struct {
 }
 
 var tierLimitsMap = map[string]tierLimits{
+	"free": {
+		MaxWorkspaces:         1,
+		MaxProspectsPerMonth:  5,
+		MaxSnapshotsPerMonth:  1,
+		MaxDocsPerMonth:       1,
+		MaxURLImportsPerMonth: 5,
+		MaxStorageBytes:       25 * 1024 * 1024, // 25MB
+		MaxSuppliers:          0,
+	},
 	"starter": {
 		MaxWorkspaces:         1,
 		MaxProspectsPerMonth:  50,
@@ -60,6 +69,13 @@ func canAccessFinancing(tier string) bool {
 
 func canAccessFlipScoreV1(tier string) bool {
 	return tier == "pro" || tier == "growth"
+}
+
+func isSubscribedBilling(billing userBilling) bool {
+	if billing.Status == "trialing" {
+		return true
+	}
+	return billing.Status == "active" && billing.Tier != "free"
 }
 
 // User billing record
@@ -103,7 +119,7 @@ func (a *api) handleGetBillingMe(w http.ResponseWriter, r *http.Request) {
 	billing, err := a.getUserBilling(r.Context(), userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			// Auto-create billing record with 7-day trial
+			// Auto-create billing record with the free default tier.
 			billing, err = a.createDefaultBilling(r.Context(), userID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to create billing record"})
@@ -117,10 +133,10 @@ func (a *api) handleGetBillingMe(w http.ResponseWriter, r *http.Request) {
 
 	limits := tierLimitsMap[billing.Tier]
 	if limits.MaxWorkspaces == 0 {
-		limits = tierLimitsMap["starter"]
+		limits = tierLimitsMap["free"]
 	}
 
-	isSubscribed := billing.Status == "active" || billing.Status == "trialing"
+	isSubscribed := isSubscribedBilling(billing)
 
 	entitlements := userEntitlements{
 		Billing:              billing,
@@ -185,7 +201,7 @@ func (a *api) createDefaultBilling(ctx context.Context, userID string) (userBill
 	err := a.db.QueryRowContext(
 		ctx,
 		`INSERT INTO user_billing (user_id, tier, status, trial_end)
-		 VALUES ($1, 'pro', 'trialing', NOW() + INTERVAL '7 days')
+		 VALUES ($1, 'free', 'active', NULL)
 		 ON CONFLICT (user_id) DO UPDATE SET user_id = EXCLUDED.user_id
 		 RETURNING user_id, tier, status, stripe_customer_id, stripe_subscription_id, stripe_price_id,
 		           current_period_start, current_period_end, trial_end, cancel_at_period_end,
@@ -244,7 +260,7 @@ func (a *api) handleInternalBillingSync(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	validTiers := map[string]bool{"starter": true, "pro": true, "growth": true}
+	validTiers := map[string]bool{"free": true, "starter": true, "pro": true, "growth": true}
 	if !validTiers[req.Tier] {
 		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "invalid tier"})
 		return
@@ -351,7 +367,7 @@ func (a *api) handleInternalBillingOverride(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	validTiers := map[string]bool{"starter": true, "pro": true, "growth": true}
+	validTiers := map[string]bool{"free": true, "starter": true, "pro": true, "growth": true}
 	if !validTiers[req.Tier] {
 		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "invalid tier"})
 		return
@@ -360,11 +376,21 @@ func (a *api) handleInternalBillingOverride(w http.ResponseWriter, r *http.Reque
 	// Upsert with override
 	_, err := a.db.ExecContext(
 		r.Context(),
-		`INSERT INTO user_billing (user_id, tier, status)
-		 VALUES ($1, $2, 'active')
+		`INSERT INTO user_billing (
+			user_id, tier, status, stripe_customer_id, stripe_subscription_id, stripe_price_id,
+			current_period_start, current_period_end, trial_end, cancel_at_period_end
+		)
+		 VALUES ($1, $2, 'active', NULL, NULL, NULL, NULL, NULL, NULL, FALSE)
 		 ON CONFLICT (user_id) DO UPDATE SET
 			tier = EXCLUDED.tier,
 			status = 'active',
+			stripe_customer_id = NULL,
+			stripe_subscription_id = NULL,
+			stripe_price_id = NULL,
+			current_period_start = NULL,
+			current_period_end = NULL,
+			trial_end = NULL,
+			cancel_at_period_end = FALSE,
 			updated_at = NOW()`,
 		req.UserID, req.Tier,
 	)

@@ -406,9 +406,9 @@ func (a *api) handleAdminUpdateUserTier(w http.ResponseWriter, r *http.Request, 
 	}
 
 	// Validate tier
-	validTiers := map[string]bool{"starter": true, "pro": true, "growth": true}
+	validTiers := map[string]bool{"free": true, "starter": true, "pro": true, "growth": true}
 	if !validTiers[req.Tier] {
-		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "invalid tier, must be starter, pro, or growth"})
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "invalid tier, must be free, starter, pro, or growth"})
 		return
 	}
 
@@ -424,7 +424,17 @@ func (a *api) handleAdminUpdateUserTier(w http.ResponseWriter, r *http.Request, 
 	_, err := a.db.ExecContext(r.Context(), `
 		INSERT INTO user_billing (user_id, tier, status)
 		VALUES ($1, $2, 'active')
-		ON CONFLICT (user_id) DO UPDATE SET tier = $2, updated_at = now()
+		ON CONFLICT (user_id) DO UPDATE SET
+			tier = $2,
+			status = 'active',
+			stripe_customer_id = CASE WHEN $2 = 'free' THEN NULL ELSE user_billing.stripe_customer_id END,
+			stripe_subscription_id = CASE WHEN $2 = 'free' THEN NULL ELSE user_billing.stripe_subscription_id END,
+			stripe_price_id = CASE WHEN $2 = 'free' THEN NULL ELSE user_billing.stripe_price_id END,
+			current_period_start = CASE WHEN $2 = 'free' THEN NULL ELSE user_billing.current_period_start END,
+			current_period_end = CASE WHEN $2 = 'free' THEN NULL ELSE user_billing.current_period_end END,
+			trial_end = CASE WHEN $2 = 'free' THEN NULL ELSE user_billing.trial_end END,
+			cancel_at_period_end = CASE WHEN $2 = 'free' THEN FALSE ELSE user_billing.cancel_at_period_end END,
+			updated_at = now()
 	`, userID, req.Tier)
 
 	if err != nil {
@@ -636,6 +646,7 @@ type adminIncompleteMetrics struct {
 
 // Tier prices in centavos
 var tierPrices = map[string]int64{
+	"free":    0,
 	"starter": 3900,
 	"pro":     11900,
 	"growth":  24900,

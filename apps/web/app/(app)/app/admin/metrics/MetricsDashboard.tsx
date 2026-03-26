@@ -43,6 +43,7 @@ interface Props {
 }
 
 const TIER_COLORS: Record<string, string> = {
+  free: "#94a3b8",
   starter: "#3b82f6",
   pro: "#8b5cf6",
   growth: "#f59e0b",

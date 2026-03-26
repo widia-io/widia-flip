@@ -126,7 +126,7 @@ export function OnboardingJourney({
         <div>
           <h2 className="text-lg font-semibold">Primeiros passos</h2>
           <p className="text-sm text-muted-foreground">
-            Complete para desbloquear todo o potencial
+            Complete para sair do cadastro e chegar ao primeiro valor
           </p>
         </div>
         <Button
