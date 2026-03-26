@@ -17,6 +17,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import type {
   AdminSaaSMetricsResponse,
   AdminFunnelDailyResponse,
+  AdminFunnelCounts,
   ListMetricsUsersResponse,
   MetricsUserCategory,
 } from "@widia/shared";
@@ -56,6 +57,33 @@ function formatCurrency(centavos: number): string {
 
 function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
+}
+
+function hasFunnelWarning(funnel: AdminFunnelDailyResponse): boolean {
+  return funnel.warnings.length > 0;
+}
+
+function formatFunnelRate(value: number, funnel: AdminFunnelDailyResponse): string {
+  if (value > 100) {
+    return hasFunnelWarning(funnel) ? "Revisar legado" : ">100%";
+  }
+  return formatPercent(value);
+}
+
+function hasDuplicateDelta(counts: AdminFunnelCounts): boolean {
+  return (
+    counts.homeViews > 0 ||
+    counts.signupStarted > 0 ||
+    counts.signupCompleted > 0 ||
+    counts.loginCompleted > 0 ||
+    counts.firstSnapshotSaved > 0 ||
+    counts.calculatorFullReportRequested > 0 ||
+    counts.calculatorSaveClicked > 0 ||
+    counts.offerIntelligenceGenerated > 0 ||
+    counts.offerIntelligenceSaved > 0 ||
+    counts.offerIntelligencePaywallViewed > 0 ||
+    counts.offerIntelligenceUpgradeCtaClicked > 0
+  );
 }
 
 function DeltaBadge({ delta, inverse }: { delta: number; inverse?: boolean }) {
@@ -327,53 +355,64 @@ export function MetricsDashboard({ metrics, funnel }: Props) {
           <CardTitle>Funnel Diário (Onda 0)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
+          {funnel.warnings.length > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="font-medium">Alertas do funil</div>
+              <div className="mt-2 space-y-1">
+                {funnel.warnings.map((warning) => (
+                  <p key={warning}>{warning}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Home → Signup Start</div>
               <div className="mt-1 text-lg font-semibold">
-                {formatPercent(funnel.rates.homeToSignupStartPct)}
+                {formatFunnelRate(funnel.rates.homeToSignupStartPct, funnel)}
               </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Signup Start → Complete</div>
               <div className="mt-1 text-lg font-semibold">
-                {formatPercent(funnel.rates.signupStartToCompletePct)}
+                {formatFunnelRate(funnel.rates.signupStartToCompletePct, funnel)}
               </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Signup Complete → Login</div>
               <div className="mt-1 text-lg font-semibold">
-                {formatPercent(funnel.rates.signupCompleteToLoginPct)}
+                {formatFunnelRate(funnel.rates.signupCompleteToLoginPct, funnel)}
               </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Login → 1º Snapshot</div>
               <div className="mt-1 text-lg font-semibold">
-                {formatPercent(funnel.rates.loginToFirstSnapshotPct)}
+                {formatFunnelRate(funnel.rates.loginToFirstSnapshotPct, funnel)}
               </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Home → 1º Snapshot</div>
               <div className="mt-1 text-lg font-semibold">
-                {formatPercent(funnel.rates.homeToFirstSnapshotPct)}
+                {formatFunnelRate(funnel.rates.homeToFirstSnapshotPct, funnel)}
               </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Oferta: Gerado → Salvo</div>
               <div className="mt-1 text-lg font-semibold">
-                {formatPercent(funnel.rates.offerGeneratedToSavedPct)}
+                {formatFunnelRate(funnel.rates.offerGeneratedToSavedPct, funnel)}
               </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Oferta: Gerado → Paywall</div>
               <div className="mt-1 text-lg font-semibold">
-                {formatPercent(funnel.rates.offerGeneratedToPaywallPct)}
+                {formatFunnelRate(funnel.rates.offerGeneratedToPaywallPct, funnel)}
               </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Oferta: Paywall → Upgrade CTA</div>
               <div className="mt-1 text-lg font-semibold">
-                {formatPercent(funnel.rates.offerPaywallToUpgradePct)}
+                {formatFunnelRate(funnel.rates.offerPaywallToUpgradePct, funnel)}
               </div>
             </div>
           </div>
@@ -424,6 +463,43 @@ export function MetricsDashboard({ metrics, funnel }: Props) {
               <div className="mt-1 text-xl font-semibold">{funnel.totals.offerIntelligenceUpgradeCtaClicked}</div>
             </div>
           </div>
+
+          {(hasDuplicateDelta(funnel.duplicateDeltas) || funnel.warnings.length > 0) && (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Etapa</TableHead>
+                    <TableHead>Oficial</TableHead>
+                    <TableHead>Bruto</TableHead>
+                    <TableHead>Duplicado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[
+                    ["Home Views", funnel.totals.homeViews, funnel.rawTotals.homeViews, funnel.duplicateDeltas.homeViews],
+                    ["Signup Started", funnel.totals.signupStarted, funnel.rawTotals.signupStarted, funnel.duplicateDeltas.signupStarted],
+                    ["Signup Completed", funnel.totals.signupCompleted, funnel.rawTotals.signupCompleted, funnel.duplicateDeltas.signupCompleted],
+                    ["Login Completed", funnel.totals.loginCompleted, funnel.rawTotals.loginCompleted, funnel.duplicateDeltas.loginCompleted],
+                    ["1º Snapshot", funnel.totals.firstSnapshotSaved, funnel.rawTotals.firstSnapshotSaved, funnel.duplicateDeltas.firstSnapshotSaved],
+                    ["Calc Relatório", funnel.totals.calculatorFullReportRequested, funnel.rawTotals.calculatorFullReportRequested, funnel.duplicateDeltas.calculatorFullReportRequested],
+                    ["Calc Salvar", funnel.totals.calculatorSaveClicked, funnel.rawTotals.calculatorSaveClicked, funnel.duplicateDeltas.calculatorSaveClicked],
+                    ["Oferta Gerado", funnel.totals.offerIntelligenceGenerated, funnel.rawTotals.offerIntelligenceGenerated, funnel.duplicateDeltas.offerIntelligenceGenerated],
+                    ["Oferta Salvo", funnel.totals.offerIntelligenceSaved, funnel.rawTotals.offerIntelligenceSaved, funnel.duplicateDeltas.offerIntelligenceSaved],
+                    ["Oferta Paywall", funnel.totals.offerIntelligencePaywallViewed, funnel.rawTotals.offerIntelligencePaywallViewed, funnel.duplicateDeltas.offerIntelligencePaywallViewed],
+                    ["Oferta Upgrade CTA", funnel.totals.offerIntelligenceUpgradeCtaClicked, funnel.rawTotals.offerIntelligenceUpgradeCtaClicked, funnel.duplicateDeltas.offerIntelligenceUpgradeCtaClicked],
+                  ].map(([label, official, raw, duplicate]) => (
+                    <TableRow key={String(label)}>
+                      <TableCell>{label}</TableCell>
+                      <TableCell>{official}</TableCell>
+                      <TableCell>{raw}</TableCell>
+                      <TableCell>{duplicate}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
           <div className="rounded-md border">
             <Table>

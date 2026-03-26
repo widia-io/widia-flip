@@ -41,8 +41,6 @@ interface CalculatorReportResponse {
 const STORAGE_KEY = "widia_calculator_inputs";
 const REPORT_UNLOCKED_KEY = "widia_calculator_report_unlocked";
 const LEAD_STORAGE_KEY = "widia_calculator_lead";
-const CALCULATOR_VIEW_SESSION_KEY = "widia_calculator_view_logged";
-
 function getSaveButtonText(isSaving: boolean, isLoggedIn: boolean): string {
   if (isSaving) return "Salvando...";
   if (isLoggedIn) return "Salvar Análise";
@@ -115,12 +113,7 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
 
   useEffect(() => {
     ensureAnalyticsSessionId();
-
-    if (!sessionStorage.getItem(CALCULATOR_VIEW_SESSION_KEY)) {
-      logEvent(EVENTS.VIEW_CALCULATOR, { is_logged_in: isLoggedIn });
-      sessionStorage.setItem(CALCULATOR_VIEW_SESSION_KEY, "true");
-    }
-  }, [isLoggedIn]);
+  }, []);
 
   useEffect(() => {
     const storedInputs = sessionStorage.getItem(STORAGE_KEY);
@@ -534,10 +527,6 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
                       <Button
                         type="button"
                         onClick={() => {
-                          logEvent(EVENTS.LEAD_CAPTURE_SUBMITTED, {
-                            has_any_value: hasAnyCalculatorValue(inputs),
-                            marketing_consent: leadForm.marketingConsent,
-                          });
                           void submitLeadCapture();
                         }}
                         className="flex-1"

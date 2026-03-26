@@ -4,7 +4,7 @@ import {
   PublicCashCalcRequestSchema,
   PublicCashCalcResponseSchema,
 } from "@widia/shared";
-import { logEvent } from "@/lib/analytics";
+import { buildForwardedAnalyticsHeaders, trackServerEvent } from "@/lib/serverAnalytics";
 
 const GO_API_BASE_URL = process.env.GO_API_BASE_URL ?? "http://localhost:8080";
 
@@ -26,16 +26,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Log event
-    logEvent("calculate_submitted", {
-      has_purchase_price: parsed.data.purchase_price !== undefined,
-      has_sale_price: parsed.data.sale_price !== undefined,
+    await trackServerEvent(request, {
+      event: "calculate_submitted",
+      properties: {
+        has_purchase_price: parsed.data.purchase_price !== undefined,
+        has_sale_price: parsed.data.sale_price !== undefined,
+      },
     });
 
     // Call Go API public endpoint
     const res = await fetch(`${GO_API_BASE_URL}/api/v1/public/cash-calc`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: buildForwardedAnalyticsHeaders(request, { "Content-Type": "application/json" }),
       body: JSON.stringify(parsed.data),
     });
 

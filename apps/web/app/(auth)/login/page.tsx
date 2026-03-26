@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getServerSession } from "@/lib/serverAuth";
-import { EVENTS, logEvent } from "@/lib/analytics";
 import { Logo } from "@/components/Logo";
 import { LoginForm } from "@/components/LoginForm";
 import { SignupForm } from "@/components/SignupForm";
@@ -26,14 +25,6 @@ export default async function LoginPage(props: {
   const src = typeof searchParams.src === "string" ? searchParams.src : "";
   const postSlug = typeof searchParams.post === "string" ? searchParams.post : "";
   const ctaPosition = typeof searchParams.cta === "string" ? searchParams.cta : "";
-
-  if (tab === "signup" && src === "blog") {
-    logEvent(EVENTS.SIGNUP_STARTED, {
-      source: "blog",
-      post_slug: postSlug || "unknown",
-      cta_position: ctaPosition || "unknown",
-    });
-  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
@@ -99,7 +90,11 @@ export default async function LoginPage(props: {
           ) : null}
 
           {tab === "signup" ? (
-            <SignupForm />
+            <SignupForm
+              trackingSource={src === "blog" ? "blog" : "login_page"}
+              trackingPostSlug={src === "blog" ? postSlug || "unknown" : undefined}
+              trackingCtaPosition={src === "blog" ? ctaPosition || "unknown" : undefined}
+            />
           ) : (
             <LoginForm />
           )}
