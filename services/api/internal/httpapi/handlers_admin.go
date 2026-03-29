@@ -654,14 +654,21 @@ var tierPrices = map[string]int64{
 
 // Metrics user type
 type metricsUser struct {
-	ID            string  `json:"id"`
-	Email         string  `json:"email"`
-	Name          string  `json:"name"`
-	Tier          *string `json:"tier"`
-	BillingStatus *string `json:"billingStatus"`
-	TrialEnd      *string `json:"trialEnd"`
-	CreatedAt     string  `json:"createdAt"`
-	UpdatedAt     *string `json:"updatedAt"`
+	ID               string  `json:"id"`
+	Email            string  `json:"email"`
+	Name             string  `json:"name"`
+	Tier             *string `json:"tier"`
+	BillingStatus    *string `json:"billingStatus"`
+	TrialEnd         *string `json:"trialEnd"`
+	Phone            *string `json:"phone"`
+	MarketingOptIn   bool    `json:"marketingOptIn"`
+	MarketingOptOut  bool    `json:"marketingOptOut"`
+	WorkspaceCount   int     `json:"workspaceCount"`
+	ProspectsCount   int     `json:"prospectsCount"`
+	SnapshotsCount   int     `json:"snapshotsCount"`
+	EngagementBucket *string `json:"engagementBucket"`
+	CreatedAt        string  `json:"createdAt"`
+	UpdatedAt        *string `json:"updatedAt"`
 }
 
 type listMetricsUsersResponse struct {
@@ -697,48 +704,81 @@ func (a *api) handleAdminMetricsUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	selectFrom := `
+		SELECT
+			u.id,
+			u.email,
+			u.name,
+			b.tier,
+			b.status,
+			b.trial_end,
+			u.phone,
+			(u.marketing_opt_in_at IS NOT NULL AND u.marketing_opt_out_at IS NULL) AS marketing_opt_in,
+			(u.marketing_opt_out_at IS NOT NULL) AS marketing_opt_out,
+			usage.workspace_count,
+			usage.prospects_count,
+			usage.snapshots_count,
+			CASE
+				WHEN usage.prospects_count > 0 OR usage.snapshots_count > 0 THEN 'engaged'
+				WHEN usage.workspace_count > 0 THEN 'touched'
+				ELSE 'cold'
+			END AS engagement_bucket,
+			u."createdAt",
+			b.updated_at
+		FROM "user" u
+		JOIN user_billing b ON b.user_id = u.id
+		LEFT JOIN LATERAL (
+			SELECT
+				(SELECT COUNT(*) FROM workspace_memberships wm WHERE wm.user_id = u.id) AS workspace_count,
+				(SELECT COUNT(*)
+				 FROM workspace_memberships wm
+				 JOIN prospecting_properties p ON p.workspace_id = wm.workspace_id
+				 WHERE wm.user_id = u.id
+				   AND p.deleted_at IS NULL) AS prospects_count,
+				(
+					COALESCE((
+						SELECT COUNT(*)
+						FROM workspace_memberships wm
+						JOIN analysis_cash_snapshots cs ON cs.workspace_id = wm.workspace_id
+						WHERE wm.user_id = u.id
+					), 0) +
+					COALESCE((
+						SELECT COUNT(*)
+						FROM workspace_memberships wm
+						JOIN analysis_financing_snapshots fs ON fs.workspace_id = wm.workspace_id
+						WHERE wm.user_id = u.id
+					), 0)
+				) AS snapshots_count
+		) usage ON true
+	`
+
 	var query string
 	now := time.Now().UTC()
 
 	switch category {
 	case "active":
-		query = `
-			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
-			FROM "user" u
-			JOIN user_billing b ON b.user_id = u.id
+		query = selectFrom + `
 			WHERE b.status = 'active' AND u.is_admin = false
 			ORDER BY b.updated_at DESC NULLS LAST
 		`
 	case "in_trial":
-		query = `
-			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
-			FROM "user" u
-			JOIN user_billing b ON b.user_id = u.id
+		query = selectFrom + `
 			WHERE b.status = 'trialing' AND u.is_admin = false
 			ORDER BY b.trial_end ASC NULLS LAST
 		`
 	case "churned":
-		query = `
-			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
-			FROM "user" u
-			JOIN user_billing b ON b.user_id = u.id
+		query = selectFrom + `
 			WHERE b.status IN ('canceled', 'past_due', 'unpaid') AND u.is_admin = false
 			ORDER BY b.updated_at DESC NULLS LAST
 		`
 	case "converted":
-		query = `
-			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
-			FROM "user" u
-			JOIN user_billing b ON b.user_id = u.id
+		query = selectFrom + `
 			WHERE b.trial_end IS NOT NULL AND b.status = 'active' AND u.is_admin = false
 			ORDER BY b.updated_at DESC NULLS LAST
 		`
 	case "trial_expired":
 		// Trial expirado = trial_end passou E não converteu (status != active)
-		query = `
-			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
-			FROM "user" u
-			JOIN user_billing b ON b.user_id = u.id
+		query = selectFrom + `
 			WHERE b.trial_end IS NOT NULL
 			AND b.trial_end < $1
 			AND b.status != 'active'
@@ -746,10 +786,7 @@ func (a *api) handleAdminMetricsUsers(w http.ResponseWriter, r *http.Request) {
 			ORDER BY b.trial_end DESC
 		`
 	case "incomplete":
-		query = `
-			SELECT u.id, u.email, u.name, b.tier, b.status, b.trial_end, u."createdAt", b.updated_at
-			FROM "user" u
-			JOIN user_billing b ON b.user_id = u.id
+		query = selectFrom + `
 			WHERE b.status IN ('incomplete', 'incomplete_expired') AND u.is_admin = false
 			ORDER BY b.updated_at DESC NULLS LAST
 		`
@@ -777,8 +814,26 @@ func (a *api) handleAdminMetricsUsers(w http.ResponseWriter, r *http.Request) {
 		var createdAt time.Time
 		var updatedAt sql.NullTime
 		var trialEnd sql.NullTime
+		var phone sql.NullString
+		var engagementBucket sql.NullString
 
-		if err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.Tier, &u.BillingStatus, &trialEnd, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(
+			&u.ID,
+			&u.Email,
+			&u.Name,
+			&u.Tier,
+			&u.BillingStatus,
+			&trialEnd,
+			&phone,
+			&u.MarketingOptIn,
+			&u.MarketingOptOut,
+			&u.WorkspaceCount,
+			&u.ProspectsCount,
+			&u.SnapshotsCount,
+			&engagementBucket,
+			&createdAt,
+			&updatedAt,
+		); err != nil {
 			log.Printf("admin metrics users: scan error: %v", err)
 			continue
 		}
@@ -791,6 +846,12 @@ func (a *api) handleAdminMetricsUsers(w http.ResponseWriter, r *http.Request) {
 		if trialEnd.Valid {
 			t := trialEnd.Time.Format(time.RFC3339)
 			u.TrialEnd = &t
+		}
+		if phone.Valid {
+			u.Phone = &phone.String
+		}
+		if engagementBucket.Valid {
+			u.EngagementBucket = &engagementBucket.String
 		}
 
 		items = append(items, u)

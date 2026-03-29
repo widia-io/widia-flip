@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -34,6 +35,7 @@ type emailCampaign struct {
 	ID             string  `json:"id"`
 	Subject        string  `json:"subject"`
 	BodyHTML       string  `json:"bodyHtml"`
+	AudienceKey    string  `json:"audienceKey"`
 	Status         string  `json:"status"`
 	CreatedBy      string  `json:"createdBy"`
 	CreatedAt      string  `json:"createdAt"`
@@ -46,10 +48,19 @@ type listCampaignsResponse struct {
 	Items []emailCampaign `json:"items"`
 }
 
+type eligibleRecipientAudienceCounts struct {
+	AllEligible         int `json:"allEligible"`
+	TrialExpiredEngaged int `json:"trialExpiredEngaged"`
+	CalculatorLeadsHot  int `json:"calculatorLeadsHot"`
+}
+
 type eligibleRecipientsResponse struct {
-	EligibleCount int `json:"eligibleCount"`
-	UserCount     int `json:"userCount"`
-	LeadCount     int `json:"leadCount"`
+	EligibleCount       int                             `json:"eligibleCount"`
+	UserCount           int                             `json:"userCount"`
+	LeadCount           int                             `json:"leadCount"`
+	EbookLeadCount      int                             `json:"ebookLeadCount"`
+	CalculatorLeadCount int                             `json:"calculatorLeadCount"`
+	AudienceCounts      eligibleRecipientAudienceCounts `json:"audienceCounts"`
 }
 
 type eligibleRecipient struct {
@@ -67,8 +78,9 @@ type listEligibleRecipientsResponse struct {
 }
 
 type createCampaignRequest struct {
-	Subject  string `json:"subject"`
-	BodyHTML string `json:"bodyHtml"`
+	Subject     string `json:"subject"`
+	BodyHTML    string `json:"bodyHtml"`
+	AudienceKey string `json:"audienceKey"`
 }
 
 type queueCampaignResponse struct {
@@ -80,6 +92,77 @@ type sendBatchResponse struct {
 	Sent      int    `json:"sent"`
 	Failed    int    `json:"failed"`
 	Status    string `json:"status"`
+}
+
+const (
+	emailAudienceAllEligible         = "all_eligible"
+	emailAudienceTrialExpiredEngaged = "trial_expired_engaged"
+	emailAudienceCalculatorLeadsHot  = "calculator_leads_hot"
+
+	emailRecipientSourceUser           = "user"
+	emailRecipientSourceEbookLead      = "ebook_lead"
+	emailRecipientSourceCalculatorLead = "calculator_lead"
+
+	hotCalculatorLeadMinROI = 20.0
+)
+
+type emailRecipientCandidate struct {
+	ID               string
+	Email            string
+	Name             string
+	Source           string
+	OptInAt          time.Time
+	CreatedAt        time.Time
+	UserID           *string
+	EbookLeadID      *string
+	CalculatorLeadID *string
+}
+
+func normalizeRecipientEmail(email string) string {
+	return strings.TrimSpace(strings.ToLower(email))
+}
+
+func mergeRecipientGroups(groups ...[]emailRecipientCandidate) []emailRecipientCandidate {
+	seen := make(map[string]struct{})
+	merged := make([]emailRecipientCandidate, 0)
+
+	for _, group := range groups {
+		for _, recipient := range group {
+			emailKey := normalizeRecipientEmail(recipient.Email)
+			if emailKey == "" {
+				continue
+			}
+			if _, exists := seen[emailKey]; exists {
+				continue
+			}
+			seen[emailKey] = struct{}{}
+			merged = append(merged, recipient)
+		}
+	}
+
+	return merged
+}
+
+func recipientEmailSet(recipients []emailRecipientCandidate) map[string]struct{} {
+	emails := make(map[string]struct{}, len(recipients))
+	for _, recipient := range recipients {
+		emailKey := normalizeRecipientEmail(recipient.Email)
+		if emailKey == "" {
+			continue
+		}
+		emails[emailKey] = struct{}{}
+	}
+	return emails
+}
+
+func filterUsersByEmailSet(users []emailRecipientCandidate, emails map[string]struct{}) []emailRecipientCandidate {
+	filtered := make([]emailRecipientCandidate, 0)
+	for _, user := range users {
+		if _, ok := emails[normalizeRecipientEmail(user.Email)]; ok {
+			filtered = append(filtered, user)
+		}
+	}
+	return filtered
 }
 
 // Handler for /api/v1/admin/email/* routes
@@ -172,6 +255,235 @@ func (a *api) handleAdminEmailSubroutes(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNotFound)
 }
 
+func validAudienceKey(audienceKey string) bool {
+	switch audienceKey {
+	case emailAudienceAllEligible, emailAudienceTrialExpiredEngaged, emailAudienceCalculatorLeadsHot:
+		return true
+	default:
+		return false
+	}
+}
+
+func (a *api) loadEligibleUsers(ctx context.Context) ([]emailRecipientCandidate, error) {
+	rows, err := a.db.QueryContext(ctx, `
+		SELECT id, email, COALESCE(NULLIF(name, ''), email) AS name, marketing_opt_in_at, "createdAt"
+		FROM "user"
+		WHERE "emailVerified" = true
+		  AND is_active = true
+		  AND marketing_opt_in_at IS NOT NULL
+		  AND marketing_opt_out_at IS NULL
+		ORDER BY marketing_opt_in_at DESC, "createdAt" DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	recipients := make([]emailRecipientCandidate, 0)
+	for rows.Next() {
+		var recipient emailRecipientCandidate
+		var userID string
+		if err := rows.Scan(&userID, &recipient.Email, &recipient.Name, &recipient.OptInAt, &recipient.CreatedAt); err != nil {
+			return nil, err
+		}
+		recipient.ID = userID
+		recipient.Source = emailRecipientSourceUser
+		recipient.UserID = &userID
+		recipients = append(recipients, recipient)
+	}
+
+	return recipients, rows.Err()
+}
+
+func (a *api) loadEligibleEbookLeads(ctx context.Context) ([]emailRecipientCandidate, error) {
+	rows, err := a.db.QueryContext(ctx, `
+		SELECT id, email, email AS name, created_at, created_at
+		FROM flip.ebook_leads
+		WHERE marketing_consent = true
+		  AND converted_at IS NULL
+		ORDER BY created_at DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	recipients := make([]emailRecipientCandidate, 0)
+	for rows.Next() {
+		var recipient emailRecipientCandidate
+		var leadID string
+		if err := rows.Scan(&leadID, &recipient.Email, &recipient.Name, &recipient.OptInAt, &recipient.CreatedAt); err != nil {
+			return nil, err
+		}
+		recipient.ID = leadID
+		recipient.Source = emailRecipientSourceEbookLead
+		recipient.EbookLeadID = &leadID
+		recipients = append(recipients, recipient)
+	}
+
+	return recipients, rows.Err()
+}
+
+func (a *api) loadHotCalculatorLeads(ctx context.Context) ([]emailRecipientCandidate, error) {
+	rows, err := a.db.QueryContext(ctx, `
+		SELECT id, email, name, updated_at, created_at
+		FROM flip.calculator_leads
+		WHERE marketing_consent = true
+		  AND is_partial = false
+		  AND roi >= $1
+		  AND net_profit > 0
+		ORDER BY updated_at DESC, created_at DESC
+	`, hotCalculatorLeadMinROI)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	recipients := make([]emailRecipientCandidate, 0)
+	for rows.Next() {
+		var recipient emailRecipientCandidate
+		var leadID string
+		if err := rows.Scan(&leadID, &recipient.Email, &recipient.Name, &recipient.OptInAt, &recipient.CreatedAt); err != nil {
+			return nil, err
+		}
+		recipient.ID = leadID
+		recipient.Source = emailRecipientSourceCalculatorLead
+		recipient.CalculatorLeadID = &leadID
+		recipients = append(recipients, recipient)
+	}
+
+	return recipients, rows.Err()
+}
+
+func (a *api) loadTrialExpiredEngagedUsers(ctx context.Context) ([]emailRecipientCandidate, error) {
+	rows, err := a.db.QueryContext(ctx, `
+		SELECT
+			u.id,
+			u.email,
+			COALESCE(NULLIF(u.name, ''), u.email) AS name,
+			u.marketing_opt_in_at,
+			u."createdAt"
+		FROM "user" u
+		JOIN user_billing b ON b.user_id = u.id
+		WHERE b.trial_end IS NOT NULL
+		  AND b.trial_end < now()
+		  AND b.status != 'active'
+		  AND u.is_admin = false
+		  AND u.is_active = true
+		  AND u."emailVerified" = true
+		  AND u.marketing_opt_in_at IS NOT NULL
+		  AND u.marketing_opt_out_at IS NULL
+		  AND (
+		    EXISTS (
+		      SELECT 1
+		      FROM workspace_memberships wm
+		      JOIN prospecting_properties p ON p.workspace_id = wm.workspace_id
+		      WHERE wm.user_id = u.id
+		        AND p.deleted_at IS NULL
+		    )
+		    OR EXISTS (
+		      SELECT 1
+		      FROM workspace_memberships wm
+		      JOIN analysis_cash_snapshots cs ON cs.workspace_id = wm.workspace_id
+		      WHERE wm.user_id = u.id
+		    )
+		    OR EXISTS (
+		      SELECT 1
+		      FROM workspace_memberships wm
+		      JOIN analysis_financing_snapshots fs ON fs.workspace_id = wm.workspace_id
+		      WHERE wm.user_id = u.id
+		    )
+		  )
+		ORDER BY b.trial_end DESC, u."createdAt" DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	recipients := make([]emailRecipientCandidate, 0)
+	for rows.Next() {
+		var recipient emailRecipientCandidate
+		var userID string
+		if err := rows.Scan(&userID, &recipient.Email, &recipient.Name, &recipient.OptInAt, &recipient.CreatedAt); err != nil {
+			return nil, err
+		}
+		recipient.ID = userID
+		recipient.Source = emailRecipientSourceUser
+		recipient.UserID = &userID
+		recipients = append(recipients, recipient)
+	}
+
+	return recipients, rows.Err()
+}
+
+func (a *api) resolveAudienceRecipients(
+	ctx context.Context,
+	audienceKey string,
+) ([]emailRecipientCandidate, []emailRecipientCandidate, []emailRecipientCandidate, []emailRecipientCandidate, error) {
+	users, err := a.loadEligibleUsers(ctx)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	trialExpiredEngaged, err := a.loadTrialExpiredEngagedUsers(ctx)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	hotCalculatorLeads, err := a.loadHotCalculatorLeads(ctx)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	ebookLeads, err := a.loadEligibleEbookLeads(ctx)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	switch audienceKey {
+	case emailAudienceAllEligible:
+		return mergeRecipientGroups(users, hotCalculatorLeads, ebookLeads), users, trialExpiredEngaged, hotCalculatorLeads, nil
+	case emailAudienceTrialExpiredEngaged:
+		return mergeRecipientGroups(trialExpiredEngaged), users, trialExpiredEngaged, hotCalculatorLeads, nil
+	case emailAudienceCalculatorLeadsHot:
+		userPriorityRecipients := filterUsersByEmailSet(users, recipientEmailSet(hotCalculatorLeads))
+		return mergeRecipientGroups(userPriorityRecipients, hotCalculatorLeads), users, trialExpiredEngaged, hotCalculatorLeads, nil
+	default:
+		return nil, nil, nil, nil, fmt.Errorf("invalid audience key: %s", audienceKey)
+	}
+}
+
+func (a *api) buildRecipientCounts(ctx context.Context) (eligibleRecipientsResponse, []emailRecipientCandidate, error) {
+	allEligible, users, trialExpiredEngaged, hotCalculatorLeads, err := a.resolveAudienceRecipients(ctx, emailAudienceAllEligible)
+	if err != nil {
+		return eligibleRecipientsResponse{}, nil, err
+	}
+
+	ebookLeads, err := a.loadEligibleEbookLeads(ctx)
+	if err != nil {
+		return eligibleRecipientsResponse{}, nil, err
+	}
+
+	hotAudienceRecipients, _, _, _, err := a.resolveAudienceRecipients(ctx, emailAudienceCalculatorLeadsHot)
+	if err != nil {
+		return eligibleRecipientsResponse{}, nil, err
+	}
+
+	return eligibleRecipientsResponse{
+		EligibleCount:       len(allEligible),
+		UserCount:           len(users),
+		LeadCount:           len(ebookLeads) + len(hotCalculatorLeads),
+		EbookLeadCount:      len(ebookLeads),
+		CalculatorLeadCount: len(hotCalculatorLeads),
+		AudienceCounts: eligibleRecipientAudienceCounts{
+			AllEligible:         len(allEligible),
+			TrialExpiredEngaged: len(trialExpiredEngaged),
+			CalculatorLeadsHot:  len(hotAudienceRecipients),
+		},
+	}, allEligible, nil
+}
+
 // Handler for /api/v1/public/unsubscribe/{token}
 func (a *api) handlePublicUnsubscribe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
@@ -187,8 +499,7 @@ func (a *api) handlePublicUnsubscribe(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	// Find user by token and set opt_out
-	result, err := a.db.ExecContext(ctx, `
+	userResult, err := a.db.ExecContext(ctx, `
 		UPDATE "user"
 		SET marketing_opt_out_at = now()
 		WHERE unsubscribe_token = $1
@@ -200,9 +511,36 @@ func (a *api) handlePublicUnsubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		// Token not found or already unsubscribed - still return success for privacy
+	leadResult, err := a.db.ExecContext(ctx, `
+		UPDATE flip.ebook_leads
+		SET marketing_consent = false
+		WHERE unsubscribe_token = $1
+		  AND marketing_consent = true
+	`, token)
+	if err != nil {
+		log.Printf("unsubscribe ebook lead: error: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to unsubscribe"})
+		return
+	}
+
+	calculatorResult, err := a.db.ExecContext(ctx, `
+		UPDATE flip.calculator_leads
+		SET marketing_consent = false,
+		    updated_at = now()
+		WHERE unsubscribe_token = $1
+		  AND marketing_consent = true
+	`, token)
+	if err != nil {
+		log.Printf("unsubscribe calculator lead: error: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to unsubscribe"})
+		return
+	}
+
+	userRows, _ := userResult.RowsAffected()
+	leadRows, _ := leadResult.RowsAffected()
+	calculatorRows, _ := calculatorResult.RowsAffected()
+	if userRows == 0 && leadRows == 0 && calculatorRows == 0 {
+		// Token not found or already unsubscribed - still return success for privacy.
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "message": "unsubscribed"})
 		return
 	}
@@ -214,66 +552,40 @@ func (a *api) handlePublicUnsubscribe(w http.ResponseWriter, r *http.Request) {
 func (a *api) handleEmailRecipients(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var userCount, leadCount int
-	err := a.db.QueryRowContext(ctx, `
-		SELECT
-			(SELECT COUNT(*) FROM "user"
-			 WHERE "emailVerified" = true AND is_active = true
-			 AND marketing_opt_in_at IS NOT NULL AND marketing_opt_out_at IS NULL),
-			(SELECT COUNT(*) FROM flip.ebook_leads
-			 WHERE marketing_consent = true AND converted_at IS NULL)
-	`).Scan(&userCount, &leadCount)
+	counts, _, err := a.buildRecipientCounts(ctx)
 	if err != nil {
 		log.Printf("email recipients: error: %v", err)
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to count recipients"})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, eligibleRecipientsResponse{
-		EligibleCount: userCount + leadCount,
-		UserCount:     userCount,
-		LeadCount:     leadCount,
-	})
+	writeJSON(w, http.StatusOK, counts)
 }
 
 // List eligible recipients
 func (a *api) handleListEligibleRecipients(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	rows, err := a.db.QueryContext(ctx, `
-		SELECT id, email, name, opt_in_at, created_at, source FROM (
-			SELECT id, email, name, marketing_opt_in_at AS opt_in_at, "createdAt" AS created_at, 'user' AS source
-			FROM "user"
-			WHERE "emailVerified" = true AND is_active = true
-			AND marketing_opt_in_at IS NOT NULL AND marketing_opt_out_at IS NULL
-
-			UNION ALL
-
-			SELECT id, email, email AS name, created_at AS opt_in_at, created_at, 'lead' AS source
-			FROM flip.ebook_leads
-			WHERE marketing_consent = true AND converted_at IS NULL
-		) combined
-		ORDER BY opt_in_at DESC
-		LIMIT 500
-	`)
+	recipients, _, _, _, err := a.resolveAudienceRecipients(ctx, emailAudienceAllEligible)
 	if err != nil {
 		log.Printf("list eligible recipients: error: %v", err)
 		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to list recipients"})
 		return
 	}
-	defer rows.Close()
 
 	items := make([]eligibleRecipient, 0)
-	for rows.Next() {
-		var r eligibleRecipient
-		var optInAt, createdAt time.Time
-		if err := rows.Scan(&r.ID, &r.Email, &r.Name, &optInAt, &createdAt, &r.Source); err != nil {
-			log.Printf("list eligible recipients: scan error: %v", err)
-			continue
+	for i, recipient := range recipients {
+		if i >= 500 {
+			break
 		}
-		r.OptInAt = optInAt.Format(time.RFC3339)
-		r.CreatedAt = createdAt.Format(time.RFC3339)
-		items = append(items, r)
+		items = append(items, eligibleRecipient{
+			ID:        recipient.ID,
+			Email:     recipient.Email,
+			Name:      recipient.Name,
+			OptInAt:   recipient.OptInAt.Format(time.RFC3339),
+			CreatedAt: recipient.CreatedAt.Format(time.RFC3339),
+			Source:    recipient.Source,
+		})
 	}
 
 	writeJSON(w, http.StatusOK, listEligibleRecipientsResponse{Items: items, Total: len(items)})
@@ -284,7 +596,7 @@ func (a *api) handleListCampaigns(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	rows, err := a.db.QueryContext(ctx, `
-		SELECT id, subject, body_html, status, created_by, created_at, queued_at, sent_at, recipient_count
+		SELECT id, subject, body_html, audience_key, status, created_by, created_at, queued_at, sent_at, recipient_count
 		FROM email_campaigns
 		ORDER BY created_at DESC
 		LIMIT 100
@@ -302,7 +614,7 @@ func (a *api) handleListCampaigns(w http.ResponseWriter, r *http.Request) {
 		var createdAt time.Time
 		var queuedAt, sentAt sql.NullTime
 
-		if err := rows.Scan(&c.ID, &c.Subject, &c.BodyHTML, &c.Status, &c.CreatedBy, &createdAt, &queuedAt, &sentAt, &c.RecipientCount); err != nil {
+		if err := rows.Scan(&c.ID, &c.Subject, &c.BodyHTML, &c.AudienceKey, &c.Status, &c.CreatedBy, &createdAt, &queuedAt, &sentAt, &c.RecipientCount); err != nil {
 			log.Printf("list campaigns: scan error: %v", err)
 			continue
 		}
@@ -347,17 +659,24 @@ func (a *api) handleCreateCampaign(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "bodyHtml is required"})
 		return
 	}
+	if req.AudienceKey == "" {
+		req.AudienceKey = emailAudienceAllEligible
+	}
+	if !validAudienceKey(req.AudienceKey) {
+		writeError(w, http.StatusBadRequest, apiError{Code: "VALIDATION_ERROR", Message: "audienceKey is invalid"})
+		return
+	}
 
 	ctx := r.Context()
 	var c emailCampaign
 	var createdAt time.Time
 
 	err := a.db.QueryRowContext(ctx, `
-		INSERT INTO email_campaigns (subject, body_html, created_by)
-		VALUES ($1, $2, $3)
-		RETURNING id, subject, body_html, status, created_by, created_at, recipient_count
-	`, req.Subject, req.BodyHTML, userID).Scan(
-		&c.ID, &c.Subject, &c.BodyHTML, &c.Status, &c.CreatedBy, &createdAt, &c.RecipientCount,
+		INSERT INTO email_campaigns (subject, body_html, audience_key, created_by)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, subject, body_html, audience_key, status, created_by, created_at, recipient_count
+	`, req.Subject, req.BodyHTML, req.AudienceKey, userID).Scan(
+		&c.ID, &c.Subject, &c.BodyHTML, &c.AudienceKey, &c.Status, &c.CreatedBy, &createdAt, &c.RecipientCount,
 	)
 	if err != nil {
 		log.Printf("create campaign: error: %v", err)
@@ -378,10 +697,10 @@ func (a *api) handleGetCampaign(w http.ResponseWriter, r *http.Request, campaign
 	var queuedAt, sentAt sql.NullTime
 
 	err := a.db.QueryRowContext(ctx, `
-		SELECT id, subject, body_html, status, created_by, created_at, queued_at, sent_at, recipient_count
+		SELECT id, subject, body_html, audience_key, status, created_by, created_at, queued_at, sent_at, recipient_count
 		FROM email_campaigns
 		WHERE id = $1
-	`, campaignID).Scan(&c.ID, &c.Subject, &c.BodyHTML, &c.Status, &c.CreatedBy, &createdAt, &queuedAt, &sentAt, &c.RecipientCount)
+	`, campaignID).Scan(&c.ID, &c.Subject, &c.BodyHTML, &c.AudienceKey, &c.Status, &c.CreatedBy, &createdAt, &queuedAt, &sentAt, &c.RecipientCount)
 
 	if err == sql.ErrNoRows {
 		writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "campaign not found"})
@@ -406,13 +725,71 @@ func (a *api) handleGetCampaign(w http.ResponseWriter, r *http.Request, campaign
 	writeJSON(w, http.StatusOK, c)
 }
 
+func (a *api) ensureRecipientToken(ctx context.Context, tx *sql.Tx, recipient emailRecipientCandidate) error {
+	token := generateToken()
+
+	switch recipient.Source {
+	case emailRecipientSourceUser:
+		if recipient.UserID == nil {
+			return fmt.Errorf("missing user recipient id")
+		}
+		_, err := tx.ExecContext(ctx, `
+			UPDATE "user"
+			SET unsubscribe_token = COALESCE(unsubscribe_token, $2)
+			WHERE id = $1
+		`, *recipient.UserID, token)
+		return err
+	case emailRecipientSourceEbookLead:
+		if recipient.EbookLeadID == nil {
+			return fmt.Errorf("missing ebook lead recipient id")
+		}
+		_, err := tx.ExecContext(ctx, `
+			UPDATE flip.ebook_leads
+			SET unsubscribe_token = COALESCE(unsubscribe_token, $2)
+			WHERE id = $1
+		`, *recipient.EbookLeadID, token)
+		return err
+	case emailRecipientSourceCalculatorLead:
+		if recipient.CalculatorLeadID == nil {
+			return fmt.Errorf("missing calculator lead recipient id")
+		}
+		_, err := tx.ExecContext(ctx, `
+			UPDATE flip.calculator_leads
+			SET unsubscribe_token = COALESCE(unsubscribe_token, $2)
+			WHERE id = $1
+		`, *recipient.CalculatorLeadID, token)
+		return err
+	default:
+		return fmt.Errorf("unsupported recipient source: %s", recipient.Source)
+	}
+}
+
+func insertEmailSendRecipient(ctx context.Context, tx *sql.Tx, campaignID string, recipient emailRecipientCandidate) (int64, error) {
+	result, err := tx.ExecContext(ctx, `
+		INSERT INTO email_sends (campaign_id, user_id, ebook_lead_id, calculator_lead_id)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT DO NOTHING
+	`, campaignID, recipient.UserID, recipient.EbookLeadID, recipient.CalculatorLeadID)
+	if err != nil {
+		return 0, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return rowsAffected, nil
+}
+
 // Queue campaign - populate email_sends with eligible recipients
 func (a *api) handleQueueCampaign(w http.ResponseWriter, r *http.Request, campaignID string) {
 	ctx := r.Context()
 
 	// Verify campaign exists and is in draft status
 	var status string
-	err := a.db.QueryRowContext(ctx, `SELECT status FROM email_campaigns WHERE id = $1`, campaignID).Scan(&status)
+	var audienceKey string
+	err := a.db.QueryRowContext(ctx, `SELECT status, audience_key FROM email_campaigns WHERE id = $1`, campaignID).Scan(&status, &audienceKey)
 	if err == sql.ErrNoRows {
 		writeError(w, http.StatusNotFound, apiError{Code: "NOT_FOUND", Message: "campaign not found"})
 		return
@@ -428,6 +805,13 @@ func (a *api) handleQueueCampaign(w http.ResponseWriter, r *http.Request, campai
 		return
 	}
 
+	recipients, _, _, _, err := a.resolveAudienceRecipients(ctx, audienceKey)
+	if err != nil {
+		log.Printf("queue campaign: resolve audience error: %v", err)
+		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to resolve audience"})
+		return
+	}
+
 	// Start transaction
 	tx, err := a.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -436,107 +820,22 @@ func (a *api) handleQueueCampaign(w http.ResponseWriter, r *http.Request, campai
 	}
 	defer tx.Rollback()
 
-	// Generate unsubscribe tokens for users who don't have one
-	rows, err := tx.QueryContext(ctx, `
-		SELECT id FROM "user"
-		WHERE unsubscribe_token IS NULL
-		AND "emailVerified" = true AND is_active = true
-		AND marketing_opt_in_at IS NOT NULL AND marketing_opt_out_at IS NULL
-	`)
-	if err != nil {
-		log.Printf("queue campaign: query users error: %v", err)
-		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to query users"})
-		return
-	}
-
-	userIDsNeedingTokens := make([]string, 0)
-	for rows.Next() {
-		var userID string
-		if err := rows.Scan(&userID); err == nil {
-			userIDsNeedingTokens = append(userIDsNeedingTokens, userID)
-		}
-	}
-	rows.Close()
-
-	for _, userID := range userIDsNeedingTokens {
-		token := generateToken()
-		_, err = tx.ExecContext(ctx, `UPDATE "user" SET unsubscribe_token = $1 WHERE id = $2`, token, userID)
-		if err != nil {
-			log.Printf("queue campaign: update token error: %v", err)
-			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to generate tokens"})
+	var recipientCount int64
+	for _, recipient := range recipients {
+		if err := a.ensureRecipientToken(ctx, tx, recipient); err != nil {
+			log.Printf("queue campaign: ensure token error: %v", err)
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to generate recipient tokens"})
 			return
 		}
-	}
 
-	// Generate unsubscribe tokens for ebook leads
-	leadRows, err := tx.QueryContext(ctx, `
-		SELECT id FROM flip.ebook_leads
-		WHERE unsubscribe_token IS NULL AND marketing_consent = true
-	`)
-	if err != nil {
-		log.Printf("queue campaign: query ebook leads error: %v", err)
-		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to query leads"})
-		return
-	}
-
-	leadIDsNeedingTokens := make([]string, 0)
-	for leadRows.Next() {
-		var leadID string
-		if err := leadRows.Scan(&leadID); err == nil {
-			leadIDsNeedingTokens = append(leadIDsNeedingTokens, leadID)
-		}
-	}
-	leadRows.Close()
-
-	for _, leadID := range leadIDsNeedingTokens {
-		token := generateToken()
-		_, err = tx.ExecContext(ctx, `UPDATE flip.ebook_leads SET unsubscribe_token = $1 WHERE id = $2`, token, leadID)
+		rowsAffected, err := insertEmailSendRecipient(ctx, tx, campaignID, recipient)
 		if err != nil {
-			log.Printf("queue campaign: update lead token error: %v", err)
-			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to generate lead tokens"})
+			log.Printf("queue campaign: insert recipient error: %v", err)
+			writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to queue recipients"})
 			return
 		}
+		recipientCount += rowsAffected
 	}
-
-	// Insert registered users into email_sends
-	result, err := tx.ExecContext(ctx, `
-		INSERT INTO email_sends (campaign_id, user_id)
-		SELECT $1, id
-		FROM "user"
-		WHERE "emailVerified" = true AND is_active = true
-		AND marketing_opt_in_at IS NOT NULL AND marketing_opt_out_at IS NULL
-		ON CONFLICT (campaign_id, user_id) DO NOTHING
-	`, campaignID)
-	if err != nil {
-		log.Printf("queue campaign: insert user sends error: %v", err)
-		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to queue recipients"})
-		return
-	}
-	userCount, _ := result.RowsAffected()
-
-	// Insert ebook leads into email_sends (skip if email already in user table)
-	leadResult, err := tx.ExecContext(ctx, `
-		INSERT INTO email_sends (campaign_id, ebook_lead_id)
-		SELECT $1, el.id
-		FROM flip.ebook_leads el
-		WHERE el.marketing_consent = true
-		AND NOT EXISTS (
-			SELECT 1 FROM "user" u
-			WHERE u.email = el.email AND u."emailVerified" = true AND u.is_active = true
-			AND u.marketing_opt_in_at IS NOT NULL AND u.marketing_opt_out_at IS NULL
-		)
-		AND NOT EXISTS (
-			SELECT 1 FROM email_sends es WHERE es.campaign_id = $1 AND es.ebook_lead_id = el.id
-		)
-	`, campaignID)
-	if err != nil {
-		log.Printf("queue campaign: insert lead sends error: %v", err)
-		writeError(w, http.StatusInternalServerError, apiError{Code: "DB_ERROR", Message: "failed to queue lead recipients"})
-		return
-	}
-	leadCount, _ := leadResult.RowsAffected()
-
-	recipientCount := userCount + leadCount
 
 	// Update campaign status
 	_, err = tx.ExecContext(ctx, `
@@ -588,13 +887,14 @@ func (a *api) handleSendCampaignBatch(w http.ResponseWriter, r *http.Request, ca
 		a.db.ExecContext(ctx, `UPDATE email_campaigns SET status = 'sending' WHERE id = $1`, campaignID)
 	}
 
-	// Get batch of queued sends (registered users + ebook leads)
+	// Get batch of queued sends (registered users + ebook leads + calculator leads)
 	rows, err := a.db.QueryContext(ctx, `
-		SELECT es.id, COALESCE(u.email, el.email) AS email,
-			COALESCE(u.name, el.email) AS name,
-			COALESCE(u.unsubscribe_token, el.unsubscribe_token) AS unsubscribe_token
+		SELECT es.id, COALESCE(u.email, cl.email, el.email) AS email,
+			COALESCE(NULLIF(u.name, ''), NULLIF(cl.name, ''), el.email) AS name,
+			COALESCE(u.unsubscribe_token, cl.unsubscribe_token, el.unsubscribe_token) AS unsubscribe_token
 		FROM email_sends es
 		LEFT JOIN "user" u ON u.id = es.user_id
+		LEFT JOIN flip.calculator_leads cl ON cl.id = es.calculator_lead_id
 		LEFT JOIN flip.ebook_leads el ON el.id = es.ebook_lead_id
 		WHERE es.campaign_id = $1 AND es.status = 'queued'
 		LIMIT 50

@@ -12,6 +12,8 @@ import {
   ArrowUp,
   ArrowDown,
   Loader2,
+  Mail,
+  MessageCircle,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import type {
@@ -34,6 +36,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { getMetricsUsers } from "@/lib/actions/admin";
 
@@ -165,15 +169,65 @@ function formatDate(dateStr: string | null | undefined): string {
   });
 }
 
+function digitsOnly(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+function buildWhatsAppUrl(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+
+  let digits = digitsOnly(phone);
+  if (digits.length === 10 || digits.length === 11) {
+    digits = `55${digits}`;
+  }
+  if (digits.length < 12) {
+    return null;
+  }
+  return `https://wa.me/${digits}`;
+}
+
+function formatPhone(phone: string | null | undefined): string {
+  if (!phone) return "-";
+  const digits = digitsOnly(phone);
+  if (digits.length === 13 && digits.startsWith("55")) {
+    return `+55 (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`;
+  }
+  if (digits.length === 12 && digits.startsWith("55")) {
+    return `+55 (${digits.slice(2, 4)}) ${digits.slice(4, 8)}-${digits.slice(8)}`;
+  }
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return phone;
+}
+
+function formatUsageSummary(workspaceCount: number, prospectsCount: number, snapshotsCount: number): string {
+  return `${workspaceCount} ws • ${prospectsCount} prospects • ${snapshotsCount} snapshots`;
+}
+
+const ENGAGEMENT_BUCKET_STYLES: Record<string, string> = {
+  engaged: "bg-emerald-100 text-emerald-800",
+  touched: "bg-amber-100 text-amber-900",
+  cold: "bg-slate-100 text-slate-700",
+};
+
 function UsersTab({ category }: { category: MetricsUserCategory }) {
   const [data, setData] = useState<ListMetricsUsersResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [engagementFilter, setEngagementFilter] = useState<"all" | "engaged" | "touched" | "cold">("all");
 
   useEffect(() => {
     setLoading(true);
     getMetricsUsers(category)
       .then(setData)
       .finally(() => setLoading(false));
+  }, [category]);
+
+  useEffect(() => {
+    setEngagementFilter("all");
   }, [category]);
 
   if (loading) {
@@ -192,8 +246,36 @@ function UsersTab({ category }: { category: MetricsUserCategory }) {
     );
   }
 
+  const isTrialExpiredCategory = category === "trial_expired";
+  const filteredItems = isTrialExpiredCategory
+    ? data.items.filter((user) => engagementFilter === "all" || user.engagementBucket === engagementFilter)
+    : data.items;
+
   return (
-    <div className="rounded-md border">
+    <div className="space-y-4">
+      {isTrialExpiredCategory && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <ToggleGroup
+            type="single"
+            value={engagementFilter}
+            onValueChange={(value) => {
+              if (value) {
+                setEngagementFilter(value as "all" | "engaged" | "touched" | "cold");
+              }
+            }}
+          >
+            <ToggleGroupItem value="all">Todos</ToggleGroupItem>
+            <ToggleGroupItem value="engaged">Engaged</ToggleGroupItem>
+            <ToggleGroupItem value="touched">Touched</ToggleGroupItem>
+            <ToggleGroupItem value="cold">Cold</ToggleGroupItem>
+          </ToggleGroup>
+          <p className="text-sm text-muted-foreground">
+            {filteredItems.length} de {data.items.length} usuários
+          </p>
+        </div>
+      )}
+
+      <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -201,11 +283,18 @@ function UsersTab({ category }: { category: MetricsUserCategory }) {
             <TableHead>Tier</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Trial End</TableHead>
+            {isTrialExpiredCategory && <TableHead>Telefone</TableHead>}
+            {isTrialExpiredCategory && <TableHead>Marketing</TableHead>}
+            {isTrialExpiredCategory && <TableHead>Engajamento</TableHead>}
+            {isTrialExpiredCategory && <TableHead>Uso</TableHead>}
             <TableHead>Criado em</TableHead>
+            {isTrialExpiredCategory && <TableHead className="text-right">Contato</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.items.map((user) => (
+          {filteredItems.map((user) => {
+            const whatsappUrl = buildWhatsAppUrl(user.phone);
+            return (
             <TableRow key={user.id}>
               <TableCell>
                 <div>
@@ -238,11 +327,72 @@ function UsersTab({ category }: { category: MetricsUserCategory }) {
                 )}
               </TableCell>
               <TableCell>{formatDate(user.trialEnd)}</TableCell>
+              {isTrialExpiredCategory && <TableCell>{formatPhone(user.phone)}</TableCell>}
+              {isTrialExpiredCategory && (
+                <TableCell>
+                  {user.marketingOptIn ? (
+                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+                      Opt-in ativo
+                    </Badge>
+                  ) : user.marketingOptOut ? (
+                    <Badge variant="secondary" className="bg-red-100 text-red-800">
+                      Opt-out
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">Sem opt-in</Badge>
+                  )}
+                </TableCell>
+              )}
+              {isTrialExpiredCategory && (
+                <TableCell>
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "capitalize",
+                      user.engagementBucket ? ENGAGEMENT_BUCKET_STYLES[user.engagementBucket] : undefined,
+                    )}
+                  >
+                    {user.engagementBucket ?? "cold"}
+                  </Badge>
+                </TableCell>
+              )}
+              {isTrialExpiredCategory && (
+                <TableCell className="text-sm text-muted-foreground">
+                  {formatUsageSummary(user.workspaceCount, user.prospectsCount, user.snapshotsCount)}
+                </TableCell>
+              )}
               <TableCell>{formatDate(user.createdAt)}</TableCell>
+              {isTrialExpiredCategory && (
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`mailto:${user.email}`}>
+                        <Mail className="mr-2 h-4 w-4" />
+                        Email
+                      </a>
+                    </Button>
+                    {whatsappUrl ? (
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={whatsappUrl} target="_blank" rel="noreferrer">
+                          <MessageCircle className="mr-2 h-4 w-4" />
+                          WhatsApp
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" disabled>
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                        WhatsApp
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              )}
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
+    </div>
     </div>
   );
 }

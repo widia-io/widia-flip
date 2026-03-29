@@ -1900,6 +1900,9 @@ export const MetricsUserCategoryEnum = z.enum([
 ]);
 export type MetricsUserCategory = z.infer<typeof MetricsUserCategoryEnum>;
 
+export const EngagementBucketEnum = z.enum(["engaged", "touched", "cold"]);
+export type EngagementBucket = z.infer<typeof EngagementBucketEnum>;
+
 export const MetricsUserSchema = z.object({
   id: z.string(),
   email: z.string(),
@@ -1907,6 +1910,13 @@ export const MetricsUserSchema = z.object({
   tier: z.string().nullable(),
   billingStatus: z.string().nullable(),
   trialEnd: z.string().nullable(),
+  phone: z.string().nullable(),
+  marketingOptIn: z.boolean(),
+  marketingOptOut: z.boolean(),
+  workspaceCount: z.number(),
+  prospectsCount: z.number(),
+  snapshotsCount: z.number(),
+  engagementBucket: EngagementBucketEnum.nullable(),
   createdAt: z.string(),
   updatedAt: z.string().nullable(),
 });
@@ -2018,10 +2028,18 @@ export type AdminFunnelDailyResponse = z.infer<typeof AdminFunnelDailyResponseSc
 export const EmailCampaignStatusEnum = z.enum(["draft", "queued", "sending", "sent"]);
 export type EmailCampaignStatus = z.infer<typeof EmailCampaignStatusEnum>;
 
+export const EmailAudienceKeyEnum = z.enum([
+  "all_eligible",
+  "trial_expired_engaged",
+  "calculator_leads_hot",
+]);
+export type EmailAudienceKey = z.infer<typeof EmailAudienceKeyEnum>;
+
 export const EmailCampaignSchema = z.object({
   id: z.string(),
   subject: z.string(),
   bodyHtml: z.string(),
+  audienceKey: EmailAudienceKeyEnum,
   status: EmailCampaignStatusEnum,
   createdBy: z.string(),
   createdAt: z.string(),
@@ -2030,6 +2048,13 @@ export const EmailCampaignSchema = z.object({
   recipientCount: z.number(),
 });
 export type EmailCampaign = z.infer<typeof EmailCampaignSchema>;
+
+export const EligibleRecipientAudienceCountsSchema = z.object({
+  allEligible: z.number(),
+  trialExpiredEngaged: z.number(),
+  calculatorLeadsHot: z.number(),
+});
+export type EligibleRecipientAudienceCounts = z.infer<typeof EligibleRecipientAudienceCountsSchema>;
 
 export const ListEmailCampaignsResponseSchema = z.object({
   items: z.array(EmailCampaignSchema),
@@ -2040,8 +2065,14 @@ export const EligibleRecipientsResponseSchema = z.object({
   eligibleCount: z.number(),
   userCount: z.number().optional(),
   leadCount: z.number().optional(),
+  ebookLeadCount: z.number().optional(),
+  calculatorLeadCount: z.number().optional(),
+  audienceCounts: EligibleRecipientAudienceCountsSchema,
 });
 export type EligibleRecipientsResponse = z.infer<typeof EligibleRecipientsResponseSchema>;
+
+export const EligibleRecipientSourceEnum = z.enum(["user", "ebook_lead", "calculator_lead"]);
+export type EligibleRecipientSource = z.infer<typeof EligibleRecipientSourceEnum>;
 
 export const EligibleRecipientSchema = z.object({
   id: z.string(),
@@ -2049,7 +2080,7 @@ export const EligibleRecipientSchema = z.object({
   name: z.string(),
   optInAt: z.string(),
   createdAt: z.string(),
-  source: z.enum(["user", "lead"]).optional(),
+  source: EligibleRecipientSourceEnum,
 });
 export type EligibleRecipient = z.infer<typeof EligibleRecipientSchema>;
 
@@ -2062,6 +2093,7 @@ export type ListEligibleRecipientsResponse = z.infer<typeof ListEligibleRecipien
 export const CreateEmailCampaignRequestSchema = z.object({
   subject: z.string().min(1, "Assunto é obrigatório"),
   bodyHtml: z.string().min(1, "Conteúdo é obrigatório"),
+  audienceKey: EmailAudienceKeyEnum,
 });
 export type CreateEmailCampaignRequest = z.infer<typeof CreateEmailCampaignRequestSchema>;
 

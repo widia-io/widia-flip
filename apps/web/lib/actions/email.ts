@@ -13,6 +13,7 @@ import {
   type EligibleRecipientsResponse,
   type ListEligibleRecipientsResponse,
   type EmailCampaign,
+  type EmailAudienceKey,
   type QueueCampaignResponse,
   type SendBatchResponse,
   type MarketingConsentStatusResponse,
@@ -45,11 +46,12 @@ export async function getEmailCampaign(id: string): Promise<EmailCampaign> {
 
 export async function createEmailCampaign(
   subject: string,
-  bodyHtml: string
+  bodyHtml: string,
+  audienceKey: EmailAudienceKey
 ): Promise<EmailCampaign> {
   const data = await apiFetch("/api/v1/admin/email/campaigns", {
     method: "POST",
-    body: JSON.stringify({ subject, bodyHtml }),
+    body: JSON.stringify({ subject, bodyHtml, audienceKey }),
   });
   return EmailCampaignSchema.parse(data);
 }

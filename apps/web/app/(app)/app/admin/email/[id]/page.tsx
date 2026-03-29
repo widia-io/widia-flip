@@ -16,6 +16,31 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
   sent: { label: "Enviado", variant: "default" },
 };
 
+const audienceLabels: Record<string, string> = {
+  all_eligible: "Todos elegíveis",
+  trial_expired_engaged: "Trials expirados engajados",
+  calculator_leads_hot: "Leads quentes da calculadora",
+};
+
+function getAudienceEligibleCount(
+  audienceKey: string,
+  audienceCounts: {
+    allEligible: number;
+    trialExpiredEngaged: number;
+    calculatorLeadsHot: number;
+  },
+): number {
+  switch (audienceKey) {
+    case "trial_expired_engaged":
+      return audienceCounts.trialExpiredEngaged;
+    case "calculator_leads_hot":
+      return audienceCounts.calculatorLeadsHot;
+    case "all_eligible":
+    default:
+      return audienceCounts.allEligible;
+  }
+}
+
 export default async function CampaignDetailPage(props: {
   params: Promise<{ id: string }>;
 }) {
@@ -26,10 +51,12 @@ export default async function CampaignDetailPage(props: {
   let stats: CampaignStatsResponse | null = null;
 
   try {
-    [campaign, { eligibleCount }] = await Promise.all([
+    const [campaignData, recipientsCount] = await Promise.all([
       getEmailCampaign(id),
       getEligibleRecipientsCount(),
     ]);
+    campaign = campaignData;
+    eligibleCount = getAudienceEligibleCount(campaign.audienceKey, recipientsCount.audienceCounts);
 
     // Fetch stats only for sent/sending campaigns
     if (campaign.status === "sent" || campaign.status === "sending") {
@@ -62,6 +89,7 @@ export default async function CampaignDetailPage(props: {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{campaign.subject}</h1>
             <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+            <Badge variant="outline">{audienceLabels[campaign.audienceKey] ?? campaign.audienceKey}</Badge>
           </div>
           <p className="mt-1 text-muted-foreground">
             Criado em {new Date(campaign.createdAt).toLocaleDateString("pt-BR", {
@@ -100,6 +128,7 @@ export default async function CampaignDetailPage(props: {
                 campaignId={campaign.id}
                 status={campaign.status}
                 eligibleCount={eligibleCount}
+                audienceLabel={audienceLabels[campaign.audienceKey] ?? campaign.audienceKey}
               />
             </CardContent>
           </Card>
@@ -109,6 +138,10 @@ export default async function CampaignDetailPage(props: {
               <CardTitle>Estatisticas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Audiência</span>
+                <span className="font-medium">{audienceLabels[campaign.audienceKey] ?? campaign.audienceKey}</span>
+              </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Destinatarios</span>
                 <span className="font-medium">{campaign.recipientCount}</span>
