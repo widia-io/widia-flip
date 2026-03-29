@@ -1297,6 +1297,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-17` — 2026-03-25 — WID-38 entregue: saneamento do funil com owner único por evento, helper server-safe no Next para tracking/forward de contexto, Oferta Inteligente reaproveitando `session_id/request_id/path/device`, admin usando jornadas únicas (`rawTotals`, `duplicateDeltas`, `warnings`) e definições oficiais documentadas em `docs/FUNNEL_KPI_DEFINITIONS.md`.
 * `CP-17` — 2026-03-25 — WID-39 entregue: novo tier `free` (`1` workspace, `5` prospects, `1` snapshot, `1` doc, `5` imports URL, `25MB`, `0` suppliers), fim do lazy-create em `pro trial`, checkout pago-only (`starter/pro/growth`), `is_subscribed=false` para `free`, gating/paywall da Oferta Inteligente incluindo `free`, cópia comercial migrada para “começar grátis” e validação concluída com `go test ./services/api/internal/httpapi/...`, `npm run typecheck:web` e `npm run build:web`.
 * `CP-17` — 2026-03-28 — WID-40 entregue: calculadora pública agora libera o relatório detalhado sem gating de lead, captura opcional segue em `/api/calculator/lead`, evento `calculator_completed` vira etapa oficial no admin funnel e o legado de `calculator_full_report_requested` fica apenas como diagnóstico.
+* `CP-17` — 2026-03-28 — Hotfix de produção: `/app/admin/metrics` quebrava por ausência de `tzdata` na imagem `meuflip-api`, impedindo `time.LoadLocation("America/Sao_Paulo")` no endpoint de funil diário; runtime recebeu hotfix no container e `services/api/Dockerfile` passou a incluir `tzdata` para os próximos deploys.
 
 ---
 

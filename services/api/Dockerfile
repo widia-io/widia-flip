@@ -11,6 +11,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /api ./cmd/api
 FROM alpine:3.19
 RUN apk --no-cache add \
     ca-certificates \
+    tzdata \
     chromium \
     nss \
     freetype \
