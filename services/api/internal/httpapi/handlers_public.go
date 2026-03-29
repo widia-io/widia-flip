@@ -24,8 +24,8 @@ type publicCashSettings struct {
 }
 
 type publicCashCalcResponse struct {
-	Inputs  publicCashInputs       `json:"inputs"`
-	Outputs publicCashBasicOutputs `json:"outputs"`
+	Inputs  publicCashInputs          `json:"inputs"`
+	Outputs publicCashDetailedOutputs `json:"outputs"`
 }
 
 type publicCashInputs struct {
@@ -61,7 +61,7 @@ var defaultPublicSettings = viability.CashSettings{
 	PJTaxRate:    0,    // 0% (optional)
 }
 
-// handlePublicCashCalc handles POST /api/v1/public/cash-calc
+// handlePublicCashCalc handles POST /api/v1/public/cash-calc.
 // This endpoint does NOT require authentication and does NOT persist any data.
 func (a *api) handlePublicCashCalc(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -154,9 +154,17 @@ func (a *api) handlePublicCashCalc(w http.ResponseWriter, r *http.Request) {
 			OtherCosts:     req.OtherCosts,
 			SalePrice:      req.SalePrice,
 		},
-		Outputs: publicCashBasicOutputs{
-			ROI:       result.ROI,
-			IsPartial: result.IsPartial,
+		Outputs: publicCashDetailedOutputs{
+			ITBIValue:       result.ITBIValue,
+			RegistryValue:   result.RegistryValue,
+			AcquisitionCost: result.AcquisitionCost,
+			InvestmentTotal: result.InvestmentTotal,
+			BrokerFee:       result.BrokerFee,
+			GrossProfit:     result.GrossProfit,
+			PJTaxValue:      result.PJTaxValue,
+			NetProfit:       result.NetProfit,
+			ROI:             result.ROI,
+			IsPartial:       result.IsPartial,
 		},
 	}
 

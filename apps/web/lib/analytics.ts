@@ -177,6 +177,7 @@ export const EVENTS = {
   HOME_VIEW: "home_view",
   HOME_CTA_CLICK: "home_cta_click",
   VIEW_CALCULATOR: "calculator_viewed",
+  CALCULATOR_COMPLETED: "calculator_completed",
   CALCULATE_SUBMITTED: "calculator_submitted",
   SAVE_CLICKED: "calculator_save_clicked",
   FULL_REPORT_REQUESTED: "calculator_full_report_requested",
