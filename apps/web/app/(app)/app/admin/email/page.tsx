@@ -21,6 +21,18 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
   sent: { label: "Enviado", variant: "default" },
 };
 
+const audienceLabels: Record<string, string> = {
+  all_eligible: "Todos elegíveis",
+  trial_expired_engaged: "Trials expirados engajados",
+  calculator_leads_hot: "Calculadora quente",
+};
+
+const sourceLabels: Record<string, string> = {
+  user: "Usuário",
+  ebook_lead: "Ebook",
+  calculator_lead: "Calculadora",
+};
+
 export default async function AdminEmailPage() {
   const [{ items: campaigns }, recipientsCount, { items: recipients }] = await Promise.all([
     listEmailCampaigns(),
@@ -28,7 +40,13 @@ export default async function AdminEmailPage() {
     listEligibleRecipients(),
   ]);
 
-  const { eligibleCount, userCount = 0, leadCount = 0 } = recipientsCount;
+  const {
+    eligibleCount,
+    userCount = 0,
+    ebookLeadCount = 0,
+    calculatorLeadCount = 0,
+    audienceCounts,
+  } = recipientsCount;
 
   return (
     <div className="space-y-6">
@@ -46,7 +64,7 @@ export default async function AdminEmailPage() {
         <div>
           <h1 className="text-2xl font-bold">Email Marketing</h1>
           <p className="text-muted-foreground">
-            Envie campanhas para usuarios que optaram por receber novidades
+            Envie campanhas segmentadas para coortes elegíveis de reativação e growth
           </p>
         </div>
         <Button asChild>
@@ -58,20 +76,20 @@ export default async function AdminEmailPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Destinatarios elegiveis
+              Todos elegíveis
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
-              <span className="text-2xl font-bold">{eligibleCount}</span>
+              <span className="text-2xl font-bold">{audienceCounts.allEligible || eligibleCount}</span>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              {userCount} usuarios + {leadCount} leads
+              {userCount} usuários + {ebookLeadCount} ebook + {calculatorLeadCount} calculadora
             </p>
           </CardContent>
         </Card>
@@ -79,21 +97,37 @@ export default async function AdminEmailPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Campanhas criadas
+              Trial expirado engajado
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Mail className="h-5 w-5 text-primary" />
-              <span className="text-2xl font-bold">{campaigns.length}</span>
+              <Users className="h-5 w-5 text-orange-600" />
+              <span className="text-2xl font-bold">{audienceCounts.trialExpiredEngaged}</span>
             </div>
+            <p className="mt-1 text-xs text-muted-foreground">Coorte pronta para win-back por email</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Enviados este mes
+              Leads quentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-emerald-600" />
+              <span className="text-2xl font-bold">{audienceCounts.calculatorLeadsHot}</span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">Calculadora completa com ROI ≥ 20% e lucro positivo</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Enviados este mês
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -139,6 +173,9 @@ export default async function AdminEmailPage() {
                       <p className="text-sm text-muted-foreground">
                         Criado em {new Date(campaign.createdAt).toLocaleDateString("pt-BR")}
                       </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Audiência: {audienceLabels[campaign.audienceKey] ?? campaign.audienceKey}
+                      </p>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span>{campaign.recipientCount} destinatarios</span>
@@ -157,7 +194,7 @@ export default async function AdminEmailPage() {
         <CardHeader>
           <CardTitle>Destinatários Elegíveis</CardTitle>
           <CardDescription>
-            Usuários que optaram por receber emails e têm email verificado (máx. 500)
+            Base deduplicada da audiência `all_eligible` (máx. 500)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -166,7 +203,7 @@ export default async function AdminEmailPage() {
               <Users className="mb-4 h-12 w-12 text-muted-foreground/50" />
               <p className="text-muted-foreground">Nenhum destinatário elegível</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Usuários precisam ter email verificado e aceitar marketing
+                É preciso ter consentimento válido para marketing
               </p>
             </div>
           ) : (
@@ -186,8 +223,8 @@ export default async function AdminEmailPage() {
                     <TableCell className="font-medium">{recipient.name || "—"}</TableCell>
                     <TableCell>{recipient.email}</TableCell>
                     <TableCell>
-                      <Badge variant={recipient.source === "lead" ? "secondary" : "default"}>
-                        {recipient.source === "lead" ? "Lead" : "Usuario"}
+                      <Badge variant={recipient.source === "user" ? "default" : "secondary"}>
+                        {sourceLabels[recipient.source] ?? recipient.source}
                       </Badge>
                     </TableCell>
                     <TableCell>{new Date(recipient.optInAt).toLocaleDateString("pt-BR")}</TableCell>

@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
+import { getEligibleRecipientsCount } from "@/lib/actions/email";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NewCampaignForm } from "./NewCampaignForm";
 
-export default function NewCampaignPage() {
+export default async function NewCampaignPage() {
+  const { audienceCounts } = await getEligibleRecipientsCount();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -28,11 +31,11 @@ export default function NewCampaignPage() {
         <CardHeader>
           <CardTitle>Detalhes da campanha</CardTitle>
           <CardDescription>
-            O email sera enviado para todos os usuarios elegiveis (opt-in ativo + email verificado)
+            Escolha a audiência do win-back e escreva a mensagem da campanha
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <NewCampaignForm />
+          <NewCampaignForm audienceCounts={audienceCounts} />
         </CardContent>
       </Card>
     </div>

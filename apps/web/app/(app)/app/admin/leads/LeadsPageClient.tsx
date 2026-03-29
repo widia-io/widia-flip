@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import { BookOpen, Calculator, TrendingUp, UserCheck, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BookOpen, Calculator, Copy, MessageCircle, TrendingUp, UserCheck, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { AdminCalculatorLead, AdminEbookLead } from "@widia/shared";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,6 +16,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
+const HOT_LEAD_MIN_ROI = 20;
+
+function isHotCalculatorLead(lead: AdminCalculatorLead): boolean {
+  return !lead.isPartial && lead.roi >= HOT_LEAD_MIN_ROI && lead.netProfit > 0;
+}
+
+function isWarmCalculatorLead(lead: AdminCalculatorLead): boolean {
+  return !lead.isPartial && !isHotCalculatorLead(lead) && lead.roi > 0;
+}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("pt-BR", {
@@ -47,6 +59,20 @@ function formatWhatsApp(raw: string): string {
   return raw;
 }
 
+function buildWhatsAppUrl(raw: string): string | null {
+  let digits = raw.replace(/\D/g, "");
+  if (digits.length === 11) {
+    digits = `55${digits}`;
+  }
+  if (digits.length === 10) {
+    digits = `55${digits}`;
+  }
+  if (digits.length < 12) {
+    return null;
+  }
+  return `https://wa.me/${digits}`;
+}
+
 interface LeadsPageClientProps {
   ebookLeads: AdminEbookLead[];
   ebookTotal: number;
@@ -54,6 +80,8 @@ interface LeadsPageClientProps {
   calculatorTotal: number;
   reconciled: number;
 }
+
+type CalculatorLeadFilter = "all" | "hot" | "incomplete";
 
 export function LeadsPageClient({
   ebookLeads,
@@ -64,15 +92,36 @@ export function LeadsPageClient({
 }: LeadsPageClientProps) {
   const convertedCount = ebookLeads.filter((l) => l.convertedAt).length;
   const conversionRate = ebookTotal > 0 ? ((convertedCount / ebookTotal) * 100).toFixed(1) : "0";
-  const hotCalculatorLeads = calculatorLeads.filter(
-    (lead) => !lead.isPartial && lead.roi >= 20 && lead.netProfit > 0,
-  ).length;
+  const hotCalculatorLeads = calculatorLeads.filter(isHotCalculatorLead).length;
+  const [calculatorLeadFilter, setCalculatorLeadFilter] = useState<CalculatorLeadFilter>("all");
+
+  const filteredCalculatorLeads = useMemo(() => {
+    switch (calculatorLeadFilter) {
+      case "hot":
+        return calculatorLeads.filter(isHotCalculatorLead);
+      case "incomplete":
+        return calculatorLeads.filter((lead) => lead.isPartial);
+      case "all":
+      default:
+        return calculatorLeads;
+    }
+  }, [calculatorLeadFilter, calculatorLeads]);
 
   useEffect(() => {
     if (reconciled > 0) {
       toast.success(`${reconciled} lead${reconciled > 1 ? "s" : ""} reconciliado${reconciled > 1 ? "s" : ""}`);
     }
   }, [reconciled]);
+
+  const handleCopyContact = async (lead: AdminCalculatorLead) => {
+    const payload = `${lead.name}\n${lead.email}\n${formatWhatsApp(lead.whatsapp)}`;
+    try {
+      await navigator.clipboard.writeText(payload);
+      toast.success(`Contato de ${lead.name} copiado`);
+    } catch {
+      toast.error("Não foi possível copiar o contato");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -199,58 +248,102 @@ export function LeadsPageClient({
               <p className="text-muted-foreground">Nenhum lead da calculadora capturado</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Contato</TableHead>
-                  <TableHead>Email MKT</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>ROI</TableHead>
-                  <TableHead>Lucro Liquido</TableHead>
-                  <TableHead>Investimento</TableHead>
-                  <TableHead>Data</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {calculatorLeads.map((lead) => {
-                  const hot = !lead.isPartial && lead.roi >= 20 && lead.netProfit > 0;
-                  const warm = !lead.isPartial && !hot && lead.roi > 0;
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <ToggleGroup
+                  type="single"
+                  value={calculatorLeadFilter}
+                  onValueChange={(value) => {
+                    if (value) {
+                      setCalculatorLeadFilter(value as CalculatorLeadFilter);
+                    }
+                  }}
+                >
+                  <ToggleGroupItem value="all">Todos</ToggleGroupItem>
+                  <ToggleGroupItem value="hot">Quentes</ToggleGroupItem>
+                  <ToggleGroupItem value="incomplete">Incompletos</ToggleGroupItem>
+                </ToggleGroup>
+                <p className="text-sm text-muted-foreground">
+                  {filteredCalculatorLeads.length} de {calculatorLeads.length} leads
+                </p>
+              </div>
 
-                  return (
-                    <TableRow key={lead.id}>
-                      <TableCell className="font-medium">{lead.name}</TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <p className="text-sm">{lead.email}</p>
-                          <p className="text-xs text-muted-foreground">{formatWhatsApp(lead.whatsapp)}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={lead.marketingConsent ? "default" : "secondary"}>
-                          {lead.marketingConsent ? "Sim" : "Nao"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {lead.isPartial ? (
-                          <Badge variant="outline">Incompleto</Badge>
-                        ) : hot ? (
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Quente</Badge>
-                        ) : warm ? (
-                          <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">Morno</Badge>
-                        ) : (
-                          <Badge variant="secondary">Frio</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>{formatPercent(lead.roi)}</TableCell>
-                      <TableCell>{formatCurrency(lead.netProfit)}</TableCell>
-                      <TableCell>{formatCurrency(lead.investmentTotal)}</TableCell>
-                      <TableCell>{formatDate(lead.createdAt)}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Contato</TableHead>
+                    <TableHead>Email MKT</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>ROI</TableHead>
+                    <TableHead>Lucro Liquido</TableHead>
+                    <TableHead>Investimento</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCalculatorLeads.map((lead) => {
+                    const hot = isHotCalculatorLead(lead);
+                    const warm = isWarmCalculatorLead(lead);
+                    const whatsappUrl = buildWhatsAppUrl(lead.whatsapp);
+
+                    return (
+                      <TableRow key={lead.id}>
+                        <TableCell className="font-medium">{lead.name}</TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <p className="text-sm">{lead.email}</p>
+                            <p className="text-xs text-muted-foreground">{formatWhatsApp(lead.whatsapp)}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={lead.marketingConsent ? "default" : "secondary"}>
+                            {lead.marketingConsent ? "Sim" : "Nao"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {lead.isPartial ? (
+                            <Badge variant="outline">Incompleto</Badge>
+                          ) : hot ? (
+                            <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Quente</Badge>
+                          ) : warm ? (
+                            <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">Morno</Badge>
+                          ) : (
+                            <Badge variant="secondary">Frio</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>{formatPercent(lead.roi)}</TableCell>
+                        <TableCell>{formatCurrency(lead.netProfit)}</TableCell>
+                        <TableCell>{formatCurrency(lead.investmentTotal)}</TableCell>
+                        <TableCell>{formatDate(lead.createdAt)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            {whatsappUrl ? (
+                              <Button variant="outline" size="sm" asChild>
+                                <a href={whatsappUrl} target="_blank" rel="noreferrer">
+                                  <MessageCircle className="mr-2 h-4 w-4" />
+                                  WhatsApp
+                                </a>
+                              </Button>
+                            ) : (
+                              <Button variant="outline" size="sm" disabled>
+                                <MessageCircle className="mr-2 h-4 w-4" />
+                                WhatsApp
+                              </Button>
+                            )}
+                            <Button variant="outline" size="sm" onClick={() => void handleCopyContact(lead)}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Copiar
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

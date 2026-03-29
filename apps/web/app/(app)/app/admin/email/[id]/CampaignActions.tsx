@@ -11,9 +11,10 @@ interface CampaignActionsProps {
   campaignId: string;
   status: string;
   eligibleCount: number;
+  audienceLabel: string;
 }
 
-export function CampaignActions({ campaignId, status, eligibleCount }: CampaignActionsProps) {
+export function CampaignActions({ campaignId, status, eligibleCount, audienceLabel }: CampaignActionsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +85,8 @@ export function CampaignActions({ campaignId, status, eligibleCount }: CampaignA
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
             Ao enfileirar, a campanha sera preparada para envio para{" "}
-            <strong>{eligibleCount}</strong> usuarios elegiveis.
+            <strong>{eligibleCount}</strong> destinatários da audiência{" "}
+            <strong>{audienceLabel}</strong>.
           </p>
           <Button
             onClick={handleQueue}
