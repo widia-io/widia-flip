@@ -48,6 +48,11 @@ type funnelEventInsert struct {
 
 type adminFunnelCounts struct {
 	HomeViews                          int `json:"homeViews"`
+	CalculatorViews                    int `json:"calculatorViews"`
+	CalculatorCompleted                int `json:"calculatorCompleted"`
+	CalculatorLeadCaptureSubmitted     int `json:"calculatorLeadCaptureSubmitted"`
+	CalculatorSignupStarted            int `json:"calculatorSignupStarted"`
+	CalculatorPropertySaved            int `json:"calculatorPropertySaved"`
 	SignupStarted                      int `json:"signupStarted"`
 	SignupCompleted                    int `json:"signupCompleted"`
 	LoginCompleted                     int `json:"loginCompleted"`
@@ -66,16 +71,20 @@ type adminFunnelDailyItem struct {
 }
 
 type adminFunnelDailyRates struct {
-	HomeToSignupStartPct       float64 `json:"homeToSignupStartPct"`
-	SignupStartToCompletePct   float64 `json:"signupStartToCompletePct"`
-	SignupCompleteToLoginPct   float64 `json:"signupCompleteToLoginPct"`
-	LoginToFirstSnapshotPct    float64 `json:"loginToFirstSnapshotPct"`
-	HomeToFirstSnapshotPct     float64 `json:"homeToFirstSnapshotPct"`
-	CalculatorToSaveClickPct   float64 `json:"calculatorToSaveClickPct"`
-	CalculatorToReportReqPct   float64 `json:"calculatorToReportRequestPct"`
-	OfferGeneratedToSavedPct   float64 `json:"offerGeneratedToSavedPct"`
-	OfferGeneratedToPaywallPct float64 `json:"offerGeneratedToPaywallPct"`
-	OfferPaywallToUpgradePct   float64 `json:"offerPaywallToUpgradePct"`
+	HomeToSignupStartPct           float64 `json:"homeToSignupStartPct"`
+	CalculatorViewToCompletedPct   float64 `json:"calculatorViewToCompletedPct"`
+	CalculatorCompletedToLeadPct   float64 `json:"calculatorCompletedToLeadPct"`
+	CalculatorCompletedToSignupPct float64 `json:"calculatorCompletedToSignupPct"`
+	CalculatorCompletedToSavePct   float64 `json:"calculatorCompletedToSavePct"`
+	SignupStartToCompletePct       float64 `json:"signupStartToCompletePct"`
+	SignupCompleteToLoginPct       float64 `json:"signupCompleteToLoginPct"`
+	LoginToFirstSnapshotPct        float64 `json:"loginToFirstSnapshotPct"`
+	HomeToFirstSnapshotPct         float64 `json:"homeToFirstSnapshotPct"`
+	CalculatorToSaveClickPct       float64 `json:"calculatorToSaveClickPct"`
+	CalculatorToReportReqPct       float64 `json:"calculatorToReportRequestPct"`
+	OfferGeneratedToSavedPct       float64 `json:"offerGeneratedToSavedPct"`
+	OfferGeneratedToPaywallPct     float64 `json:"offerGeneratedToPaywallPct"`
+	OfferPaywallToUpgradePct       float64 `json:"offerPaywallToUpgradePct"`
 }
 
 type adminFunnelDailyResponse struct {
@@ -92,6 +101,7 @@ type adminFunnelEventRow struct {
 	ID        string
 	EventName string
 	Day       time.Time
+	Path      string
 	SessionID string
 	UserID    sql.NullString
 	RequestID sql.NullString
@@ -99,10 +109,14 @@ type adminFunnelEventRow struct {
 
 var adminFunnelTrackedEvents = []string{
 	"home_view",
+	"calculator_viewed",
+	"calculator_completed",
+	"calculator_lead_capture_submitted",
 	"signup_started",
 	"signup_completed",
 	"login_completed",
 	"first_snapshot_saved",
+	"property_saved",
 	"calculator_full_report_requested",
 	"calculator_save_clicked",
 	"offer_intelligence_generated",
@@ -263,6 +277,7 @@ func (a *api) handleAdminFunnelDaily(w http.ResponseWriter, r *http.Request) {
 			id::text,
 			event_name,
 			(event_at AT TIME ZONE 'America/Sao_Paulo')::date AS day,
+			COALESCE(path, '/') AS path,
 			session_id,
 			user_id::text,
 			request_id
@@ -301,6 +316,7 @@ func (a *api) handleAdminFunnelDaily(w http.ResponseWriter, r *http.Request) {
 			&row.ID,
 			&row.EventName,
 			&row.Day,
+			&row.Path,
 			&row.SessionID,
 			&row.UserID,
 			&row.RequestID,
@@ -313,33 +329,37 @@ func (a *api) handleAdminFunnelDaily(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		rawTotals.increment(row.EventName)
 		dateKey := row.Day.Format("2006-01-02")
 		journeyKey := buildAdminFunnelJourneyKey(row)
+		metricKeys := adminFunnelMetricKeys(row)
 
 		if strings.HasPrefix(strings.TrimSpace(row.SessionID), "srv_") && !row.RequestID.Valid && row.UserID.Valid {
 			legacySyntheticRows++
 		}
 
-		if _, ok := dailySeen[dateKey]; !ok {
-			dailySeen[dateKey] = make(map[string]map[string]struct{})
-		}
-		if _, ok := dailySeen[dateKey][row.EventName]; !ok {
-			dailySeen[dateKey][row.EventName] = make(map[string]struct{})
-		}
-		if _, ok := dailySeen[dateKey][row.EventName][journeyKey]; !ok {
-			dailySeen[dateKey][row.EventName][journeyKey] = struct{}{}
-			if item := itemsByDate[dateKey]; item != nil {
-				item.increment(row.EventName)
-			}
-		}
+		for _, metricKey := range metricKeys {
+			rawTotals.increment(metricKey)
 
-		if _, ok := totalSeen[row.EventName]; !ok {
-			totalSeen[row.EventName] = make(map[string]struct{})
-		}
-		if _, ok := totalSeen[row.EventName][journeyKey]; !ok {
-			totalSeen[row.EventName][journeyKey] = struct{}{}
-			totals.increment(row.EventName)
+			if _, ok := dailySeen[dateKey]; !ok {
+				dailySeen[dateKey] = make(map[string]map[string]struct{})
+			}
+			if _, ok := dailySeen[dateKey][metricKey]; !ok {
+				dailySeen[dateKey][metricKey] = make(map[string]struct{})
+			}
+			if _, ok := dailySeen[dateKey][metricKey][journeyKey]; !ok {
+				dailySeen[dateKey][metricKey][journeyKey] = struct{}{}
+				if item := itemsByDate[dateKey]; item != nil {
+					item.increment(metricKey)
+				}
+			}
+
+			if _, ok := totalSeen[metricKey]; !ok {
+				totalSeen[metricKey] = make(map[string]struct{})
+			}
+			if _, ok := totalSeen[metricKey][journeyKey]; !ok {
+				totalSeen[metricKey][journeyKey] = struct{}{}
+				totals.increment(metricKey)
+			}
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -581,10 +601,64 @@ func truncateString(raw string, maxLen int) string {
 	return raw[:maxLen]
 }
 
-func (c *adminFunnelCounts) increment(eventName string) {
-	switch eventName {
+func adminFunnelMetricKeys(row adminFunnelEventRow) []string {
+	keys := make([]string, 0, 2)
+
+	switch row.EventName {
+	case "home_view":
+		keys = append(keys, "home_view")
+	case "calculator_viewed":
+		keys = append(keys, "calculator_viewed")
+	case "calculator_completed":
+		keys = append(keys, "calculator_completed")
+	case "calculator_lead_capture_submitted":
+		keys = append(keys, "calculator_lead_capture_submitted")
+	case "signup_started":
+		keys = append(keys, "signup_started")
+		if row.Path == "/calculator" {
+			keys = append(keys, "calculator_signup_started")
+		}
+	case "signup_completed":
+		keys = append(keys, "signup_completed")
+	case "login_completed":
+		keys = append(keys, "login_completed")
+	case "first_snapshot_saved":
+		keys = append(keys, "first_snapshot_saved")
+	case "property_saved":
+		if row.Path == "/calculator" {
+			keys = append(keys, "calculator_property_saved")
+		}
+	case "calculator_full_report_requested":
+		keys = append(keys, "calculator_full_report_requested")
+	case "calculator_save_clicked":
+		keys = append(keys, "calculator_save_clicked")
+	case "offer_intelligence_generated":
+		keys = append(keys, "offer_intelligence_generated")
+	case "offer_intelligence_saved":
+		keys = append(keys, "offer_intelligence_saved")
+	case "offer_intelligence_paywall_viewed":
+		keys = append(keys, "offer_intelligence_paywall_viewed")
+	case "offer_intelligence_upgrade_cta_clicked":
+		keys = append(keys, "offer_intelligence_upgrade_cta_clicked")
+	}
+
+	return keys
+}
+
+func (c *adminFunnelCounts) increment(metricKey string) {
+	switch metricKey {
 	case "home_view":
 		c.HomeViews++
+	case "calculator_viewed":
+		c.CalculatorViews++
+	case "calculator_completed":
+		c.CalculatorCompleted++
+	case "calculator_lead_capture_submitted":
+		c.CalculatorLeadCaptureSubmitted++
+	case "calculator_signup_started":
+		c.CalculatorSignupStarted++
+	case "calculator_property_saved":
+		c.CalculatorPropertySaved++
 	case "signup_started":
 		c.SignupStarted++
 	case "signup_completed":
@@ -611,6 +685,11 @@ func (c *adminFunnelCounts) increment(eventName string) {
 func (c adminFunnelCounts) subtract(other adminFunnelCounts) adminFunnelCounts {
 	return adminFunnelCounts{
 		HomeViews:                          c.HomeViews - other.HomeViews,
+		CalculatorViews:                    c.CalculatorViews - other.CalculatorViews,
+		CalculatorCompleted:                c.CalculatorCompleted - other.CalculatorCompleted,
+		CalculatorLeadCaptureSubmitted:     c.CalculatorLeadCaptureSubmitted - other.CalculatorLeadCaptureSubmitted,
+		CalculatorSignupStarted:            c.CalculatorSignupStarted - other.CalculatorSignupStarted,
+		CalculatorPropertySaved:            c.CalculatorPropertySaved - other.CalculatorPropertySaved,
 		SignupStarted:                      c.SignupStarted - other.SignupStarted,
 		SignupCompleted:                    c.SignupCompleted - other.SignupCompleted,
 		LoginCompleted:                     c.LoginCompleted - other.LoginCompleted,
@@ -657,16 +736,20 @@ func buildAdminFunnelJourneyKey(row adminFunnelEventRow) string {
 
 func buildAdminFunnelRates(totals adminFunnelCounts) adminFunnelDailyRates {
 	return adminFunnelDailyRates{
-		HomeToSignupStartPct:       percent(totals.SignupStarted, totals.HomeViews),
-		SignupStartToCompletePct:   percent(totals.SignupCompleted, totals.SignupStarted),
-		SignupCompleteToLoginPct:   percent(totals.LoginCompleted, totals.SignupCompleted),
-		LoginToFirstSnapshotPct:    percent(totals.FirstSnapshotSaved, totals.LoginCompleted),
-		HomeToFirstSnapshotPct:     percent(totals.FirstSnapshotSaved, totals.HomeViews),
-		CalculatorToSaveClickPct:   percent(totals.CalculatorSaveClicked, totals.CalculatorFullReportRequested),
-		CalculatorToReportReqPct:   percent(totals.CalculatorFullReportRequested, totals.HomeViews),
-		OfferGeneratedToSavedPct:   percent(totals.OfferIntelligenceSaved, totals.OfferIntelligenceGenerated),
-		OfferGeneratedToPaywallPct: percent(totals.OfferIntelligencePaywallViewed, totals.OfferIntelligenceGenerated),
-		OfferPaywallToUpgradePct:   percent(totals.OfferIntelligenceUpgradeCtaClicked, totals.OfferIntelligencePaywallViewed),
+		HomeToSignupStartPct:           percent(totals.SignupStarted, totals.HomeViews),
+		CalculatorViewToCompletedPct:   percent(totals.CalculatorCompleted, totals.CalculatorViews),
+		CalculatorCompletedToLeadPct:   percent(totals.CalculatorLeadCaptureSubmitted, totals.CalculatorCompleted),
+		CalculatorCompletedToSignupPct: percent(totals.CalculatorSignupStarted, totals.CalculatorCompleted),
+		CalculatorCompletedToSavePct:   percent(totals.CalculatorPropertySaved, totals.CalculatorCompleted),
+		SignupStartToCompletePct:       percent(totals.SignupCompleted, totals.SignupStarted),
+		SignupCompleteToLoginPct:       percent(totals.LoginCompleted, totals.SignupCompleted),
+		LoginToFirstSnapshotPct:        percent(totals.FirstSnapshotSaved, totals.LoginCompleted),
+		HomeToFirstSnapshotPct:         percent(totals.FirstSnapshotSaved, totals.HomeViews),
+		CalculatorToSaveClickPct:       percent(totals.CalculatorSaveClicked, totals.CalculatorFullReportRequested),
+		CalculatorToReportReqPct:       percent(totals.CalculatorFullReportRequested, totals.HomeViews),
+		OfferGeneratedToSavedPct:       percent(totals.OfferIntelligenceSaved, totals.OfferIntelligenceGenerated),
+		OfferGeneratedToPaywallPct:     percent(totals.OfferIntelligencePaywallViewed, totals.OfferIntelligenceGenerated),
+		OfferPaywallToUpgradePct:       percent(totals.OfferIntelligenceUpgradeCtaClicked, totals.OfferIntelligencePaywallViewed),
 	}
 }
 
@@ -679,6 +762,11 @@ func buildAdminFunnelWarnings(
 	warnings := make([]string, 0, 3)
 
 	if rawTotals != duplicateDeltas && (duplicateDeltas.HomeViews > 0 ||
+		duplicateDeltas.CalculatorViews > 0 ||
+		duplicateDeltas.CalculatorCompleted > 0 ||
+		duplicateDeltas.CalculatorLeadCaptureSubmitted > 0 ||
+		duplicateDeltas.CalculatorSignupStarted > 0 ||
+		duplicateDeltas.CalculatorPropertySaved > 0 ||
 		duplicateDeltas.SignupStarted > 0 ||
 		duplicateDeltas.SignupCompleted > 0 ||
 		duplicateDeltas.LoginCompleted > 0 ||
@@ -693,6 +781,10 @@ func buildAdminFunnelWarnings(
 	}
 
 	if rates.HomeToSignupStartPct > 100 ||
+		rates.CalculatorViewToCompletedPct > 100 ||
+		rates.CalculatorCompletedToLeadPct > 100 ||
+		rates.CalculatorCompletedToSignupPct > 100 ||
+		rates.CalculatorCompletedToSavePct > 100 ||
 		rates.SignupStartToCompletePct > 100 ||
 		rates.SignupCompleteToLoginPct > 100 ||
 		rates.LoginToFirstSnapshotPct > 100 ||

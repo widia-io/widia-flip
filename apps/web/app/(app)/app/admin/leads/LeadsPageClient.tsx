@@ -189,7 +189,7 @@ export function LeadsPageClient({
         <CardHeader>
           <CardTitle>Leads da Calculadora</CardTitle>
           <CardDescription>
-            Contatos que solicitaram o relatorio completo da calculadora
+            Contatos capturados opcionalmente depois de usar a calculadora
           </CardDescription>
         </CardHeader>
         <CardContent>

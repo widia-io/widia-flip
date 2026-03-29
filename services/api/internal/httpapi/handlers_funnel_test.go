@@ -35,17 +35,23 @@ func TestHandleAdminFunnelDailyDedupesWindowAndWarnsOnLegacyData(t *testing.T) {
 			"id",
 			"event_name",
 			"day",
+			"path",
 			"session_id",
 			"user_id",
 			"request_id",
 		}).
-			AddRow("evt-1", "home_view", latestDay, "sess-home", nil, nil).
-			AddRow("evt-2", "home_view", latestDay, "sess-home", nil, nil).
-			AddRow("evt-3", "signup_started", latestDay, "sess-home", nil, nil).
-			AddRow("evt-4", "offer_intelligence_generated", latestDay, "sess-offer-1", "user-1", "req-1").
-			AddRow("evt-5", "offer_intelligence_paywall_viewed", latestDay, "srv_legacy_a", "user-1", nil).
-			AddRow("evt-6", "offer_intelligence_paywall_viewed", latestDay, "srv_legacy_b", "user-1", nil).
-			AddRow("evt-7", "offer_intelligence_upgrade_cta_clicked", latestDay, "sess-offer-1", "user-1", "req-1"))
+			AddRow("evt-1", "home_view", latestDay, "/", "sess-home", nil, nil).
+			AddRow("evt-2", "home_view", latestDay, "/", "sess-home", nil, nil).
+			AddRow("evt-3", "calculator_viewed", latestDay, "/calculator", "sess-calc", nil, nil).
+			AddRow("evt-4", "calculator_completed", latestDay, "/calculator", "sess-calc", nil, nil).
+			AddRow("evt-5", "calculator_completed", latestDay, "/calculator", "sess-calc", nil, nil).
+			AddRow("evt-6", "calculator_lead_capture_submitted", latestDay, "/calculator", "sess-calc", nil, nil).
+			AddRow("evt-7", "signup_started", latestDay, "/calculator", "sess-calc", nil, nil).
+			AddRow("evt-8", "property_saved", latestDay, "/calculator", "sess-calc", "user-1", "req-save").
+			AddRow("evt-9", "offer_intelligence_generated", latestDay, "/app/prospects", "sess-offer-1", "user-1", "req-1").
+			AddRow("evt-10", "offer_intelligence_paywall_viewed", latestDay, "/app/prospects", "srv_legacy_a", "user-1", nil).
+			AddRow("evt-11", "offer_intelligence_paywall_viewed", latestDay, "/app/prospects", "srv_legacy_b", "user-1", nil).
+			AddRow("evt-12", "offer_intelligence_upgrade_cta_clicked", latestDay, "/app/prospects", "sess-offer-1", "user-1", "req-1"))
 
 	a := &api{db: db}
 	rr := httptest.NewRecorder()
@@ -67,11 +73,44 @@ func TestHandleAdminFunnelDailyDedupesWindowAndWarnsOnLegacyData(t *testing.T) {
 	if resp.DuplicateDeltas.HomeViews != 1 {
 		t.Fatalf("duplicateDeltas.homeViews=%d want=1", resp.DuplicateDeltas.HomeViews)
 	}
+	if resp.Totals.CalculatorViews != 1 {
+		t.Fatalf("totals.calculatorViews=%d want=1", resp.Totals.CalculatorViews)
+	}
+	if resp.Totals.CalculatorCompleted != 1 {
+		t.Fatalf("totals.calculatorCompleted=%d want=1", resp.Totals.CalculatorCompleted)
+	}
+	if resp.RawTotals.CalculatorCompleted != 2 {
+		t.Fatalf("rawTotals.calculatorCompleted=%d want=2", resp.RawTotals.CalculatorCompleted)
+	}
+	if resp.DuplicateDeltas.CalculatorCompleted != 1 {
+		t.Fatalf("duplicateDeltas.calculatorCompleted=%d want=1", resp.DuplicateDeltas.CalculatorCompleted)
+	}
+	if resp.Totals.CalculatorLeadCaptureSubmitted != 1 {
+		t.Fatalf("totals.calculatorLeadCaptureSubmitted=%d want=1", resp.Totals.CalculatorLeadCaptureSubmitted)
+	}
+	if resp.Totals.CalculatorSignupStarted != 1 {
+		t.Fatalf("totals.calculatorSignupStarted=%d want=1", resp.Totals.CalculatorSignupStarted)
+	}
+	if resp.Totals.CalculatorPropertySaved != 1 {
+		t.Fatalf("totals.calculatorPropertySaved=%d want=1", resp.Totals.CalculatorPropertySaved)
+	}
 	if resp.Totals.OfferIntelligenceGenerated != 1 {
 		t.Fatalf("totals.offerIntelligenceGenerated=%d want=1", resp.Totals.OfferIntelligenceGenerated)
 	}
 	if resp.Totals.OfferIntelligencePaywallViewed != 2 {
 		t.Fatalf("totals.offerIntelligencePaywallViewed=%d want=2", resp.Totals.OfferIntelligencePaywallViewed)
+	}
+	if resp.Rates.CalculatorViewToCompletedPct != 100 {
+		t.Fatalf("rates.CalculatorViewToCompletedPct=%v want=100", resp.Rates.CalculatorViewToCompletedPct)
+	}
+	if resp.Rates.CalculatorCompletedToLeadPct != 100 {
+		t.Fatalf("rates.CalculatorCompletedToLeadPct=%v want=100", resp.Rates.CalculatorCompletedToLeadPct)
+	}
+	if resp.Rates.CalculatorCompletedToSignupPct != 100 {
+		t.Fatalf("rates.CalculatorCompletedToSignupPct=%v want=100", resp.Rates.CalculatorCompletedToSignupPct)
+	}
+	if resp.Rates.CalculatorCompletedToSavePct != 100 {
+		t.Fatalf("rates.CalculatorCompletedToSavePct=%v want=100", resp.Rates.CalculatorCompletedToSavePct)
 	}
 	if resp.Rates.OfferGeneratedToPaywallPct != 200 {
 		t.Fatalf("rates.offerGeneratedToPaywallPct=%v want=200", resp.Rates.OfferGeneratedToPaywallPct)
@@ -101,6 +140,10 @@ func TestBuildAdminFunnelRatesHandlesZeroDenominator(t *testing.T) {
 	rates := buildAdminFunnelRates(adminFunnelCounts{})
 
 	if rates.HomeToSignupStartPct != 0 ||
+		rates.CalculatorViewToCompletedPct != 0 ||
+		rates.CalculatorCompletedToLeadPct != 0 ||
+		rates.CalculatorCompletedToSignupPct != 0 ||
+		rates.CalculatorCompletedToSavePct != 0 ||
 		rates.SignupStartToCompletePct != 0 ||
 		rates.SignupCompleteToLoginPct != 0 ||
 		rates.LoginToFirstSnapshotPct != 0 ||

@@ -222,7 +222,7 @@ Calculadora e gating:
 1. `apps/web/components/CalculatorForm.tsx`
 2. `apps/web/components/CalculatorOutputs.tsx`
 3. `apps/web/app/api/calculator/calculate/route.ts`
-4. `apps/web/app/api/calculator/report/route.ts`
+4. `apps/web/app/api/calculator/lead/route.ts`
 5. `apps/web/app/api/calculator/save/route.ts`
 
 Auth/signup:
@@ -267,4 +267,3 @@ O plano é considerado bem sucedido quando, por 2 semanas consecutivas:
 1. Conversão de topo (`home -> signup`) melhora.
 2. Ativação (`signup -> first snapshot`) melhora.
 3. Não há regressão relevante em captação de lead ou estabilidade técnica.
-

@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-import type { CashOutputs, PublicCashBasicOutputs } from "@widia/shared";
-import { CalculatorOutputs } from "@/components/CalculatorOutputs";
+import type { CalculatorLeadCaptureResponse, CashOutputs } from "@widia/shared";
 import { AuthModal } from "@/components/AuthModal";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NumberInput } from "@/components/ui/number-input";
-import { Label } from "@/components/ui/label";
+import { CalculatorOutputs } from "@/components/CalculatorOutputs";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/ui/number-input";
 import { EVENTS, ensureAnalyticsSessionId, logEvent } from "@/lib/analytics";
 
 interface CalculatorFormProps {
@@ -33,14 +33,10 @@ interface LeadFormData {
   marketingConsent: boolean;
 }
 
-interface CalculatorReportResponse {
-  lead_id: string;
-  outputs: CashOutputs;
-}
-
 const STORAGE_KEY = "widia_calculator_inputs";
-const REPORT_UNLOCKED_KEY = "widia_calculator_report_unlocked";
 const LEAD_STORAGE_KEY = "widia_calculator_lead";
+const COMPLETION_TRACK_KEY = "widia_calculator_completed_logged";
+
 function getSaveButtonText(isSaving: boolean, isLoggedIn: boolean): string {
   if (isSaving) return "Salvando...";
   if (isLoggedIn) return "Salvar Análise";
@@ -80,6 +76,7 @@ function hasValidLeadData(lead: LeadFormData): boolean {
     lead.name.trim().length >= 2
     && lead.email.trim().length > 0
     && digitsOnly(lead.whatsapp).length === 11
+    && lead.marketingConsent
   );
 }
 
@@ -87,10 +84,10 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isSaving, setIsSaving] = useState(false);
-  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [isCapturingLead, setIsCapturingLead] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
-  const [reportUnlocked, setReportUnlocked] = useState(false);
+  const [hasCapturedLead, setHasCapturedLead] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [leadError, setLeadError] = useState<string | null>(null);
 
@@ -108,8 +105,8 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
     marketingConsent: false,
   });
 
-  const [basicOutputs, setBasicOutputs] = useState<PublicCashBasicOutputs | null>(null);
-  const [fullOutputs, setFullOutputs] = useState<CashOutputs | null>(null);
+  const [outputs, setOutputs] = useState<CashOutputs | null>(null);
+  const [debouncedInputs, setDebouncedInputs] = useState(inputs);
 
   useEffect(() => {
     ensureAnalyticsSessionId();
@@ -119,49 +116,43 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
     const storedInputs = sessionStorage.getItem(STORAGE_KEY);
     if (storedInputs) {
       try {
-        const parsed = JSON.parse(storedInputs);
-        setInputs(parsed);
+        setInputs(JSON.parse(storedInputs) as CalculatorInputs);
       } catch {
-        // Ignore invalid JSON
+        sessionStorage.removeItem(STORAGE_KEY);
       }
     }
 
     const storedLead = sessionStorage.getItem(LEAD_STORAGE_KEY);
-    if (storedLead) {
-      try {
-        const parsedLead = JSON.parse(storedLead);
-        const leadFromStorage: LeadFormData = {
-          name: typeof parsedLead.name === "string" ? parsedLead.name : "",
-          email: typeof parsedLead.email === "string" ? parsedLead.email : "",
-          whatsapp: typeof parsedLead.whatsapp === "string"
-            ? formatMobileWhatsApp(parsedLead.whatsapp)
-            : "",
-          marketingConsent: parsedLead.marketingConsent === true,
-        };
-        setLeadForm(leadFromStorage);
-      } catch {
-        sessionStorage.removeItem(LEAD_STORAGE_KEY);
-      }
-    }
+    if (!storedLead) return;
 
-    const unlocked = sessionStorage.getItem(REPORT_UNLOCKED_KEY);
-    if (unlocked === "true") {
-      setReportUnlocked(true);
+    try {
+      const parsedLead = JSON.parse(storedLead);
+      const restoredLead: LeadFormData = {
+        name: typeof parsedLead.name === "string" ? parsedLead.name : "",
+        email: typeof parsedLead.email === "string" ? parsedLead.email : "",
+        whatsapp: typeof parsedLead.whatsapp === "string"
+          ? formatMobileWhatsApp(parsedLead.whatsapp)
+          : "",
+        marketingConsent: parsedLead.marketingConsent === true,
+      };
+
+      setLeadForm(restoredLead);
+      setHasCapturedLead(hasValidLeadData(restoredLead));
+    } catch {
+      sessionStorage.removeItem(LEAD_STORAGE_KEY);
     }
   }, []);
 
   useEffect(() => {
-    if (isLoggedIn) {
-      const pendingAction = sessionStorage.getItem("widia_pending_save");
-      if (pendingAction === "true") {
-        sessionStorage.removeItem("widia_pending_save");
-        handleSave();
-      }
+    if (!isLoggedIn) return;
+
+    const pendingAction = sessionStorage.getItem("widia_pending_save");
+    if (pendingAction === "true") {
+      sessionStorage.removeItem("widia_pending_save");
+      void handleSave();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);
-
-  const [debouncedInputs, setDebouncedInputs] = useState(inputs);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -172,8 +163,9 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
 
   useEffect(() => {
     if (!hasAnyCalculatorValue(debouncedInputs)) {
-      setBasicOutputs(null);
-      setFullOutputs(null);
+      setOutputs(null);
+      setError(null);
+      setShowLeadForm(false);
       return;
     }
 
@@ -193,15 +185,31 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
           return;
         }
 
-        const data = (await res.json()) as { outputs: PublicCashBasicOutputs };
-        setBasicOutputs(data.outputs);
-        setFullOutputs(null);
+        const data = (await res.json()) as { outputs: CashOutputs };
+        setOutputs(data.outputs);
         setError(null);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Erro ao calcular");
       }
     });
-  }, [debouncedInputs]);
+  }, [debouncedInputs, startTransition]);
+
+  useEffect(() => {
+    if (!outputs || outputs.is_partial) return;
+    if (window.sessionStorage.getItem(COMPLETION_TRACK_KEY)) return;
+
+    logEvent(EVENTS.CALCULATOR_COMPLETED, {
+      is_logged_in: isLoggedIn,
+      has_renovation_cost: inputs.renovation_cost !== null,
+      has_other_costs: inputs.other_costs !== null,
+    });
+    window.sessionStorage.setItem(COMPLETION_TRACK_KEY, "true");
+  }, [inputs.other_costs, inputs.renovation_cost, isLoggedIn, outputs]);
+
+  useEffect(() => {
+    if (!outputs?.is_partial) return;
+    setShowLeadForm(false);
+  }, [outputs]);
 
   const handleInputChange = (field: keyof CalculatorInputs, value: number | null) => {
     setInputs((prev) => ({
@@ -210,7 +218,7 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
     }));
   };
 
-  const submitLeadCapture = async () => {
+  const handleLeadCapture = async () => {
     const cleanName = leadForm.name.trim();
     const cleanEmail = leadForm.email.trim().toLowerCase();
     const cleanWhatsApp = digitsOnly(leadForm.whatsapp);
@@ -232,11 +240,11 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
       return;
     }
 
-    setIsUnlocking(true);
+    setIsCapturingLead(true);
     setLeadError(null);
 
     try {
-      const res = await fetch("/api/calculator/report", {
+      const res = await fetch("/api/calculator/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -250,23 +258,19 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error?.message || "Nao foi possivel liberar o relatorio completo");
+        throw new Error(data.error?.message || "Nao foi possivel salvar seu contato");
       }
 
-      const data = (await res.json()) as CalculatorReportResponse;
-
+      const data = (await res.json()) as CalculatorLeadCaptureResponse;
       setLeadForm({
         name: cleanName,
         email: cleanEmail,
         whatsapp: formatMobileWhatsApp(cleanWhatsApp),
         marketingConsent: leadForm.marketingConsent,
       });
-      setFullOutputs(data.outputs);
-      setReportUnlocked(true);
+      setHasCapturedLead(Boolean(data.lead_id));
       setShowLeadForm(false);
-      setError(null);
 
-      sessionStorage.setItem(REPORT_UNLOCKED_KEY, "true");
       sessionStorage.setItem(
         LEAD_STORAGE_KEY,
         JSON.stringify({
@@ -277,24 +281,10 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
         }),
       );
     } catch (e) {
-      setLeadError(e instanceof Error ? e.message : "Erro ao liberar relatorio");
+      setLeadError(e instanceof Error ? e.message : "Erro ao salvar contato");
     } finally {
-      setIsUnlocking(false);
+      setIsCapturingLead(false);
     }
-  };
-
-  const handleRequestFullReport = () => {
-    logEvent(EVENTS.FULL_REPORT_REQUESTED, {
-      has_saved_lead: hasValidLeadData(leadForm),
-      is_unlocked: reportUnlocked,
-    });
-
-    if (reportUnlocked && hasValidLeadData(leadForm)) {
-      void submitLeadCapture();
-      return;
-    }
-
-    setShowLeadForm(true);
   };
 
   const handleSave = async () => {
@@ -342,12 +332,11 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
     router.refresh();
   };
 
-  const canSave = basicOutputs && !basicOutputs.is_partial;
-  const canRequestFull = basicOutputs !== null;
+  const canSave = outputs !== null && !outputs.is_partial;
 
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Dados do Imóvel</CardTitle>
@@ -369,7 +358,7 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
                 <NumberInput
                   id="purchase_price"
                   value={inputs.purchase_price}
-                  onChange={(v) => handleInputChange("purchase_price", v)}
+                  onChange={(value) => handleInputChange("purchase_price", value)}
                   placeholder="500.000"
                   formatWhileTyping
                 />
@@ -380,7 +369,7 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
                 <NumberInput
                   id="renovation_cost"
                   value={inputs.renovation_cost}
-                  onChange={(v) => handleInputChange("renovation_cost", v)}
+                  onChange={(value) => handleInputChange("renovation_cost", value)}
                   placeholder="50.000"
                   formatWhileTyping
                 />
@@ -391,7 +380,7 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
                 <NumberInput
                   id="other_costs"
                   value={inputs.other_costs}
-                  onChange={(v) => handleInputChange("other_costs", v)}
+                  onChange={(value) => handleInputChange("other_costs", value)}
                   placeholder="10.000"
                   formatWhileTyping
                 />
@@ -402,7 +391,7 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
                 <NumberInput
                   id="sale_price"
                   value={inputs.sale_price}
-                  onChange={(v) => handleInputChange("sale_price", v)}
+                  onChange={(value) => handleInputChange("sale_price", value)}
                   placeholder="700.000"
                   formatWhileTyping
                 />
@@ -416,47 +405,84 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
             <CardTitle>Resultado</CardTitle>
           </CardHeader>
 
-          <CardContent>
-            {fullOutputs ? (
-              <CalculatorOutputs outputs={fullOutputs} mode="full" />
-            ) : basicOutputs ? (
-              <CalculatorOutputs outputs={basicOutputs} mode="basic" />
+          <CardContent className="space-y-6">
+            {outputs ? (
+              <CalculatorOutputs
+                outputs={outputs}
+                mode={outputs.is_partial ? "basic" : "full"}
+              />
             ) : (
-              <div className="flex items-center justify-center h-48 text-muted-foreground">
+              <div className="flex h-48 items-center justify-center text-muted-foreground">
                 Preencha os valores para ver o resultado
               </div>
             )}
 
-            {canRequestFull && !fullOutputs && (
-              <div className="mt-6 rounded-lg border border-border bg-muted/30 p-4 space-y-3">
-                <div>
-                  <p className="text-sm font-medium">Relatorio completo com taxas detalhadas</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Para liberar ITBI, registro, corretagem, lucro completo e investimento total, preencha nome, email e WhatsApp.
+            <div className="border-t border-border pt-6">
+              <Button
+                onClick={handleSave}
+                disabled={isSaving || !canSave}
+                className="w-full"
+                size="lg"
+              >
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {getSaveButtonText(isSaving, isLoggedIn)}
+              </Button>
+              {!canSave && outputs?.is_partial && (
+                <p className="mt-2 text-center text-xs text-muted-foreground">
+                  Preencha preço de compra e venda para salvar
+                </p>
+              )}
+            </div>
+
+            {canSave && (
+              <div className="rounded-lg border border-border bg-muted/20 p-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Quer continuar recebendo estudos e oportunidades parecidas?</p>
+                  <p className="text-xs text-muted-foreground">
+                    O relatório já está liberado acima. Se quiser, deixe seu contato para receber conteúdos e ofertas futuras por email.
                   </p>
                 </div>
 
-                {!showLeadForm ? (
+                {hasCapturedLead && !showLeadForm ? (
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                      Contato salvo com sucesso para <strong>{leadForm.email}</strong>.
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setHasCapturedLead(false);
+                        setShowLeadForm(true);
+                        setLeadError(null);
+                      }}
+                    >
+                      Atualizar dados de contato
+                    </Button>
+                  </div>
+                ) : !showLeadForm ? (
                   <Button
                     type="button"
-                    onClick={handleRequestFullReport}
-                    disabled={isUnlocking}
-                    className="w-full"
                     variant="outline"
+                    className="mt-4 w-full"
+                    onClick={() => {
+                      setShowLeadForm(true);
+                      setLeadError(null);
+                    }}
                   >
-                    {isUnlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {reportUnlocked ? "Atualizar relatorio completo" : "Ver relatorio completo"}
+                    Quero receber novidades e oportunidades
                   </Button>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="mt-4 space-y-3">
                     <div className="space-y-1.5">
                       <Label htmlFor="lead_name">Nome</Label>
                       <Input
                         id="lead_name"
                         value={leadForm.name}
-                        onChange={(e) => setLeadForm((prev) => ({ ...prev, name: e.target.value }))}
+                        onChange={(event) => setLeadForm((prev) => ({ ...prev, name: event.target.value }))}
                         placeholder="Seu nome"
-                        disabled={isUnlocking}
+                        disabled={isCapturingLead}
                       />
                     </div>
 
@@ -466,9 +492,9 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
                         id="lead_email"
                         type="email"
                         value={leadForm.email}
-                        onChange={(e) => setLeadForm((prev) => ({ ...prev, email: e.target.value }))}
+                        onChange={(event) => setLeadForm((prev) => ({ ...prev, email: event.target.value }))}
                         placeholder="voce@email.com"
-                        disabled={isUnlocking}
+                        disabled={isCapturingLead}
                       />
                     </div>
 
@@ -478,17 +504,17 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
                         id="lead_whatsapp"
                         type="tel"
                         value={leadForm.whatsapp}
-                        onChange={(e) => setLeadForm((prev) => ({
+                        onChange={(event) => setLeadForm((prev) => ({
                           ...prev,
-                          whatsapp: formatMobileWhatsApp(e.target.value),
+                          whatsapp: formatMobileWhatsApp(event.target.value),
                         }))}
                         placeholder="(11) 9 9999-9999"
                         inputMode="numeric"
-                        disabled={isUnlocking}
+                        disabled={isCapturingLead}
                       />
                     </div>
 
-                    <div className="flex items-start gap-3 rounded-md border border-border/60 bg-muted/20 p-3">
+                    <div className="flex items-start gap-3 rounded-md border border-border/60 bg-background p-3">
                       <Checkbox
                         id="lead_marketing_consent"
                         checked={leadForm.marketingConsent}
@@ -496,12 +522,12 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
                           ...prev,
                           marketingConsent: checked === true,
                         }))}
-                        disabled={isUnlocking}
+                        disabled={isCapturingLead}
                         className="mt-0.5"
                       />
                       <Label
                         htmlFor="lead_marketing_consent"
-                        className="text-xs leading-5 text-muted-foreground cursor-pointer"
+                        className="cursor-pointer text-xs leading-5 text-muted-foreground"
                       >
                         Aceito receber conteúdos e ofertas por email. *
                       </Label>
@@ -514,49 +540,33 @@ export function CalculatorForm({ isLoggedIn }: CalculatorFormProps) {
                     <div className="flex gap-2">
                       <Button
                         type="button"
+                        variant="ghost"
+                        className="flex-1"
+                        disabled={isCapturingLead}
                         onClick={() => {
+                          setHasCapturedLead(hasValidLeadData(leadForm));
                           setShowLeadForm(false);
                           setLeadError(null);
                         }}
-                        variant="ghost"
-                        className="flex-1"
-                        disabled={isUnlocking}
                       >
-                        Cancelar
+                        Agora não
                       </Button>
                       <Button
                         type="button"
-                        onClick={() => {
-                          void submitLeadCapture();
-                        }}
                         className="flex-1"
-                        disabled={isUnlocking || !leadForm.marketingConsent}
+                        disabled={isCapturingLead}
+                        onClick={() => {
+                          void handleLeadCapture();
+                        }}
                       >
-                        {isUnlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Liberar relatorio
+                        {isCapturingLead && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Salvar contato
                       </Button>
                     </div>
                   </div>
                 )}
               </div>
             )}
-
-            <div className="mt-6 pt-6 border-t border-border">
-              <Button
-                onClick={handleSave}
-                disabled={isSaving || !canSave}
-                className="w-full"
-                size="lg"
-              >
-                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {getSaveButtonText(isSaving, isLoggedIn)}
-              </Button>
-              {!canSave && basicOutputs?.is_partial && (
-                <p className="mt-2 text-xs text-muted-foreground text-center">
-                  Preencha preço de compra e venda para salvar
-                </p>
-              )}
-            </div>
           </CardContent>
         </Card>
       </div>

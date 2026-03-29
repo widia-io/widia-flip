@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import {
+  CalculatorLeadCaptureResponseSchema,
   PublicCalculatorLeadRequestSchema,
   PublicCalculatorLeadResponseSchema,
 } from "@widia/shared";
@@ -45,8 +46,8 @@ export async function POST(request: Request) {
 
     if (!res.ok) {
       const text = await res.text();
-      console.error("[calculator/report] Go API error:", text);
-      let message = "Failed to unlock full report";
+      console.error("[calculator/lead] Go API error:", text);
+      let message = "Failed to capture lead";
       try {
         const parsedError = JSON.parse(text) as {
           error?: { message?: string };
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
           message = parsedError.error.message;
         }
       } catch {
-        // Keep default message
+        // Keep default message.
       }
       return NextResponse.json(
         {
@@ -72,14 +73,14 @@ export async function POST(request: Request) {
     const parsedResponse = PublicCalculatorLeadResponseSchema.safeParse(data);
     if (!parsedResponse.success) {
       console.error(
-        "[calculator/report] Invalid Go API response:",
+        "[calculator/lead] Invalid Go API response:",
         parsedResponse.error.flatten(),
       );
       return NextResponse.json(
         {
           error: {
             code: "LEAD_CAPTURE_ERROR",
-            message: "Invalid report response",
+            message: "Invalid lead response",
           },
         },
         { status: 502 },
@@ -95,16 +96,14 @@ export async function POST(request: Request) {
         marketing_consent: parsed.data.marketingConsent,
       },
     });
-    await trackServerEvent(request, {
-      event: EVENTS.FULL_REPORT_UNLOCKED,
-      properties: {
-        lead_id: parsedResponse.data.lead_id,
-      },
-    });
 
-    return NextResponse.json(parsedResponse.data);
+    return NextResponse.json(
+      CalculatorLeadCaptureResponseSchema.parse({
+        lead_id: parsedResponse.data.lead_id,
+      }),
+    );
   } catch (error) {
-    console.error("[calculator/report] Error:", error);
+    console.error("[calculator/lead] Error:", error);
     return NextResponse.json(
       {
         error: {

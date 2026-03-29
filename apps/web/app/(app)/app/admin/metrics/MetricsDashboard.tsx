@@ -74,6 +74,11 @@ function formatFunnelRate(value: number, funnel: AdminFunnelDailyResponse): stri
 function hasDuplicateDelta(counts: AdminFunnelCounts): boolean {
   return (
     counts.homeViews > 0 ||
+    counts.calculatorViews > 0 ||
+    counts.calculatorCompleted > 0 ||
+    counts.calculatorLeadCaptureSubmitted > 0 ||
+    counts.calculatorSignupStarted > 0 ||
+    counts.calculatorPropertySaved > 0 ||
     counts.signupStarted > 0 ||
     counts.signupCompleted > 0 ||
     counts.loginCompleted > 0 ||
@@ -367,11 +372,35 @@ export function MetricsDashboard({ metrics, funnel }: Props) {
             </div>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Home → Signup Start</div>
               <div className="mt-1 text-lg font-semibold">
                 {formatFunnelRate(funnel.rates.homeToSignupStartPct, funnel)}
+              </div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Calc View → Completo</div>
+              <div className="mt-1 text-lg font-semibold">
+                {formatFunnelRate(funnel.rates.calculatorViewToCompletedPct, funnel)}
+              </div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Calc Completo → Lead</div>
+              <div className="mt-1 text-lg font-semibold">
+                {formatFunnelRate(funnel.rates.calculatorCompletedToLeadPct, funnel)}
+              </div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Calc Completo → Signup</div>
+              <div className="mt-1 text-lg font-semibold">
+                {formatFunnelRate(funnel.rates.calculatorCompletedToSignupPct, funnel)}
+              </div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Calc Completo → Salvo</div>
+              <div className="mt-1 text-lg font-semibold">
+                {formatFunnelRate(funnel.rates.calculatorCompletedToSavePct, funnel)}
               </div>
             </div>
             <div className="rounded-lg border p-3">
@@ -418,10 +447,30 @@ export function MetricsDashboard({ metrics, funnel }: Props) {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-11">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Home Views</div>
               <div className="mt-1 text-xl font-semibold">{funnel.totals.homeViews}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Calc: Views</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.calculatorViews}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Calc: Completo</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.calculatorCompleted}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Calc: Lead</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.calculatorLeadCaptureSubmitted}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Calc: Signup</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.calculatorSignupStarted}</div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Calc: Salvo</div>
+              <div className="mt-1 text-xl font-semibold">{funnel.totals.calculatorPropertySaved}</div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Signup Started</div>
@@ -438,14 +487,6 @@ export function MetricsDashboard({ metrics, funnel }: Props) {
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">1º Snapshot</div>
               <div className="mt-1 text-xl font-semibold">{funnel.totals.firstSnapshotSaved}</div>
-            </div>
-            <div className="rounded-lg border p-3">
-              <div className="text-xs text-muted-foreground">Calc: Relatório</div>
-              <div className="mt-1 text-xl font-semibold">{funnel.totals.calculatorFullReportRequested}</div>
-            </div>
-            <div className="rounded-lg border p-3">
-              <div className="text-xs text-muted-foreground">Calc: Salvar</div>
-              <div className="mt-1 text-xl font-semibold">{funnel.totals.calculatorSaveClicked}</div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Oferta: Gerado</div>
@@ -479,12 +520,17 @@ export function MetricsDashboard({ metrics, funnel }: Props) {
                 <TableBody>
                   {[
                     ["Home Views", funnel.totals.homeViews, funnel.rawTotals.homeViews, funnel.duplicateDeltas.homeViews],
+                    ["Calc Views", funnel.totals.calculatorViews, funnel.rawTotals.calculatorViews, funnel.duplicateDeltas.calculatorViews],
+                    ["Calc Completo", funnel.totals.calculatorCompleted, funnel.rawTotals.calculatorCompleted, funnel.duplicateDeltas.calculatorCompleted],
+                    ["Calc Lead", funnel.totals.calculatorLeadCaptureSubmitted, funnel.rawTotals.calculatorLeadCaptureSubmitted, funnel.duplicateDeltas.calculatorLeadCaptureSubmitted],
+                    ["Calc Signup", funnel.totals.calculatorSignupStarted, funnel.rawTotals.calculatorSignupStarted, funnel.duplicateDeltas.calculatorSignupStarted],
+                    ["Calc Salvo", funnel.totals.calculatorPropertySaved, funnel.rawTotals.calculatorPropertySaved, funnel.duplicateDeltas.calculatorPropertySaved],
                     ["Signup Started", funnel.totals.signupStarted, funnel.rawTotals.signupStarted, funnel.duplicateDeltas.signupStarted],
                     ["Signup Completed", funnel.totals.signupCompleted, funnel.rawTotals.signupCompleted, funnel.duplicateDeltas.signupCompleted],
                     ["Login Completed", funnel.totals.loginCompleted, funnel.rawTotals.loginCompleted, funnel.duplicateDeltas.loginCompleted],
                     ["1º Snapshot", funnel.totals.firstSnapshotSaved, funnel.rawTotals.firstSnapshotSaved, funnel.duplicateDeltas.firstSnapshotSaved],
-                    ["Calc Relatório", funnel.totals.calculatorFullReportRequested, funnel.rawTotals.calculatorFullReportRequested, funnel.duplicateDeltas.calculatorFullReportRequested],
-                    ["Calc Salvar", funnel.totals.calculatorSaveClicked, funnel.rawTotals.calculatorSaveClicked, funnel.duplicateDeltas.calculatorSaveClicked],
+                    ["Calc Relatório (legado)", funnel.totals.calculatorFullReportRequested, funnel.rawTotals.calculatorFullReportRequested, funnel.duplicateDeltas.calculatorFullReportRequested],
+                    ["Calc Click Save (diag)", funnel.totals.calculatorSaveClicked, funnel.rawTotals.calculatorSaveClicked, funnel.duplicateDeltas.calculatorSaveClicked],
                     ["Oferta Gerado", funnel.totals.offerIntelligenceGenerated, funnel.rawTotals.offerIntelligenceGenerated, funnel.duplicateDeltas.offerIntelligenceGenerated],
                     ["Oferta Salvo", funnel.totals.offerIntelligenceSaved, funnel.rawTotals.offerIntelligenceSaved, funnel.duplicateDeltas.offerIntelligenceSaved],
                     ["Oferta Paywall", funnel.totals.offerIntelligencePaywallViewed, funnel.rawTotals.offerIntelligencePaywallViewed, funnel.duplicateDeltas.offerIntelligencePaywallViewed],
@@ -504,19 +550,22 @@ export function MetricsDashboard({ metrics, funnel }: Props) {
 
           <div className="rounded-md border">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Home</TableHead>
-                  <TableHead>Signup Start</TableHead>
-                  <TableHead>Signup Complete</TableHead>
-                  <TableHead>Login</TableHead>
-                  <TableHead>1º Snapshot</TableHead>
-                  <TableHead>Calc Relatório</TableHead>
-                  <TableHead>Calc Salvar</TableHead>
-                  <TableHead>Oferta Gerado</TableHead>
-                  <TableHead>Oferta Salvo</TableHead>
-                  <TableHead>Oferta Paywall</TableHead>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Home</TableHead>
+                    <TableHead>Calc Views</TableHead>
+                    <TableHead>Calc Completo</TableHead>
+                    <TableHead>Calc Lead</TableHead>
+                    <TableHead>Calc Signup</TableHead>
+                    <TableHead>Calc Salvo</TableHead>
+                    <TableHead>Signup Start</TableHead>
+                    <TableHead>Signup Complete</TableHead>
+                    <TableHead>Login</TableHead>
+                    <TableHead>1º Snapshot</TableHead>
+                    <TableHead>Oferta Gerado</TableHead>
+                    <TableHead>Oferta Salvo</TableHead>
+                    <TableHead>Oferta Paywall</TableHead>
                   <TableHead>Oferta Upgrade CTA</TableHead>
                 </TableRow>
               </TableHeader>
@@ -525,12 +574,15 @@ export function MetricsDashboard({ metrics, funnel }: Props) {
                   <TableRow key={row.date}>
                     <TableCell>{row.date}</TableCell>
                     <TableCell>{row.homeViews}</TableCell>
+                    <TableCell>{row.calculatorViews}</TableCell>
+                    <TableCell>{row.calculatorCompleted}</TableCell>
+                    <TableCell>{row.calculatorLeadCaptureSubmitted}</TableCell>
+                    <TableCell>{row.calculatorSignupStarted}</TableCell>
+                    <TableCell>{row.calculatorPropertySaved}</TableCell>
                     <TableCell>{row.signupStarted}</TableCell>
                     <TableCell>{row.signupCompleted}</TableCell>
                     <TableCell>{row.loginCompleted}</TableCell>
                     <TableCell>{row.firstSnapshotSaved}</TableCell>
-                    <TableCell>{row.calculatorFullReportRequested}</TableCell>
-                    <TableCell>{row.calculatorSaveClicked}</TableCell>
                     <TableCell>{row.offerIntelligenceGenerated}</TableCell>
                     <TableCell>{row.offerIntelligenceSaved}</TableCell>
                     <TableCell>{row.offerIntelligencePaywallViewed}</TableCell>

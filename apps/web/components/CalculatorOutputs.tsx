@@ -1,16 +1,16 @@
 "use client";
 
-import type { CashOutputs, PublicCashBasicOutputs } from "@widia/shared";
+import type { CashOutputs } from "@widia/shared";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 type CalculatorOutputsProps =
   | {
       mode: "basic";
-      outputs: PublicCashBasicOutputs;
+      outputs: CashOutputs;
     }
   | {
-      mode?: "full";
+      mode: "full";
       outputs: CashOutputs;
     };
 

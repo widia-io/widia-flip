@@ -53,7 +53,7 @@
 * **Current Checkpoint:** `CP-17 — Market Data SP (Tabela MVP) — ALCANÇADO`
 * **Milestone em andamento:** `WID-39 — Plano Grátis + Reset de Trial (execução pós-MVP) — ENTREGUE`
 * **Próximo milestone (planejado):** `M17 — Market Data SP (Mapa Geográfico)`
-* **Última atualização:** `2026-03-25`
+* **Última atualização:** `2026-03-28`
 
 ## 1.2 Milestones (visão macro)
 
@@ -438,6 +438,14 @@ Deve existir:
 * ✅ W39.5 Paywall + Oferta Inteligente: `free` entra no cohort limitado de ativação; CTA de upgrade passa a começar em `starter`
 * ✅ W39.6 Web copy/UI: home, pricing, login/signup, billing, paywall, badges e onboarding migrados para a mensagem “começar grátis”
 * ✅ W39.7 Validação: `go test ./services/api/internal/httpapi/...`, `npm run typecheck:web` e `npm run build:web`
+
+### WID-40 — Simplificar calculadora: relatório completo sem captura obrigatória
+
+* ✅ W40.1 Shared + Go API: cálculo público passa a retornar `CashOutputs` completo em `/api/v1/public/cash-calc`, preservando `roi/is_partial`
+* ✅ W40.2 Web calculadora: remoção do gating de relatório, breakdown completo automático quando `is_partial=false` e CTA principal mantido em `Salvar análise`
+* ✅ W40.3 Lead capture opcional: nova rota BFF `POST /api/calculator/lead`, formulário secundário pós-valor e remoção do route handler legado `/api/calculator/report`
+* ✅ W40.4 Tracking + Admin: evento `calculator_completed`, novos KPIs oficiais da calculadora (`views`, `completed`, `lead`, `signup`, `saved`) e legado de `calculator_full_report_requested` mantido apenas como diagnóstico
+* ✅ W40.5 Docs + hardening: atualização de `docs/FUNNEL_KPI_DEFINITIONS.md`, copy do admin de leads e cobertura com `go test ./services/api/internal/httpapi/...`, `npm run typecheck:web`, `npm run lint:web`, `npm run build:web`
 
 ### M14 — Blog Público + SEO Content Engine
 
@@ -1288,6 +1296,7 @@ cd apps/web && npm run dev  # Next em http://localhost:3000 (terminal 2)
 * `CP-17` — 2026-03-04 — Estabilização de testes da API + estilo Go: suíte `go test ./...` voltou a verde após atualizar testes de `market_ingest` e `offer_intelligence` para os contratos atuais, e `gofmt` aplicado nos arquivos pendentes do serviço `api`.
 * `CP-17` — 2026-03-25 — WID-38 entregue: saneamento do funil com owner único por evento, helper server-safe no Next para tracking/forward de contexto, Oferta Inteligente reaproveitando `session_id/request_id/path/device`, admin usando jornadas únicas (`rawTotals`, `duplicateDeltas`, `warnings`) e definições oficiais documentadas em `docs/FUNNEL_KPI_DEFINITIONS.md`.
 * `CP-17` — 2026-03-25 — WID-39 entregue: novo tier `free` (`1` workspace, `5` prospects, `1` snapshot, `1` doc, `5` imports URL, `25MB`, `0` suppliers), fim do lazy-create em `pro trial`, checkout pago-only (`starter/pro/growth`), `is_subscribed=false` para `free`, gating/paywall da Oferta Inteligente incluindo `free`, cópia comercial migrada para “começar grátis” e validação concluída com `go test ./services/api/internal/httpapi/...`, `npm run typecheck:web` e `npm run build:web`.
+* `CP-17` — 2026-03-28 — WID-40 entregue: calculadora pública agora libera o relatório detalhado sem gating de lead, captura opcional segue em `/api/calculator/lead`, evento `calculator_completed` vira etapa oficial no admin funnel e o legado de `calculator_full_report_requested` fica apenas como diagnóstico.
 
 ---
 

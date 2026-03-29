@@ -847,7 +847,7 @@ export const PublicCashCalcResponseSchema = z.object({
     other_costs: z.number().nullable(),
     sale_price: z.number().nullable(),
   }),
-  outputs: PublicCashBasicOutputsSchema,
+  outputs: CashOutputsSchema,
 });
 export type PublicCashCalcResponse = z.infer<typeof PublicCashCalcResponseSchema>;
 
@@ -887,6 +887,11 @@ export const PublicCalculatorLeadResponseSchema = z.object({
   outputs: CashOutputsSchema,
 });
 export type PublicCalculatorLeadResponse = z.infer<typeof PublicCalculatorLeadResponseSchema>;
+
+export const CalculatorLeadCaptureResponseSchema = z.object({
+  lead_id: z.string(),
+});
+export type CalculatorLeadCaptureResponse = z.infer<typeof CalculatorLeadCaptureResponseSchema>;
 
 // URL Scraper - Extração de dados de imóveis via URL
 
@@ -1941,6 +1946,11 @@ export type TrackFunnelEventResponse = z.infer<typeof TrackFunnelEventResponseSc
 export const AdminFunnelDailyItemSchema = z.object({
   date: z.string(),
   homeViews: z.number(),
+  calculatorViews: z.number(),
+  calculatorCompleted: z.number(),
+  calculatorLeadCaptureSubmitted: z.number(),
+  calculatorSignupStarted: z.number(),
+  calculatorPropertySaved: z.number(),
   signupStarted: z.number(),
   signupCompleted: z.number(),
   loginCompleted: z.number(),
@@ -1956,6 +1966,11 @@ export type AdminFunnelDailyItem = z.infer<typeof AdminFunnelDailyItemSchema>;
 
 export const AdminFunnelCountsSchema = z.object({
   homeViews: z.number(),
+  calculatorViews: z.number(),
+  calculatorCompleted: z.number(),
+  calculatorLeadCaptureSubmitted: z.number(),
+  calculatorSignupStarted: z.number(),
+  calculatorPropertySaved: z.number(),
   signupStarted: z.number(),
   signupCompleted: z.number(),
   loginCompleted: z.number(),
@@ -1971,6 +1986,10 @@ export type AdminFunnelCounts = z.infer<typeof AdminFunnelCountsSchema>;
 
 export const AdminFunnelDailyRatesSchema = z.object({
   homeToSignupStartPct: z.number(),
+  calculatorViewToCompletedPct: z.number(),
+  calculatorCompletedToLeadPct: z.number(),
+  calculatorCompletedToSignupPct: z.number(),
+  calculatorCompletedToSavePct: z.number(),
   signupStartToCompletePct: z.number(),
   signupCompleteToLoginPct: z.number(),
   loginToFirstSnapshotPct: z.number(),
